@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -9,6 +8,8 @@
 <meta name="theme-color" content="#0B1120">
 <title>Novus Scanner</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- Tesseract.js — runs entirely in the browser, no server needed -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 :root {
   --navy:      #0B1120;
@@ -40,631 +41,678 @@
 html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(--sans);overflow:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
 
 /* ── Screens ── */
-.screen{position:fixed;inset:0;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(–navy);}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(--navy);}
 .screen.hidden{display:none!important;}
 
-/* ════════════════════════════
-SCREEN 1 — BIN SETUP
-════════════════════════════ */
-#sBin{align-items:center;justify-content:center;padding:32px 24px 48px;overflow-y:auto;}
+/* ════════════
+   BIN SCREEN
+════════════ */
+#sBin{align-items:center;justify-content:center;padding:32px 24px 48px;overflow-y:auto;gap:0;}
+.logo-wrap{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 8px 28px rgba(59,130,246,0.2);margin-bottom:22px;flex-shrink:0;}
+.bin-title{font-size:24px;font-weight:700;color:var(--white);letter-spacing:-0.03em;text-align:center;margin-bottom:10px;}
+.bin-desc{font-size:13px;color:var(--text-2);text-align:center;line-height:1.65;max-width:290px;margin-bottom:28px;}
+.field-lbl{width:100%;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;}
+#binInput{width:100%;background:var(--navy-3);border:2px solid var(--border-2);border-radius:var(--radius-sm);padding:16px;font-family:var(--mono);font-size:20px;font-weight:700;color:var(--white);text-align:center;letter-spacing:0.12em;text-transform:uppercase;outline:none;margin-bottom:16px;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
+#binInput::placeholder{color:var(--text-3);font-weight:400;font-size:14px;letter-spacing:0;text-transform:none;}
+#binInput:focus{border-color:var(--blue);}
+#btnStart{width:100%;background:var(--blue);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;padding:16px;border-radius:var(--radius-sm);border:none;cursor:pointer;letter-spacing:-0.01em;box-shadow:0 4px 18px rgba(59,130,246,0.35);-webkit-appearance:none;appearance:none;}
+#btnStart:active{opacity:0.85;}
+#binErr{width:100%;margin-top:10px;padding:10px 14px;background:var(--red-dim);border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);font-size:12px;color:var(--red);text-align:center;display:none;}
 
-.logo-wrap{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,var(–blue),var(–teal));display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 8px 28px rgba(59,130,246,0.2);margin-bottom:22px;flex-shrink:0;}
-.bin-title{font-size:24px;font-weight:700;color:var(–white);letter-spacing:-0.03em;text-align:center;margin-bottom:10px;}
-.bin-desc{font-size:13px;color:var(–text-2);text-align:center;line-height:1.65;max-width:290px;margin-bottom:28px;}
+/* ════════════
+   CAMERA SCREEN
+════════════ */
+#sCam{background:#000;}
+#camVideo{width:100%;height:100%;object-fit:cover;display:block;flex:1;}
+.cam-hdr{position:absolute;top:0;left:0;right:0;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;z-index:20;background:linear-gradient(to bottom,rgba(11,17,32,0.9),transparent);}
+.cam-hdr-title{font-size:13px;font-weight:600;color:var(--white);}
+.cam-hdr-bin{font-family:var(--mono);font-size:11px;color:var(--amber);background:rgba(245,158,11,0.15);border:1px solid var(--amber-bdr);padding:4px 10px;border-radius:20px;}
 
-.field-lbl{width:100%;font-family:var(–mono);font-size:10px;font-weight:500;color:var(–text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;}
+/* Viewfinder overlay */
+.cam-vf{position:absolute;inset:0;z-index:10;pointer-events:none;display:flex;align-items:center;justify-content:center;}
+.cam-box{width:82%;height:52%;border-radius:10px;border:2px solid rgba(255,255,255,0.5);position:relative;box-shadow:0 0 0 2000px rgba(0,0,0,0.45);}
+.cam-corner{position:absolute;width:20px;height:20px;}
+.cam-corner::before,.cam-corner::after{content:'';position:absolute;background:#fff;border-radius:1px;}
+.cc-tl{top:-1px;left:-1px;}.cc-tl::before{top:0;left:0;width:100%;height:3px;}.cc-tl::after{top:0;left:0;width:3px;height:100%;}
+.cc-tr{top:-1px;right:-1px;}.cc-tr::before{top:0;right:0;width:100%;height:3px;}.cc-tr::after{top:0;right:0;width:3px;height:100%;}
+.cc-bl{bottom:-1px;left:-1px;}.cc-bl::before{bottom:0;left:0;width:100%;height:3px;}.cc-bl::after{bottom:0;left:0;width:3px;height:100%;}
+.cc-br{bottom:-1px;right:-1px;}.cc-br::before{bottom:0;right:0;width:100%;height:3px;}.cc-br::after{bottom:0;right:0;width:3px;height:100%;}
+.cam-hint{position:absolute;bottom:90px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.5);font-family:var(--mono);letter-spacing:0.05em;}
+.cam-bar{position:absolute;bottom:0;left:0;right:0;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));background:linear-gradient(to top,rgba(11,17,32,0.95),transparent);display:flex;gap:10px;z-index:20;}
+.cam-btn-capture{flex:2;background:var(--blue);color:#fff;font-family:var(--sans);font-size:14px;font-weight:600;padding:14px;border-radius:var(--radius-sm);border:none;cursor:pointer;box-shadow:0 4px 16px rgba(59,130,246,0.4);-webkit-appearance:none;appearance:none;}
+.cam-btn-capture:active{opacity:0.85;}
+.cam-btn-back{flex:1;background:rgba(28,42,58,0.9);color:var(--text-2);font-family:var(--sans);font-size:13px;font-weight:500;padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border-2);cursor:pointer;-webkit-appearance:none;appearance:none;}
 
-#binInput{
-width:100%;background:var(–navy-3);border:2px solid var(–border-2);
-border-radius:var(–radius-sm);padding:16px;
-font-family:var(–mono);font-size:20px;font-weight:700;
-color:var(–white);text-align:center;letter-spacing:0.12em;text-transform:uppercase;
-outline:none;margin-bottom:16px;transition:border-color 0.15s;
-/* iOS fix */
--webkit-appearance:none;appearance:none;
-}
-#binInput::placeholder{color:var(–text-3);font-weight:400;font-size:14px;letter-spacing:0;text-transform:none;}
-#binInput:focus{border-color:var(–blue);}
+/* ════════════
+   PROCESSING SCREEN
+════════════ */
+#sProcess{align-items:center;justify-content:center;gap:20px;padding:40px 24px;}
+.proc-icon{font-size:48px;animation:spin 2s linear infinite;}
+@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+.proc-title{font-size:18px;font-weight:600;color:var(--white);letter-spacing:-0.02em;}
+.proc-desc{font-size:13px;color:var(--text-2);text-align:center;line-height:1.6;max-width:260px;}
+.proc-bar-wrap{width:100%;max-width:280px;height:4px;background:var(--navy-3);border-radius:2px;overflow:hidden;}
+.proc-bar{height:100%;background:var(--blue);border-radius:2px;width:0%;transition:width 0.3s ease;}
 
-#btnStartScanning{
-width:100%;background:var(–blue);color:#fff;
-font-family:var(–sans);font-size:15px;font-weight:600;
-padding:16px;border-radius:var(–radius-sm);border:none;
-cursor:pointer;letter-spacing:-0.01em;margin-bottom:16px;
-box-shadow:0 4px 18px rgba(59,130,246,0.35);
-/* iOS fix — ensure button is tappable */
--webkit-appearance:none;appearance:none;
-position:relative;z-index:1;
-}
-#btnStartScanning:active{opacity:0.85;}
+/* ════════════
+   RESULTS SCREEN
+════════════ */
+#sResults{background:var(--navy);}
+.res-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.res-hdr-left{display:flex;align-items:center;gap:10px;}
+.res-hdr-title{font-size:14px;font-weight:600;color:var(--white);}
+.res-hdr-bin{font-family:var(--mono);font-size:11px;color:var(--amber);background:var(--amber-dim);border:1px solid var(--amber-bdr);padding:3px 9px;border-radius:20px;}
+.res-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.res-scroll::-webkit-scrollbar{display:none;}
 
-.or-row{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:16px;}
-.or-line{flex:1;height:1px;background:var(–border-2);}
-.or-txt{font-family:var(–mono);font-size:10px;color:var(–text-3);text-transform:uppercase;letter-spacing:0.1em;}
+/* Thumbnail */
+.res-thumb{width:100%;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border-2);flex-shrink:0;position:relative;}
+.res-thumb img{width:100%;display:block;max-height:140px;object-fit:cover;}
+.res-thumb-label{position:absolute;bottom:0;left:0;right:0;padding:6px 10px;background:linear-gradient(to top,rgba(11,17,32,0.9),transparent);font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.08em;}
 
-#btnScanBin{
-width:100%;display:flex;align-items:center;gap:14px;
-background:var(–blue-dim);border:1px solid rgba(59,130,246,0.25);
-border-radius:var(–radius);padding:14px 16px;
-cursor:pointer;-webkit-appearance:none;appearance:none;
-}
-#btnScanBin:active{background:rgba(59,130,246,0.2);}
-.sbi{width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.sbt{font-size:13px;font-weight:600;color:var(–white);margin-bottom:3px;}
-.sbs{font-size:11px;color:var(–text-2);}
+/* Section label */
+.sec-lbl{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:2px;}
 
-#binError{width:100%;margin-top:12px;padding:10px 14px;background:var(–red-dim);border:1px solid rgba(239,68,68,0.3);border-radius:var(–radius-sm);font-size:12px;color:var(–red);text-align:center;display:none;}
+/* Editable field */
+.efield{background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.efield-top{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--border);}
+.efield-name{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.1em;}
+.efield-status{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
+.es-read{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.25);}
+.es-low{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-bdr);}
+.es-miss{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+.efield-input{width:100%;background:transparent;border:none;outline:none;padding:10px 13px;font-family:var(--mono);font-size:16px;font-weight:600;color:var(--white);letter-spacing:0.02em;-webkit-appearance:none;appearance:none;}
+.efield-input::placeholder{color:var(--text-3);font-weight:400;font-size:13px;letter-spacing:0;}
+.efield-input:focus{background:rgba(59,130,246,0.05);}
 
-/* ════════════════════════════
-SCREEN 2 — BIN CAM SCAN
-════════════════════════════ */
-#sBinCam{background:#000;}
-#binVideo{width:100%;height:100%;object-fit:cover;display:block;}
-.bincam-hdr{position:absolute;top:0;left:0;right:0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;z-index:20;background:linear-gradient(to bottom,rgba(11,17,32,0.85),transparent);}
-.bincam-title{font-size:14px;font-weight:600;color:var(–white);}
-.bincam-cancel{font-family:var(–mono);font-size:12px;color:var(–text-2);background:rgba(28,42,58,0.85);border:1px solid var(–border-2);padding:6px 14px;border-radius:20px;cursor:pointer;}
-.bincam-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:75%;height:110px;border:2px solid rgba(245,158,11,0.85);border-radius:8px;box-shadow:0 0 0 2000px rgba(0,0,0,0.5);}
-.bincam-laser{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(–amber),transparent);box-shadow:0 0 8px var(–amber);animation:lz 1.8s ease-in-out infinite;}
-@keyframes lz{0%{top:5%;opacity:0;}8%{opacity:1;}92%{opacity:1;}100%{top:95%;opacity:0;}}
-.bincam-hint{position:absolute;bottom:80px;left:0;right:0;text-align:center;font-size:12px;color:rgba(255,255,255,0.55);font-family:var(–mono);}
+/* 2-col grid */
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
-/* ════════════════════════════
-SCREEN 3 — SCANNER
-════════════════════════════ */
-#sScanner{}
+/* Confidence bar */
+.conf-row{display:flex;align-items:center;gap:8px;padding:0 13px 10px;}
+.conf-bar-wrap{flex:1;height:3px;background:var(--navy-3);border-radius:2px;}
+.conf-bar{height:100%;border-radius:2px;transition:width 0.3s;}
+.conf-label{font-family:var(--mono);font-size:9px;color:var(--text-3);}
 
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;}
-.hdr-l{display:flex;align-items:center;gap:10px;}
-.lm{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(–blue),var(–teal));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 4px 12px rgba(59,130,246,0.2);}
-.an{font-size:14px;font-weight:600;color:var(–white);letter-spacing:-0.01em;line-height:1.2;}
-.as{font-size:10px;color:var(–text-3);letter-spacing:0.04em;text-transform:uppercase;font-family:var(–mono);margin-top:1px;}
-.hdr-r{display:flex;align-items:center;gap:8px;}
-.chip{font-family:var(–mono);font-size:11px;font-weight:500;color:var(–text-2);background:var(–navy-3);border:1px solid var(–border);padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
-.chip .n{color:var(–blue);font-weight:600;}
-.ibtn{width:34px;height:34px;border-radius:var(–radius-sm);background:var(–navy-3);border:1px solid var(–border);display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.ibtn:active{background:var(–navy-4);}
+/* Retry notice */
+.retry-notice{background:var(--amber-dim);border:1px solid var(--amber-bdr);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--text-2);line-height:1.5;}
+.retry-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
 
-.bin-bar{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;background:var(–amber-dim);border-bottom:1px solid var(–amber-bdr);flex-shrink:0;cursor:pointer;}
-.bin-bar:active{background:rgba(245,158,11,0.22);}
-.bin-bar-l{display:flex;align-items:center;gap:8px;}
-.bin-lbl{font-family:var(–mono);font-size:9px;font-weight:500;color:var(–amber);text-transform:uppercase;letter-spacing:0.1em;opacity:0.8;line-height:1;margin-bottom:2px;}
-.bin-val{font-family:var(–mono);font-size:15px;font-weight:700;color:var(–white);letter-spacing:0.05em;}
-.bin-chg{font-family:var(–mono);font-size:10px;color:var(–amber);opacity:0.7;}
-
-.vf{position:relative;background:#000;flex-shrink:0;overflow:hidden;}
-#video{width:100%;height:190px;object-fit:cover;display:block;}
-.vfm{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(11,17,32,0.6) 0%,transparent 25%,transparent 75%,rgba(11,17,32,0.6) 100%);pointer-events:none;z-index:5;}
-.vft{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:60%;pointer-events:none;z-index:10;}
-.c{position:absolute;width:24px;height:24px;}.c::before,.c::after{content:’’;position:absolute;background:#fff;border-radius:1px;}
-.c-tl{top:0;left:0;}.c-tl::before{top:0;left:0;width:100%;height:2.5px;}.c-tl::after{top:0;left:0;width:2.5px;height:100%;}
-.c-tr{top:0;right:0;}.c-tr::before{top:0;right:0;width:100%;height:2.5px;}.c-tr::after{top:0;right:0;width:2.5px;height:100%;}
-.c-bl{bottom:0;left:0;}.c-bl::before{bottom:0;left:0;width:100%;height:2.5px;}.c-bl::after{bottom:0;left:0;width:2.5px;height:100%;}
-.c-br{bottom:0;right:0;}.c-br::before{bottom:0;right:0;width:100%;height:2.5px;}.c-br::after{bottom:0;right:0;width:2.5px;height:100%;}
-.laser{position:absolute;left:4%;right:4%;height:1.5px;background:linear-gradient(90deg,transparent,rgba(59,130,246,0.6) 15%,var(–blue) 50%,rgba(59,130,246,0.6) 85%,transparent);box-shadow:0 0 6px 1px rgba(59,130,246,0.5);animation:lz2 2s ease-in-out infinite;border-radius:1px;}
-@keyframes lz2{0%{top:8%;opacity:0;}8%{opacity:1;}92%{opacity:1;}100%{top:92%;opacity:0;}}
-.campill{position:absolute;top:8px;left:10px;z-index:20;display:flex;align-items:center;gap:5px;background:rgba(11,17,32,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.08);padding:4px 9px 4px 7px;border-radius:20px;}
-.ldot{width:6px;height:6px;border-radius:50%;background:var(–green);box-shadow:0 0 6px var(–green);animation:lp 2s infinite;}
-@keyframes lp{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.6;transform:scale(0.85);}}
-.clbl{font-family:var(–mono);font-size:9px;font-weight:500;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;}
-
-.steps{display:flex;align-items:center;padding:11px 20px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;gap:0;}
-.si{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;position:relative;}
-.si:not(:last-child)::after{content:’’;position:absolute;top:13px;left:calc(50% + 13px);right:calc(-50% + 13px);height:1px;background:var(–border-2);transition:background 0.4s;}
-.si.done:not(:last-child)::after{background:var(–blue);}
-.sc{width:26px;height:26px;border-radius:50%;border:1.5px solid var(–border-2);background:var(–navy-3);display:flex;align-items:center;justify-content:center;font-family:var(–mono);font-size:10px;font-weight:600;color:var(–text-3);transition:all 0.3s;flex-shrink:0;z-index:1;}
-.si.active .sc{border-color:var(–blue);background:var(–blue-dim);color:var(–blue);box-shadow:0 0 0 3px rgba(59,130,246,0.15);}
-.si.done   .sc{border-color:var(–blue);background:var(–blue);color:#fff;font-size:11px;}
-.si.skip   .sc{border-color:var(–text-3);color:var(–text-3);}
-.sn{font-size:9px;font-weight:500;color:var(–text-3);text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;font-family:var(–mono);transition:color 0.3s;}
-.si.active .sn{color:var(–blue);}
-.si.done   .sn{color:var(–text-2);}
-
-.content{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.content::-webkit-scrollbar{display:none;}
-
-.pc{background:var(–blue-dim);border:1px solid rgba(59,130,246,0.2);border-radius:var(–radius);padding:13px 15px;display:flex;align-items:center;gap:12px;transition:background 0.3s,border-color 0.3s;}
-.pi{width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-.pt{font-size:13px;font-weight:600;color:var(–white);margin-bottom:3px;letter-spacing:-0.01em;}
-.pd{font-size:11.5px;color:var(–text-2);line-height:1.5;}
-
-.card{background:var(–navy-2);border:1px solid var(–border);border-radius:var(–radius);overflow:hidden;transition:border-color 0.25s;}
-.card.active{border-color:rgba(59,130,246,0.35);box-shadow:0 0 0 3px rgba(59,130,246,0.06);}
-.card.done{border-color:rgba(34,197,94,0.3);}
-.card.skip{border-color:var(–border);opacity:0.55;}
-.ct{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(–border);}
-.cl{display:flex;align-items:center;gap:7px;}
-.cd{width:6px;height:6px;border-radius:50%;background:var(–text-3);flex-shrink:0;transition:background 0.3s;}
-.card.active .cd{background:var(–blue);box-shadow:0 0 6px var(–blue);}
-.card.done   .cd{background:var(–green);}
-.cn{font-size:11px;font-weight:600;color:var(–text-2);text-transform:uppercase;letter-spacing:0.06em;font-family:var(–mono);}
-.pill{font-size:10px;font-weight:600;font-family:var(–mono);padding:3px 9px;border-radius:20px;letter-spacing:0.04em;text-transform:uppercase;}
-.pw{background:var(–navy-3);color:var(–text-3);border:1px solid var(–border);}
-.ps{background:var(–blue-dim);color:var(–blue);border:1px solid rgba(59,130,246,0.25);}
-.pd2{background:var(–green-dim);color:var(–green);border:1px solid rgba(34,197,94,0.25);}
-.psk{background:var(–navy-3);color:var(–text-3);border:1px solid var(–border);}
-.cb{padding:12px 14px;min-height:54px;display:flex;flex-direction:column;justify-content:center;}
-.cv{font-family:var(–mono);font-size:22px;font-weight:600;color:var(–white);letter-spacing:-0.02em;line-height:1.2;word-break:break-all;}
-.cv.ph{font-size:13px;font-weight:400;color:var(–text-3);font-family:var(–sans);letter-spacing:0;}
-.cts{margin-top:4px;font-family:var(–mono);font-size:10px;color:var(–text-3);}
-@keyframes sf{0%{background:rgba(34,197,94,0.18);}100%{background:var(–navy-2);}}
-.fg{animation:sf 0.6s ease forwards;}
-
-.abar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(–navy-2);border-top:1px solid var(–border);flex-shrink:0;}
-.btn{font-family:var(–sans);font-size:13px;font-weight:600;border-radius:var(–radius-sm);border:none;cursor:pointer;padding:12px 10px;transition:opacity 0.15s,transform 0.1s;letter-spacing:-0.01em;text-align:center;line-height:1;-webkit-appearance:none;appearance:none;}
+.res-bar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--navy-2);border-top:1px solid var(--border);flex-shrink:0;}
+.btn{font-family:var(--sans);font-size:13px;font-weight:600;border-radius:var(--radius-sm);border:none;cursor:pointer;padding:13px 10px;letter-spacing:-0.01em;text-align:center;line-height:1;-webkit-appearance:none;appearance:none;}
 .btn:active{opacity:0.8;transform:scale(0.97);}
-.bm{flex:2;background:var(–blue);color:#fff;box-shadow:0 2px 12px rgba(59,130,246,0.3);}
-.bm.ok{background:var(–green);box-shadow:0 2px 12px rgba(34,197,94,0.3);}
-.bsk{flex:1;background:var(–navy-3);color:var(–text-2);border:1px solid var(–border);}
-.br{flex:1;background:var(–red-dim);color:var(–red);border:1px solid rgba(239,68,68,0.2);}
+.btn-save{flex:2;background:var(--green);color:#fff;box-shadow:0 2px 12px rgba(34,197,94,0.3);}
+.btn-retake{flex:1;background:var(--navy-3);color:var(--text-2);border:1px solid var(--border);}
+.btn-main{flex:1;background:var(--blue);color:#fff;}
 
-/* ════════════════════════════
-SCREEN 4 — LOG
-════════════════════════════ */
-#sLog{background:var(–navy);}
-.lhdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;}
-.lt{font-size:15px;font-weight:600;color:var(–white);letter-spacing:-0.01em;}
-.lac{display:flex;gap:8px;}
-.lbody{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.lbody::-webkit-scrollbar{display:none;}
-.le{background:var(–navy-2);border:1px solid var(–border);border-radius:var(–radius);padding:12px 14px;}
-.lr1{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.lhu{font-family:var(–mono);font-size:15px;font-weight:600;color:var(–white);letter-spacing:-0.02em;}
-.ltm{font-family:var(–mono);font-size:10px;color:var(–text-3);background:var(–navy-3);padding:3px 8px;border-radius:20px;border:1px solid var(–border);}
-.lgr{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
-.lf{background:var(–navy-3);border-radius:6px;padding:7px 9px;border:1px solid var(–border);}
-.lf.bf{border-color:var(–amber-bdr);background:var(–amber-dim);}
-.fll{font-family:var(–mono);font-size:9px;color:var(–text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
-.lf.bf .fll{color:var(–amber);opacity:0.8;}
-.flv{font-family:var(–mono);font-size:11px;font-weight:500;color:var(–text);word-break:break-all;}
-.lf.bf .flv{color:var(–amber);}
-.lem{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(–text-3);font-size:13px;padding:40px;text-align:center;}
+/* ════════════
+   SCANNER HEADER (shared)
+════════════ */
+.app-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.app-hdr-l{display:flex;align-items:center;gap:10px;}
+.lm{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 4px 12px rgba(59,130,246,0.2);}
+.an{font-size:14px;font-weight:600;color:var(--white);letter-spacing:-0.01em;line-height:1.2;}
+.asub{font-size:10px;color:var(--text-3);letter-spacing:0.04em;text-transform:uppercase;font-family:var(--mono);margin-top:1px;}
+.hdr-r{display:flex;align-items:center;gap:8px;}
+.chip{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text-2);background:var(--navy-3);border:1px solid var(--border);padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.chip .n{color:var(--blue);font-weight:600;}
+.ibtn{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--navy-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.ibtn:active{background:var(--navy-4);}
+
+/* ════════════
+   LOG SCREEN
+════════════ */
+#sLog{background:var(--navy);}
+.log-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.log-title{font-size:15px;font-weight:600;color:var(--white);letter-spacing:-0.01em;}
+.log-acts{display:flex;gap:8px;}
+.log-body{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.log-body::-webkit-scrollbar{display:none;}
+.le{background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.le-r1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px;}
+.le-hu{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--white);letter-spacing:-0.01em;}
+.le-tm{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--navy-3);padding:3px 8px;border-radius:20px;border:1px solid var(--border);white-space:nowrap;}
+.le-name{font-size:12px;color:var(--text-2);margin-bottom:8px;line-height:1.4;}
+.le-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.le-f{background:var(--navy-3);border-radius:6px;padding:6px 8px;border:1px solid var(--border);}
+.le-f.bf{border-color:var(--amber-bdr);background:var(--amber-dim);}
+.lfl{font-family:var(--mono);font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;}
+.le-f.bf .lfl{color:var(--amber);opacity:0.8;}
+.lfv{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);word-break:break-all;}
+.le-f.bf .lfv{color:var(--amber);}
+.log-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text-3);font-size:13px;padding:40px;text-align:center;}
 
 /* Toast */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(12px);background:var(–navy-3);border:1px solid var(–border-2);color:var(–text);font-family:var(–sans);font-size:12.5px;font-weight:500;padding:9px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--navy-3);border:1px solid var(--border-2);color:var(--text);font-family:var(--sans);font-size:12.5px;font-weight:500;padding:9px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
-
 </head>
 <body>
 
-<!-- SCREEN 1: BIN SETUP -->
-
+<!-- ══ BIN SETUP ══ -->
 <div class="screen" id="sBin">
   <div class="logo-wrap">⬡</div>
   <div class="bin-title">Which bin are you in?</div>
-  <div class="bin-desc">Set your bin location first. It stays active across all scans until you change it.</div>
+  <div class="bin-desc">Set your bin location first — it stays locked across all scans until you change it.</div>
   <div class="field-lbl">Bin Location</div>
-  <input id="binInput" type="text" placeholder="e.g. WE31A" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
-  <button id="btnStartScanning" onclick="confirmBin()">Start Scanning →</button>
-  <div class="or-row"><div class="or-line"></div><div class="or-txt">or scan the rack label</div><div class="or-line"></div></div>
-  <button id="btnScanBin" onclick="goToBinCam()">
-    <div class="sbi">📷</div>
-    <div><div class="sbt">Scan Bin Barcode</div><div class="sbs">Point at rack label (WE31A, WE31B…)</div></div>
-  </button>
-  <div id="binError">Please enter a bin location before continuing.</div>
+  <input id="binInput" type="text" placeholder="e.g. WE31A"
+    autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+  <button id="btnStart" onclick="confirmBin()">Start Scanning →</button>
+  <div id="binErr">Please enter a bin location before continuing.</div>
 </div>
 
-<!-- SCREEN 2: BIN CAM -->
-
-<div class="screen hidden" id="sBinCam">
-  <div class="bincam-hdr">
-    <div class="bincam-title">📍 Scan Bin Barcode</div>
-    <div class="bincam-cancel" onclick="cancelBinCam()">Cancel</div>
+<!-- ══ CAMERA ══ -->
+<div class="screen hidden" id="sCam">
+  <div class="cam-hdr">
+    <div class="cam-hdr-title">📷 Point at label — fill the frame</div>
+    <div class="cam-hdr-bin" id="camBinLabel">—</div>
   </div>
-  <video id="binVideo" autoplay muted playsinline webkit-playsinline></video>
-  <div class="bincam-box"><div class="bincam-laser"></div></div>
-  <div class="bincam-hint">Point at the rack label barcode</div>
+  <video id="camVideo" autoplay muted playsinline webkit-playsinline></video>
+  <canvas id="camCanvas" style="display:none"></canvas>
+  <div class="cam-vf">
+    <div class="cam-box">
+      <div class="cam-corner cc-tl"></div>
+      <div class="cam-corner cc-tr"></div>
+      <div class="cam-corner cc-bl"></div>
+      <div class="cam-corner cc-br"></div>
+    </div>
+  </div>
+  <div class="cam-hint">Hold steady — fill the box with the entire label</div>
+  <div class="cam-bar">
+    <button class="cam-btn-back" onclick="stopCamGoBack()">← Back</button>
+    <button class="cam-btn-capture" onclick="capturePhoto()">📸 Capture Label</button>
+  </div>
 </div>
 
-<!-- SCREEN 3: SCANNER -->
+<!-- ══ PROCESSING ══ -->
+<div class="screen hidden" id="sProcess">
+  <div class="proc-icon">🔍</div>
+  <div class="proc-title">Reading label…</div>
+  <div class="proc-desc" id="procDesc">Analyzing image with OCR. This takes a few seconds.</div>
+  <div class="proc-bar-wrap"><div class="proc-bar" id="procBar"></div></div>
+</div>
 
-<div class="screen hidden" id="sScanner">
-  <div class="hdr">
-    <div class="hdr-l">
-      <div class="lm">⬡</div>
-      <div><div class="an">Novus Scanner</div><div class="as">Plant 1730 · Buena Park</div></div>
+<!-- ══ RESULTS ══ -->
+<div class="screen hidden" id="sResults">
+  <div class="res-hdr">
+    <div class="res-hdr-left">
+      <div class="res-hdr-title">Review & Confirm</div>
     </div>
-    <div class="hdr-r">
-      <div class="chip">Session <span class="n" id="sessNum">0</span></div>
-      <div class="ibtn" onclick="goToLog()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <div class="res-hdr-bin" id="resBinLabel">—</div>
+  </div>
+  <div class="res-scroll" id="resScroll">
+
+    <!-- Thumbnail of captured image -->
+    <div class="res-thumb">
+      <img id="resThumb" src="" alt="Captured label">
+      <div class="res-thumb-label">Captured label — tap fields to correct</div>
+    </div>
+
+    <!-- Retry notice (shown if low confidence) -->
+    <div class="retry-notice hidden" id="retryNotice">
+      <div class="retry-icon">⚠️</div>
+      <div>Some fields have low confidence. Check highlighted fields and correct any errors before saving.</div>
+    </div>
+
+    <!-- HU Number -->
+    <div>
+      <div class="sec-lbl">HU Number</div>
+      <div class="efield">
+        <div class="efield-top">
+          <span class="efield-name">Handling Unit</span>
+          <span class="efield-status es-read" id="st-hu">Read</span>
+        </div>
+        <input class="efield-input" id="f-hu" type="text" placeholder="Not detected — enter manually" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="conf-row"><div class="conf-bar-wrap"><div class="conf-bar" id="cb-hu"></div></div><div class="conf-label" id="cl-hu"></div></div>
+      </div>
+    </div>
+
+    <!-- Item Name -->
+    <div>
+      <div class="sec-lbl">Item Description</div>
+      <div class="efield">
+        <div class="efield-top">
+          <span class="efield-name">Product Name</span>
+          <span class="efield-status es-read" id="st-name">Read</span>
+        </div>
+        <input class="efield-input" id="f-name" type="text" placeholder="Not detected" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="conf-row"><div class="conf-bar-wrap"><div class="conf-bar" id="cb-name"></div></div><div class="conf-label" id="cl-name"></div></div>
+      </div>
+    </div>
+
+    <!-- Material + Qty row -->
+    <div class="field-grid">
+      <div>
+        <div class="sec-lbl">Material #</div>
+        <div class="efield">
+          <div class="efield-top">
+            <span class="efield-name">Material</span>
+            <span class="efield-status es-read" id="st-mat">Read</span>
+          </div>
+          <input class="efield-input" id="f-mat" type="text" placeholder="—" autocomplete="off" autocorrect="off" spellcheck="false" style="font-size:14px;">
+          <div class="conf-row"><div class="conf-bar-wrap"><div class="conf-bar" id="cb-mat"></div></div><div class="conf-label" id="cl-mat"></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-lbl">Quantity + UoM</div>
+        <div class="efield">
+          <div class="efield-top">
+            <span class="efield-name">Qty</span>
+            <span class="efield-status es-read" id="st-qty">Read</span>
+          </div>
+          <input class="efield-input" id="f-qty" type="text" placeholder="—" autocomplete="off" autocorrect="off" spellcheck="false" style="font-size:14px;">
+          <div class="conf-row"><div class="conf-bar-wrap"><div class="conf-bar" id="cb-qty"></div></div><div class="conf-label" id="cl-qty"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiry + Batch row -->
+    <div class="field-grid">
+      <div>
+        <div class="sec-lbl">Expiry Date</div>
+        <div class="efield">
+          <div class="efield-top">
+            <span class="efield-name">Expiry</span>
+            <span class="efield-status es-read" id="st-exp">Read</span>
+          </div>
+          <input class="efield-input" id="f-exp" type="text" placeholder="—" autocomplete="off" autocorrect="off" spellcheck="false" style="font-size:14px;">
+          <div class="conf-row"><div class="conf-bar-wrap"><div class="conf-bar" id="cb-exp"></div></div><div class="conf-label" id="cl-exp"></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-lbl">Batch #</div>
+        <div class="efield">
+          <div class="efield-top">
+            <span class="efield-name">Batch</span>
+            <span class="efield-status es-read" id="st-bat">Read</span>
+          </div>
+          <input class="efield-input" id="f-bat" type="text" placeholder="—" autocomplete="off" autocorrect="off" spellcheck="false" style="font-size:14px;">
+          <div class="conf-row"><div class="conf-bar-wrap"><div class="conf-bar" id="cb-bat"></div></div><div class="conf-label" id="cl-bat"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="res-bar">
+    <button class="btn btn-retake" onclick="retake()">↩ Retake</button>
+    <button class="btn btn-save" onclick="saveEntry()">✓ Save to Log</button>
+  </div>
+</div>
+
+<!-- ══ LOG ══ -->
+<div class="screen hidden" id="sLog">
+  <div class="log-hdr">
+    <div class="log-title">Scan History</div>
+    <div class="log-acts">
+      <div class="ibtn" onclick="doExport()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div class="ibtn" onclick="doClear()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </div>
+      <div class="ibtn" onclick="show('sCam')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </div>
     </div>
   </div>
-  <div class="bin-bar" onclick="changeBin()">
-    <div class="bin-bar-l">
-      <span style="font-size:14px">📍</span>
-      <div><div class="bin-lbl">Active Bin</div><div class="bin-val" id="binVal">—</div></div>
-    </div>
-    <div class="bin-chg">Change →</div>
+  <div class="log-body" id="logBody">
+    <div class="log-empty"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div>
   </div>
-  <div class="vf">
-    <video id="video" autoplay muted playsinline webkit-playsinline></video>
-    <div class="vfm"></div>
-    <div class="vft">
-      <div class="c c-tl"></div><div class="c c-tr"></div>
-      <div class="c c-bl"></div><div class="c c-br"></div>
-      <div class="laser"></div>
-    </div>
-    <div class="campill">
-      <div class="ldot" id="ldot"></div>
-      <span class="clbl" id="clbl">Live</span>
-    </div>
+  <div style="display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--navy-2);border-top:1px solid var(--border);flex-shrink:0;">
+    <button class="btn btn-main" style="flex:1" onclick="show('sCam')">← Back to Scanner</button>
   </div>
-  <div class="steps">
-    <div class="si active" id="si1"><div class="sc" id="sc1">1</div><div class="sn">HU #</div></div>
-    <div class="si"        id="si2"><div class="sc" id="sc2">2</div><div class="sn">Material</div></div>
-    <div class="si"        id="si3"><div class="sc" id="sc3">3</div><div class="sn">Batch</div></div>
-  </div>
-  <div class="content" id="cnt">
-    <div class="pc" id="pc">
-      <div class="pi" id="pi">📦</div>
-      <div><div class="pt" id="ptitle">Scan HU Number</div><div class="pd" id="pdesc">Point the camera at the top barcode on the label.</div></div>
-    </div>
-    <div class="card active" id="card1">
-      <div class="ct"><div class="cl"><div class="cd"></div><div class="cn">HU Number</div></div><div class="pill ps" id="p1">Scanning</div></div>
-      <div class="cb"><div class="cv ph" id="v1">Waiting for scan…</div><div class="cts" id="t1"></div></div>
-    </div>
-    <div class="card" id="card2">
-      <div class="ct"><div class="cl"><div class="cd"></div><div class="cn">Material Number</div></div><div class="pill pw" id="p2">Waiting</div></div>
-      <div class="cb"><div class="cv ph" id="v2">Waiting for scan…</div><div class="cts" id="t2"></div></div>
-    </div>
-    <div class="card" id="card3">
-      <div class="ct"><div class="cl"><div class="cd"></div><div class="cn">Batch / Invoice #</div></div><div class="pill pw" id="p3">Waiting</div></div>
-      <div class="cb"><div class="cv ph" id="v3">Waiting for scan…</div><div class="cts" id="t3"></div></div>
-    </div>
-  </div>
-  <div class="abar">
-    <button class="btn bsk" id="skipBtn" onclick="doSkip()">Skip</button>
-    <button class="btn bm"  id="mainBtn" onclick="doMain()">Scanning…</button>
-    <button class="btn br"               onclick="doReset()">Reset</button>
-  </div>
-</div>
-
-<!-- SCREEN 4: LOG -->
-
-<div class="screen hidden" id="sLog">
-  <div class="lhdr">
-    <div class="lt">Scan History</div>
-    <div class="lac">
-      <div class="ibtn" onclick="doExport()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
-      <div class="ibtn" onclick="doClear()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></div>
-      <div class="ibtn" onclick="show('sScanner')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-    </div>
-  </div>
-  <div class="lbody" id="lbody"><div class="lem"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div></div>
-  <div class="abar"><button class="btn bm" style="flex:1" onclick="show('sScanner')">← Back to Scanner</button></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ── NO EXTERNAL LIBRARIES — pure vanilla JS ────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+var currentBin  = null;
+var camStream   = null;
+var capturedImg = null;
+var scanLog     = [];
+var sessCount   = 0;
 
-var STEPS   = ['hu','material','batch'];
-var PROMPTS = [
-  {icon:'📦',title:'Scan HU Number',      desc:'Point the camera at the top barcode on the label.'},
-  {icon:'🏷', title:'Scan Material Number',desc:'Now point at the middle barcode — the Material Number.'},
-  {icon:'🔢',title:'Scan Batch Number',    desc:'Aim at the bottom barcode. Tap Skip if not present.'},
-];
-
-var step     = 0;
-var data     = {hu:null,material:null,batch:null};
-var log      = [];
-var sessN    = 0;
-var lastV    = '';
-var lastT    = 0;
-var COOL     = 2500;
-var bin      = null;
-var itemStream = null;
-var binStream  = null;
-var scanTimer  = null;
-var detector   = null;
-
-// ── Screen switching ───────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// SCREEN UTILS
+// ══════════════════════════════════════════════════════════
 function show(id) {
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.add('hidden');});
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.add('hidden'); });
   document.getElementById(id).classList.remove('hidden');
 }
 
-// ── BIN CONFIRM — called from "Start Scanning" button ─────────────────────
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2600);
+}
+
+// ══════════════════════════════════════════════════════════
+// BIN SETUP
+// ══════════════════════════════════════════════════════════
 function confirmBin() {
   var raw = document.getElementById('binInput').value.trim().toUpperCase();
   if (!raw) {
-    document.getElementById('binError').style.display = 'block';
+    document.getElementById('binErr').style.display = 'block';
     return;
   }
-  document.getElementById('binError').style.display = 'none';
-  bin = raw;
-  document.getElementById('binVal').textContent = bin;
-  show('sScanner');
-  startItemCam();
+  document.getElementById('binErr').style.display = 'none';
+  currentBin = raw;
+  document.getElementById('camBinLabel').textContent  = '📍 ' + currentBin;
+  document.getElementById('resBinLabel').textContent  = '📍 ' + currentBin;
+  show('sCam');
+  startCamera();
 }
 
-// ── BIN CAM ────────────────────────────────────────────────────────────────
-function goToBinCam() {
-  show('sBinCam');
+// ══════════════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════════════
+function startCamera() {
   navigator.mediaDevices.getUserMedia({
-    video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},
-    audio:false
-  }).then(function(stream){
-    binStream = stream;
-    var v = document.getElementById('binVideo');
+    video: {
+      facingMode: { ideal: 'environment' },
+      width:  { ideal: 2560 },   // high res for better OCR
+      height: { ideal: 1920 },
+    },
+    audio: false
+  }).then(function(stream) {
+    camStream = stream;
+    var v = document.getElementById('camVideo');
     v.srcObject = stream;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.muted = true;
     v.play();
-    startBinDetect(v);
-  }).catch(function(){
-    show('sBin');
-    toast('Camera blocked — type the bin manually');
-  });
-}
-
-function cancelBinCam() {
-  stopStream(binStream); binStream = null;
-  show('sBin');
-}
-
-function startBinDetect(video) {
-  if (!window.BarcodeDetector) {
-    // BarcodeDetector not available — use canvas polling with a simple approach
-    pollCanvas(video, function(val) {
-      stopStream(binStream); binStream = null;
-      document.getElementById('binInput').value = val;
-      show('sBin');
-      toast('Detected: ' + val + ' — tap Start Scanning');
-    }, true);
-    return;
-  }
-  var bd = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf']});
-  var canvas = document.createElement('canvas');
-  var ctx    = canvas.getContext('2d');
-  var timer  = setInterval(function(){
-    if (!video.videoWidth) return;
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video,0,0);
-    bd.detect(canvas).then(function(res){
-      if (res.length > 0) {
-        clearInterval(timer);
-        var val = res[0].rawValue.trim().toUpperCase();
-        stopStream(binStream); binStream = null;
-        document.getElementById('binInput').value = val;
-        show('sBin');
-        toast('Detected: ' + val + ' — tap Start Scanning');
-      }
-    }).catch(function(){});
-  }, 250);
-}
-
-// ── ITEM CAMERA ────────────────────────────────────────────────────────────
-function startItemCam() {
-  document.getElementById('clbl').textContent = 'Starting…';
-  navigator.mediaDevices.getUserMedia({
-    video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},
-    audio:false
-  }).then(function(stream){
-    itemStream = stream;
-    var v = document.getElementById('video');
-    v.srcObject = stream;
-    v.play();
-    document.getElementById('clbl').textContent = 'Live';
-    document.getElementById('ldot').style.background = 'var(--green)';
-    startItemDetect(v);
-  }).catch(function(err){
-    document.getElementById('clbl').textContent = 'Error';
-    document.getElementById('ldot').style.background = 'var(--red)';
+  }).catch(function(err) {
     toast('Camera error — check Settings → Safari → Camera');
   });
 }
 
-function startItemDetect(video) {
-  if (window.BarcodeDetector) {
-    // Use native BarcodeDetector
-    detector = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf']});
-    var canvas = document.createElement('canvas');
-    var ctx    = canvas.getContext('2d');
-    scanTimer  = setInterval(function(){
-      if (!video.videoWidth || step >= 3) return;
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video,0,0);
-      detector.detect(canvas).then(function(res){
-        if (res.length > 0) onScan(res[0].rawValue);
-      }).catch(function(){});
-    }, 250);
-  } else {
-    // Fallback: canvas polling with simple line-scan heuristic
-    pollCanvas(video, onScan, false);
+function stopCamera() {
+  if (camStream) { camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
+}
+
+function stopCamGoBack() {
+  stopCamera();
+  show('sBin');
+  document.getElementById('binInput').value = currentBin || '';
+}
+
+function capturePhoto() {
+  var video  = document.getElementById('camVideo');
+  var canvas = document.getElementById('camCanvas');
+  if (!video.videoWidth) { toast('Camera not ready yet — wait a moment'); return; }
+
+  // Draw full frame to canvas at native resolution
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  // Store as data URL for display + OCR
+  capturedImg = canvas.toDataURL('image/jpeg', 0.92);
+
+  stopCamera();
+  show('sProcess');
+  runOCR(capturedImg);
+}
+
+function retake() {
+  show('sCam');
+  startCamera();
+}
+
+// ══════════════════════════════════════════════════════════
+// OCR — Tesseract.js
+// ══════════════════════════════════════════════════════════
+function runOCR(imageData) {
+  var bar  = document.getElementById('procBar');
+  var desc = document.getElementById('procDesc');
+
+  bar.style.width = '5%';
+  desc.textContent = 'Loading OCR engine…';
+
+  Tesseract.recognize(imageData, 'eng', {
+    logger: function(m) {
+      if (m.status === 'loading tesseract core') {
+        bar.style.width = '15%';
+        desc.textContent = 'Loading OCR engine…';
+      }
+      if (m.status === 'initializing tesseract') {
+        bar.style.width = '30%';
+        desc.textContent = 'Initializing…';
+      }
+      if (m.status === 'loading language traineddata') {
+        bar.style.width = '50%';
+        desc.textContent = 'Loading language data…';
+      }
+      if (m.status === 'recognizing text') {
+        var pct = Math.round(50 + (m.progress || 0) * 45);
+        bar.style.width = pct + '%';
+        desc.textContent = 'Reading text… ' + Math.round((m.progress||0)*100) + '%';
+      }
+    }
+  }).then(function(result) {
+    bar.style.width = '100%';
+    desc.textContent = 'Done!';
+    setTimeout(function() {
+      parseAndDisplay(result);
+    }, 300);
+  }).catch(function(err) {
+    show('sCam');
+    startCamera();
+    toast('OCR failed — try again with better lighting');
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// PARSING — extract fields from raw OCR text
+// Tuned for Novus Foods label format
+// ══════════════════════════════════════════════════════════
+function parseAndDisplay(result) {
+  var text  = result.data.text;
+  var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+  var conf  = result.data.confidence; // overall confidence 0-100
+
+  var fields = {
+    hu:   { value: '', conf: 0 },
+    name: { value: '', conf: 0 },
+    mat:  { value: '', conf: 0 },
+    qty:  { value: '', conf: 0 },
+    exp:  { value: '', conf: 0 },
+    bat:  { value: '', conf: 0 },
+  };
+
+  // ── HU Number ──
+  // Pattern: "HU Number:" or "HU Number" followed by a large number, OR a standalone 9-digit number
+  var huMatch = text.match(/HU\s*(?:Number)?[:\s]+(\d{6,12})/i);
+  if (!huMatch) huMatch = text.match(/(\d{9,12})\s*\n/); // large standalone number
+  if (huMatch) { fields.hu.value = huMatch[1]; fields.hu.conf = 85; }
+
+  // ── Material Number ──
+  // Pattern: "Material Number:" followed by a 6-8 digit number
+  var matMatch = text.match(/Material\s*(?:Number)?[:\s]+(\d{5,10})/i);
+  if (matMatch) { fields.mat.value = matMatch[1]; fields.mat.conf = 85; }
+
+  // ── Item Name ──
+  // Usually a line of mixed text between HU and Material Number lines
+  // Look for lines that aren't all numbers and aren't labels
+  var skipPatterns = /^(HU|Material|Quantity|Expiration|Batch|UoM|No Allergens|JZAVALA|Produced|^\d+$)/i;
+  var nameLines = lines.filter(function(l) {
+    return l.length > 4 && !skipPatterns.test(l) && /[a-zA-Z]/.test(l) && !/^\d{5,}/.test(l);
+  });
+  // Pick the longest candidate line that looks like a product name
+  if (nameLines.length > 0) {
+    nameLines.sort(function(a,b){ return b.length - a.length; });
+    fields.name.value = nameLines[0];
+    fields.name.conf  = 75;
   }
-}
 
-// Simple canvas polling fallback for browsers without BarcodeDetector
-// Captures frames and sends to a hidden input for manual fallback
-function pollCanvas(video, cb, isBin) {
-  // Without a decoding library we can't decode barcodes client-side in pure JS
-  // Show a manual-entry prompt as fallback
-  if (isBin) {
-    stopStream(binStream); binStream = null;
-    show('sBin');
-    toast('Auto-scan not supported on this browser — type the bin manually');
+  // ── Quantity + UoM ──
+  // Pattern: "Quantity:" followed by a bold number, then UoM label
+  var qtyMatch = text.match(/Quantity[:\s]+(\d[\d,\.]*)\s*(?:\n|UoM|\s{2,})([A-Z]{1,4})?/i);
+  if (qtyMatch) {
+    var qVal = qtyMatch[1].replace(/,/g,'');
+    var uom  = qtyMatch[2] ? qtyMatch[2].trim() : '';
+    // Also look for UoM on same or next line
+    if (!uom) {
+      var uomMatch = text.match(/UoM[:\s]+([A-Z]{1,4})/i);
+      if (uomMatch) uom = uomMatch[1];
+    }
+    fields.qty.value = uom ? qVal + ' ' + uom : qVal;
+    fields.qty.conf  = 80;
   } else {
-    toast('For best results, open in Safari on iOS 17+ or Chrome on Android');
+    // Fallback: look for a standalone large number that could be quantity
+    var bigNum = text.match(/\n(\d{3,6})\n/);
+    if (bigNum) { fields.qty.value = bigNum[1]; fields.qty.conf = 50; }
   }
+
+  // ── Expiration Date ──
+  // Pattern: "Expiration Date:" followed by MM/DD/YYYY or similar
+  var expMatch = text.match(/Expiration\s*Date[:\s]+([\d]{1,2}[\/\-\.][\d]{1,2}[\/\-\.][\d]{2,4})/i);
+  if (!expMatch) expMatch = text.match(/([\d]{1,2}[\/\-\.][\d]{1,2}[\/\-\.][\d]{4})/); // any date-like pattern
+  if (expMatch) { fields.exp.value = expMatch[1]; fields.exp.conf = 85; }
+
+  // ── Batch Number ──
+  // Pattern: "Batch Number:" followed by a number
+  var batMatch = text.match(/Batch\s*(?:Number)?[:\s]+(\d{3,10})/i);
+  if (batMatch) { fields.bat.value = batMatch[1]; fields.bat.conf = 85; }
+
+  // ── Scale confidence by overall OCR confidence ──
+  var overallFactor = conf / 100;
+  Object.keys(fields).forEach(function(k) {
+    fields[k].conf = Math.round(fields[k].conf * overallFactor);
+    if (!fields[k].value) fields[k].conf = 0;
+  });
+
+  renderResults(fields, capturedImg);
 }
 
-function stopStream(stream) {
-  if (stream) stream.getTracks().forEach(function(t){t.stop();});
+// ══════════════════════════════════════════════════════════
+// RENDER RESULTS
+// ══════════════════════════════════════════════════════════
+function renderResults(fields, imgData) {
+  // Thumbnail
+  document.getElementById('resThumb').src = imgData;
+
+  // Fill each field
+  var fkeys = ['hu','name','mat','qty','exp','bat'];
+  var anyLow = false;
+
+  fkeys.forEach(function(k) {
+    var inp  = document.getElementById('f-' + k);
+    var st   = document.getElementById('st-' + k);
+    var cb   = document.getElementById('cb-' + k);
+    var cl   = document.getElementById('cl-' + k);
+    var c    = fields[k].conf;
+    var val  = fields[k].value;
+
+    inp.value = val;
+
+    if (!val) {
+      st.textContent = 'Not found';
+      st.className   = 'efield-status es-miss';
+      cb.style.width = '0%';
+      cb.style.background = 'var(--red)';
+      cl.textContent = '—';
+      anyLow = true;
+    } else if (c >= 70) {
+      st.textContent = 'Read ✓';
+      st.className   = 'efield-status es-read';
+      cb.style.width = c + '%';
+      cb.style.background = 'var(--green)';
+      cl.textContent = c + '%';
+    } else {
+      st.textContent = 'Low confidence';
+      st.className   = 'efield-status es-low';
+      cb.style.width = c + '%';
+      cb.style.background = 'var(--amber)';
+      cl.textContent = c + '%';
+      anyLow = true;
+    }
+  });
+
+  // Show retry notice if any fields are uncertain
+  document.getElementById('retryNotice').classList.toggle('hidden', !anyLow);
+
+  // Scroll to top
+  document.getElementById('resScroll').scrollTop = 0;
+
+  show('sResults');
 }
 
-// ── Scan received ──────────────────────────────────────────────────────────
-function onScan(value) {
-  if (!value) return;
-  value = value.trim();
-  var now = Date.now();
-  if (value === lastV && now - lastT < COOL) return;
-  if (step >= 3) return;
-  lastV = value; lastT = now;
-  if (navigator.vibrate) navigator.vibrate(60);
-  recordScan(value);
-}
-
-function recordScan(value) {
-  var i  = step + 1;
-  var ts = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  data[STEPS[step]] = value;
-
-  document.getElementById('v'+i).textContent = value;
-  document.getElementById('v'+i).className   = 'cv';
-  document.getElementById('t'+i).textContent = ts;
-  document.getElementById('p'+i).textContent = 'Captured';
-  document.getElementById('p'+i).className   = 'pill pd2';
-  var card = document.getElementById('card'+i);
-  card.className = 'card done fg';
-  setTimeout(function(){ card.classList.remove('fg'); }, 600);
-  document.getElementById('si'+i).className = 'si done';
-  document.getElementById('sc'+i).textContent = '✓';
-
-  step++;
-  if (step < 3) { setPrompt(step); setActive(step+1); }
-  else          { finishAll(); }
-  document.getElementById('cnt').scrollTo({top:9999,behavior:'smooth'});
-}
-
-function doSkip() {
-  if (step >= 3) return;
-  var i = step+1;
-  document.getElementById('v'+i).textContent = 'Skipped';
-  document.getElementById('v'+i).className   = 'cv ph';
-  document.getElementById('p'+i).textContent = 'Skipped';
-  document.getElementById('p'+i).className   = 'pill psk';
-  document.getElementById('card'+i).className = 'card skip';
-  document.getElementById('si'+i).className   = 'si skip';
-  document.getElementById('sc'+i).textContent = '–';
-  step++;
-  if (step < 3) { setPrompt(step); setActive(step+1); }
-  else          { finishAll(); }
-}
-
-function finishAll() {
-  document.getElementById('pi').textContent    = '✅';
-  document.getElementById('ptitle').textContent = 'All Barcodes Captured';
-  document.getElementById('pdesc').textContent  = 'Tap Save & Next to log this item.';
-  document.getElementById('pc').style.background   = 'var(--green-dim)';
-  document.getElementById('pc').style.borderColor  = 'rgba(34,197,94,0.25)';
-  document.getElementById('mainBtn').textContent   = 'Save & Next';
-  document.getElementById('mainBtn').classList.add('ok');
-  document.getElementById('skipBtn').style.visibility = 'hidden';
-  if (navigator.vibrate) navigator.vibrate([50,30,100]);
-  toast('✓ All barcodes captured');
-}
-
-function doMain() {
-  if (step < 3) return;
-  log.unshift({
-    bin:  bin||'—', hu:data.hu||'—',
-    mat:  data.material||'—', bat:data.batch||'—',
+// ══════════════════════════════════════════════════════════
+// SAVE
+// ══════════════════════════════════════════════════════════
+function saveEntry() {
+  var entry = {
+    bin:  currentBin || '—',
+    hu:   document.getElementById('f-hu').value.trim()   || '—',
+    name: document.getElementById('f-name').value.trim() || '—',
+    mat:  document.getElementById('f-mat').value.trim()  || '—',
+    qty:  document.getElementById('f-qty').value.trim()  || '—',
+    exp:  document.getElementById('f-exp').value.trim()  || '—',
+    bat:  document.getElementById('f-bat').value.trim()  || '—',
     time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
     date: new Date().toLocaleDateString()
-  });
-  sessN++;
-  document.getElementById('sessNum').textContent = sessN;
+  };
+  scanLog.unshift(entry);
+  sessCount++;
   toast('Saved to log ✓');
-  doReset();
+  show('sCam');
+  startCamera();
 }
 
-function doReset() {
-  step=0; data={hu:null,material:null,batch:null}; lastV='';
-  for (var i=1;i<=3;i++){
-    document.getElementById('v'+i).textContent = 'Waiting for scan…';
-    document.getElementById('v'+i).className   = 'cv ph';
-    document.getElementById('t'+i).textContent = '';
-    document.getElementById('p'+i).className   = i===1?'pill ps':'pill pw';
-    document.getElementById('p'+i).textContent = i===1?'Scanning':'Waiting';
-    document.getElementById('card'+i).className= i===1?'card active':'card';
-    document.getElementById('si'+i).className  = i===1?'si active':'si';
-    document.getElementById('sc'+i).textContent= i;
-  }
-  setPrompt(0);
-  document.getElementById('pc').style.background  = '';
-  document.getElementById('pc').style.borderColor = '';
-  document.getElementById('mainBtn').textContent   = 'Scanning…';
-  document.getElementById('mainBtn').classList.remove('ok');
-  document.getElementById('skipBtn').style.visibility = 'visible';
-  document.getElementById('cnt').scrollTop = 0;
-}
-
-function changeBin() {
-  if (scanTimer) { clearInterval(scanTimer); scanTimer=null; }
-  stopStream(itemStream); itemStream=null;
-  doReset();
-  document.getElementById('binInput').value = bin||'';
-  show('sBin');
-}
-
-function setPrompt(i){
-  var p=PROMPTS[i];
-  document.getElementById('pi').textContent    = p.icon;
-  document.getElementById('ptitle').textContent = p.title;
-  document.getElementById('pdesc').textContent  = p.desc;
-}
-function setActive(i){
-  document.getElementById('card'+i).className = 'card active';
-  document.getElementById('p'+i).className    = 'pill ps';
-  document.getElementById('p'+i).textContent  = 'Scanning';
-  document.getElementById('si'+i).className   = 'si active';
-}
-
-// ── Log ────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// LOG
+// ══════════════════════════════════════════════════════════
 function goToLog() {
-  var b = document.getElementById('lbody');
-  b.innerHTML = '';
-  if (!log.length) {
-    b.innerHTML = '<div class="lem"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div>';
+  var body = document.getElementById('logBody');
+  body.innerHTML = '';
+  if (!scanLog.length) {
+    body.innerHTML = '<div class="log-empty"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div>';
   } else {
-    log.forEach(function(e){
-      var d=document.createElement('div'); d.className='le';
-      d.innerHTML=
-        '<div class="lr1"><div class="lhu">'+e.hu+'</div><div class="ltm">'+e.time+'</div></div>'+
-        '<div class="lgr">'+
-          '<div class="lf bf"><div class="fll">Bin</div><div class="flv">'+e.bin+'</div></div>'+
-          '<div class="lf"><div class="fll">Material</div><div class="flv">'+e.mat+'</div></div>'+
-        '</div>'+
-        '<div class="lgr" style="margin-top:6px">'+
-          '<div class="lf"><div class="fll">Batch</div><div class="flv">'+e.bat+'</div></div>'+
-          '<div class="lf"><div class="fll">Date</div><div class="flv">'+e.date+'</div></div>'+
+    scanLog.forEach(function(e) {
+      var d = document.createElement('div');
+      d.className = 'le';
+      d.innerHTML =
+        '<div class="le-r1"><div class="le-hu">' + e.hu + '</div><div class="le-tm">' + e.time + '</div></div>' +
+        '<div class="le-name">' + e.name + '</div>' +
+        '<div class="le-grid">' +
+          '<div class="le-f bf"><div class="lfl">Bin</div><div class="lfv">'  + e.bin  + '</div></div>' +
+          '<div class="le-f"><div class="lfl">Material</div><div class="lfv">' + e.mat  + '</div></div>' +
+          '<div class="le-f"><div class="lfl">Qty</div><div class="lfv">'      + e.qty  + '</div></div>' +
+          '<div class="le-f"><div class="lfl">Expiry</div><div class="lfv">'   + e.exp  + '</div></div>' +
+          '<div class="le-f"><div class="lfl">Batch</div><div class="lfv">'    + e.bat  + '</div></div>' +
+          '<div class="le-f"><div class="lfl">Date</div><div class="lfv">'     + e.date + '</div></div>' +
         '</div>';
-      b.appendChild(d);
+      body.appendChild(d);
     });
   }
   show('sLog');
 }
 
-function doClear(){
-  log=[]; sessN=0;
-  document.getElementById('sessNum').textContent=0;
-  document.getElementById('lbody').innerHTML='<div class="lem"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div>';
+function doClear() {
+  scanLog = []; sessCount = 0;
+  document.getElementById('logBody').innerHTML = '<div class="log-empty"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div>';
   toast('Log cleared');
 }
 
-function doExport(){
-  if (!log.length){toast('Nothing to export yet');return;}
-  var csv=['Bin,HU Number,Material Number,Batch Number,Date,Time']
-    .concat(log.map(function(e){return e.bin+','+e.hu+','+e.mat+','+e.bat+','+e.date+','+e.time;}))
-    .join('\n');
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='novus_scan_'+new Date().toISOString().slice(0,10)+'.csv';
+function doExport() {
+  if (!scanLog.length) { toast('Nothing to export yet'); return; }
+  var csv = ['Bin,HU Number,Item Name,Material Number,Quantity,Expiry Date,Batch Number,Date,Time']
+    .concat(scanLog.map(function(e){
+      return [e.bin,e.hu,'"'+e.name+'"',e.mat,e.qty,e.exp,e.bat,e.date,e.time].join(',');
+    })).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = 'novus_scan_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
   toast('Exported ✓');
 }
-
-// ── Toast ──────────────────────────────────────────────────────────────────
-function toast(msg){
-  var t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(function(){t.classList.remove('show');},2500);
-}
 </script>
-
 </body>
 </html>

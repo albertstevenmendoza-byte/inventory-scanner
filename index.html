@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8,122 +9,170 @@
 <meta name="theme-color" content="#0B1120">
 <title>Novus Scanner</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
-:root{--navy:#0B1120;--navy-2:#111827;--navy-3:#1C2A3A;--navy-4:#243447;--border:rgba(255,255,255,0.07);--border-2:rgba(255,255,255,0.12);--blue:#3B82F6;--blue-dim:rgba(59,130,246,0.12);--teal:#14B8A6;--green:#22C55E;--green-dim:rgba(34,197,94,0.12);--amber:#F59E0B;--amber-dim:rgba(245,158,11,0.15);--amber-bdr:rgba(245,158,11,0.3);--red:#EF4444;--red-dim:rgba(239,68,68,0.12);--text:#E2E8F0;--text-2:#94A3B8;--text-3:#475569;--white:#F8FAFC;--sans:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;--radius:12px;--radius-sm:8px;}
+:root{
+  --navy:#0B1120;--navy-2:#111827;--navy-3:#1C2A3A;--navy-4:#243447;
+  --border:rgba(255,255,255,0.07);--border-2:rgba(255,255,255,0.12);
+  --blue:#3B82F6;--blue-dim:rgba(59,130,246,0.12);--teal:#14B8A6;
+  --green:#22C55E;--green-dim:rgba(34,197,94,0.12);
+  --amber:#F59E0B;--amber-dim:rgba(245,158,11,0.15);--amber-bdr:rgba(245,158,11,0.3);
+  --red:#EF4444;--red-dim:rgba(239,68,68,0.12);
+  --text:#E2E8F0;--text-2:#94A3B8;--text-3:#475569;--white:#F8FAFC;
+  --sans:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
+  --radius:12px;--radius-sm:8px;
+}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(--sans);overflow:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(--navy);}
 .screen.hidden{display:none!important;}
+
+/* ── BIN SETUP ── */
 #sBin{align-items:center;justify-content:center;padding:32px 24px 48px;overflow-y:auto;gap:0;}
-.logo-wrap{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 8px 32px rgba(59,130,246,0.25);margin-bottom:22px;flex-shrink:0;}
-.setup-title{font-size:24px;font-weight:700;color:var(--white);letter-spacing:-0.03em;text-align:center;margin-bottom:8px;}
-.setup-desc{font-size:13px;color:var(--text-2);text-align:center;line-height:1.65;max-width:290px;margin-bottom:28px;}
-.setup-lbl{width:100%;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;display:block;}
-#binInput{width:100%;background:var(--navy-3);border:2px solid var(--border-2);border-radius:var(--radius-sm);padding:16px;font-family:var(--mono);font-size:22px;font-weight:700;color:var(--white);text-align:center;letter-spacing:0.14em;text-transform:uppercase;outline:none;margin-bottom:16px;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
-#binInput::placeholder{color:var(--text-3);font-weight:400;font-size:14px;letter-spacing:0;text-transform:none;}
-#binInput:focus{border-color:var(--blue);}
-.setup-btn{width:100%;background:var(--blue);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;padding:16px;border-radius:var(--radius-sm);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,0.35);-webkit-appearance:none;appearance:none;}
+.logo-wrap{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,var(–blue),var(–teal));display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 8px 32px rgba(59,130,246,0.25);margin-bottom:22px;flex-shrink:0;}
+.setup-title{font-size:24px;font-weight:700;color:var(–white);letter-spacing:-0.03em;text-align:center;margin-bottom:8px;}
+.setup-desc{font-size:13px;color:var(–text-2);text-align:center;line-height:1.65;max-width:290px;margin-bottom:28px;}
+.setup-lbl{width:100%;font-family:var(–mono);font-size:10px;font-weight:600;color:var(–text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;display:block;}
+#binInput{width:100%;background:var(–navy-3);border:2px solid var(–border-2);border-radius:var(–radius-sm);padding:16px;font-family:var(–mono);font-size:22px;font-weight:700;color:var(–white);text-align:center;letter-spacing:0.14em;text-transform:uppercase;outline:none;margin-bottom:16px;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
+#binInput::placeholder{color:var(–text-3);font-weight:400;font-size:14px;letter-spacing:0;text-transform:none;}
+#binInput:focus{border-color:var(–blue);}
+.setup-btn{width:100%;background:var(–blue);color:#fff;font-family:var(–sans);font-size:15px;font-weight:600;padding:16px;border-radius:var(–radius-sm);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,0.35);-webkit-appearance:none;appearance:none;}
 .setup-btn:active{opacity:0.85;}
-.setup-err{width:100%;margin-top:10px;padding:10px 14px;background:var(--red-dim);border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);font-size:12px;color:var(--red);text-align:center;display:none;}
+.setup-err{width:100%;margin-top:10px;padding:10px 14px;background:var(–red-dim);border:1px solid rgba(239,68,68,0.3);border-radius:var(–radius-sm);font-size:12px;color:var(–red);text-align:center;display:none;}
+.free-badge{display:flex;align-items:center;gap:8px;background:var(–green-dim);border:1px solid rgba(34,197,94,0.25);border-radius:var(–radius);padding:10px 14px;width:100%;margin-bottom:20px;}
+.free-badge-icon{font-size:16px;}
+.free-badge-text{font-size:12px;color:var(–text-2);line-height:1.5;}
+.free-badge-text strong{color:var(–green);}
+
+/* ── CAMERA ── */
 #sCam{background:#000;}
 #camVideo{width:100%;flex:1;object-fit:cover;display:block;}
 #fileInput{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;}
 .cam-top{position:absolute;top:0;left:0;right:0;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;z-index:20;background:linear-gradient(to bottom,rgba(11,17,32,0.92),transparent);}
-.cam-top-title{font-size:13px;font-weight:600;color:var(--white);}
-.cam-bin-chip{font-family:var(--mono);font-size:11px;color:var(--amber);background:rgba(245,158,11,0.15);border:1px solid var(--amber-bdr);padding:4px 10px;border-radius:20px;}
+.cam-top-title{font-size:13px;font-weight:600;color:var(–white);}
+.cam-bin-chip{font-family:var(–mono);font-size:11px;color:var(–amber);background:rgba(245,158,11,0.15);border:1px solid var(–amber-bdr);padding:4px 10px;border-radius:20px;}
 .cam-guide{position:absolute;inset:0;z-index:10;pointer-events:none;display:flex;align-items:center;justify-content:center;}
-.cam-box{width:88%;aspect-ratio:1.65;border:2px solid rgba(255,255,255,0.45);border-radius:8px;position:relative;box-shadow:0 0 0 9999px rgba(0,0,0,0.42);}
+.cam-box{width:88%;aspect-ratio:1.65;border:2px solid rgba(255,255,255,0.5);border-radius:8px;position:relative;box-shadow:0 0 0 9999px rgba(0,0,0,0.45);}
 .cgc{position:absolute;width:22px;height:22px;}
-.cgc::before,.cgc::after{content:'';position:absolute;background:#fff;border-radius:1px;}
+.cgc::before,.cgc::after{content:’’;position:absolute;background:#fff;border-radius:1px;}
 .cgc-tl{top:-1px;left:-1px;}.cgc-tl::before{top:0;left:0;width:100%;height:3px;}.cgc-tl::after{top:0;left:0;width:3px;height:100%;}
 .cgc-tr{top:-1px;right:-1px;}.cgc-tr::before{top:0;right:0;width:100%;height:3px;}.cgc-tr::after{top:0;right:0;width:3px;height:100%;}
 .cgc-bl{bottom:-1px;left:-1px;}.cgc-bl::before{bottom:0;left:0;width:100%;height:3px;}.cgc-bl::after{bottom:0;left:0;width:3px;height:100%;}
 .cgc-br{bottom:-1px;right:-1px;}.cgc-br::before{bottom:0;right:0;width:100%;height:3px;}.cgc-br::after{bottom:0;right:0;width:3px;height:100%;}
-.cam-hint{position:absolute;bottom:-30px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.5);font-family:var(--mono);letter-spacing:0.04em;}
+.cam-hint{position:absolute;bottom:-28px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.5);font-family:var(–mono);letter-spacing:0.04em;}
 .cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:18px 16px;padding-bottom:max(18px,env(safe-area-inset-bottom));background:linear-gradient(to top,rgba(11,17,32,0.95) 70%,transparent);display:flex;gap:10px;z-index:20;align-items:center;}
-.cam-side-btn{flex:0 0 46px;width:46px;height:46px;border-radius:50%;background:rgba(28,42,58,0.9);border:1px solid var(--border-2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;-webkit-appearance:none;appearance:none;}
-.cam-shutter{flex:1;background:#fff;color:var(--navy);font-family:var(--sans);font-size:15px;font-weight:700;padding:15px;border-radius:30px;border:none;cursor:pointer;-webkit-appearance:none;appearance:none;display:flex;align-items:center;justify-content:center;gap:8px;}
+.cam-side{flex:0 0 46px;width:46px;height:46px;border-radius:50%;background:rgba(28,42,58,0.9);border:1px solid var(–border-2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;-webkit-appearance:none;appearance:none;}
+.cam-shutter{flex:1;background:#fff;color:var(–navy);font-family:var(–sans);font-size:15px;font-weight:700;padding:15px;border-radius:30px;border:none;cursor:pointer;-webkit-appearance:none;appearance:none;display:flex;align-items:center;justify-content:center;gap:8px;}
 .cam-shutter:active{opacity:0.85;transform:scale(0.97);}
-#sProcess{align-items:center;justify-content:center;gap:20px;padding:40px 28px;}
-.spinner{width:60px;height:60px;border-radius:50%;border:3px solid var(--navy-3);border-top-color:var(--blue);animation:spin 0.85s linear infinite;}
+
+/* ── PROCESSING ── */
+#sProcess{align-items:center;justify-content:center;gap:16px;padding:40px 28px;}
+.spinner{width:60px;height:60px;border-radius:50%;border:3px solid var(–navy-3);border-top-color:var(–blue);animation:spin 0.85s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.proc-title{font-size:20px;font-weight:600;color:var(--white);letter-spacing:-0.02em;}
-.proc-sub{font-size:13px;color:var(--text-2);text-align:center;line-height:1.6;max-width:260px;}
-.proc-steps{display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px;margin-top:4px;}
-.pstep{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius-sm);}
-.pstep.active{border-color:rgba(59,130,246,0.3);background:var(--blue-dim);}
+.proc-title{font-size:20px;font-weight:600;color:var(–white);letter-spacing:-0.02em;}
+.proc-sub{font-size:12px;color:var(–text-2);text-align:center;line-height:1.6;max-width:260px;}
+.proc-bar-wrap{width:100%;max-width:300px;height:5px;background:var(–navy-3);border-radius:3px;overflow:hidden;}
+.proc-bar{height:100%;background:linear-gradient(90deg,var(–blue),var(–teal));border-radius:3px;width:0%;transition:width 0.4s ease;}
+.proc-steps{display:flex;flex-direction:column;gap:7px;width:100%;max-width:300px;}
+.pstep{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(–navy-2);border:1px solid var(–border);border-radius:var(–radius-sm);}
+.pstep.active{border-color:rgba(59,130,246,0.3);background:var(–blue-dim);}
 .pstep.done{border-color:rgba(34,197,94,0.25);}
-.pstep-icon{font-size:15px;flex-shrink:0;}
-.pstep-text{font-size:12px;font-weight:500;color:var(--text-2);}
-.pstep.active .pstep-text{color:var(--blue);}
-.pstep.done .pstep-text{color:var(--green);}
-#sResults{background:var(--navy);}
-.res-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;}
-.res-hdr-title{font-size:14px;font-weight:600;color:var(--white);}
-.res-bin-chip{font-family:var(--mono);font-size:11px;color:var(--amber);background:var(--amber-dim);border:1px solid var(--amber-bdr);padding:3px 10px;border-radius:20px;}
+.pstep-icon{font-size:14px;flex-shrink:0;}
+.pstep-text{font-size:11.5px;font-weight:500;color:var(–text-2);}
+.pstep.active .pstep-text{color:var(–blue);}
+.pstep.done .pstep-text{color:var(–green);}
+
+/* ── PREVIEW (show processed image) ── */
+#sPreview{align-items:center;justify-content:flex-start;padding:0;overflow-y:auto;}
+.preview-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;width:100%;}
+.preview-title{font-size:14px;font-weight:600;color:var(–white);}
+.preview-desc{font-size:12px;color:var(–text-2);padding:12px 16px;line-height:1.5;flex-shrink:0;}
+.preview-imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 12px;flex-shrink:0;}
+.preview-img-wrap{border-radius:8px;overflow:hidden;border:1px solid var(–border-2);}
+.preview-img-wrap img{width:100%;display:block;}
+.preview-img-lbl{padding:5px 8px;background:var(–navy-3);font-family:var(–mono);font-size:9px;color:var(–text-3);text-transform:uppercase;letter-spacing:0.08em;}
+.preview-bar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(–navy-2);border-top:1px solid var(–border);flex-shrink:0;width:100%;margin-top:auto;}
+
+/* ── RESULTS ── */
+#sResults{background:var(–navy);}
+.res-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;}
+.res-hdr-title{font-size:14px;font-weight:600;color:var(–white);}
+.res-bin-chip{font-family:var(–mono);font-size:11px;color:var(–amber);background:var(–amber-dim);border:1px solid var(–amber-bdr);padding:3px 10px;border-radius:20px;}
 .res-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .res-scroll::-webkit-scrollbar{display:none;}
-.res-img-wrap{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border-2);}
-.res-img-wrap img{width:100%;display:block;max-height:150px;object-fit:cover;}
-.res-img-cap{padding:6px 10px;background:var(--navy-3);font-family:var(--mono);font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;}
-.ai-badge{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(20,184,166,0.1));border:1px solid rgba(59,130,246,0.2);border-radius:var(--radius);padding:11px 14px;}
-.ai-badge-icon{font-size:20px;}
-.ai-badge-text{font-size:11.5px;color:var(--text-2);line-height:1.55;}
-.ai-badge-text strong{color:var(--green);font-weight:600;}
-.field-lbl{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px;}
-.efield{background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color 0.2s;}
+.res-img-wrap{border-radius:var(–radius);overflow:hidden;border:1px solid var(–border-2);}
+.res-img-wrap img{width:100%;display:block;max-height:130px;object-fit:cover;}
+.res-img-cap{padding:6px 10px;background:var(–navy-3);font-family:var(–mono);font-size:9px;color:var(–text-3);text-transform:uppercase;letter-spacing:0.08em;}
+.ocr-badge{display:flex;align-items:center;gap:8px;background:var(–blue-dim);border:1px solid rgba(59,130,246,0.2);border-radius:var(–radius);padding:10px 14px;}
+.ocr-badge-icon{font-size:18px;}
+.ocr-badge-text{font-size:11.5px;color:var(–text-2);line-height:1.5;}
+.ocr-badge-text strong{color:var(–green);font-weight:600;}
+.field-lbl{font-family:var(–mono);font-size:10px;font-weight:500;color:var(–text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px;}
+.efield{background:var(–navy-2);border:1px solid var(–border);border-radius:var(–radius);overflow:hidden;transition:border-color 0.2s;}
 .efield:focus-within{border-color:rgba(59,130,246,0.4);}
-.efield-top{display:flex;align-items:center;justify-content:space-between;padding:8px 13px;border-bottom:1px solid var(--border);}
-.efield-name{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;}
-.ebadge{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:0.05em;}
-.eb-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.25);}
-.eb-miss{background:var(--navy-3);color:var(--text-3);border:1px solid var(--border);}
-.efield-inp{width:100%;background:transparent;border:none;outline:none;padding:11px 13px;font-family:var(--mono);font-size:17px;font-weight:600;color:var(--white);letter-spacing:0.01em;-webkit-appearance:none;appearance:none;}
-.efield-inp::placeholder{color:var(--text-3);font-weight:400;font-size:13px;font-family:var(--sans);letter-spacing:0;}
+.efield-top{display:flex;align-items:center;justify-content:space-between;padding:8px 13px;border-bottom:1px solid var(–border);}
+.efield-name{font-family:var(–mono);font-size:10px;font-weight:600;color:var(–text-3);text-transform:uppercase;letter-spacing:0.08em;}
+.ebadge{font-family:var(–mono);font-size:9px;font-weight:600;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:0.05em;}
+.eb-ok{background:var(–green-dim);color:var(–green);border:1px solid rgba(34,197,94,0.25);}
+.eb-miss{background:var(–navy-3);color:var(–text-3);border:1px solid var(–border);}
+.efield-inp{width:100%;background:transparent;border:none;outline:none;padding:11px 13px;font-family:var(–mono);font-size:17px;font-weight:600;color:var(–white);letter-spacing:0.01em;-webkit-appearance:none;appearance:none;}
+.efield-inp::placeholder{color:var(–text-3);font-weight:400;font-size:13px;font-family:var(–sans);letter-spacing:0;}
 .fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.res-bar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--navy-2);border-top:1px solid var(--border);flex-shrink:0;}
-.btn{font-family:var(--sans);font-size:13px;font-weight:600;border-radius:var(--radius-sm);border:none;cursor:pointer;padding:13px 10px;letter-spacing:-0.01em;text-align:center;line-height:1;-webkit-appearance:none;appearance:none;}
+.res-bar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(–navy-2);border-top:1px solid var(–border);flex-shrink:0;}
+.btn{font-family:var(–sans);font-size:13px;font-weight:600;border-radius:var(–radius-sm);border:none;cursor:pointer;padding:13px 10px;letter-spacing:-0.01em;text-align:center;line-height:1;-webkit-appearance:none;appearance:none;}
 .btn:active{opacity:0.8;transform:scale(0.97);}
-.btn-save{flex:2;background:var(--green);color:#fff;box-shadow:0 2px 14px rgba(34,197,94,0.3);}
-.btn-retake{flex:1;background:var(--navy-3);color:var(--text-2);border:1px solid var(--border);}
-#sLog{background:var(--navy);}
-.log-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;}
-.log-hdr-title{font-size:15px;font-weight:600;color:var(--white);}
+.btn-save{flex:2;background:var(–green);color:#fff;box-shadow:0 2px 14px rgba(34,197,94,0.3);}
+.btn-retake{flex:1;background:var(–navy-3);color:var(–text-2);border:1px solid var(–border);}
+.btn-blue{flex:1;background:var(–blue);color:#fff;}
+
+/* ── LOG ── */
+#sLog{background:var(–navy);}
+.log-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;}
+.log-hdr-title{font-size:15px;font-weight:600;color:var(–white);}
 .log-acts{display:flex;gap:8px;}
-.ibtn{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--navy-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.ibtn:active{background:var(--navy-4);}
+.ibtn{width:34px;height:34px;border-radius:var(–radius-sm);background:var(–navy-3);border:1px solid var(–border);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.ibtn:active{background:var(–navy-4);}
 .log-body{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .log-body::-webkit-scrollbar{display:none;}
-.le{background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;}
+.le{background:var(–navy-2);border:1px solid var(–border);border-radius:var(–radius);padding:13px 15px;}
 .le-r1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:8px;}
-.le-hu{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--white);}
-.le-tm{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--navy-3);padding:3px 8px;border-radius:20px;border:1px solid var(--border);white-space:nowrap;flex-shrink:0;}
-.le-name{font-size:12px;color:var(--text-2);margin-bottom:10px;line-height:1.4;}
+.le-hu{font-family:var(–mono);font-size:15px;font-weight:700;color:var(–white);}
+.le-tm{font-family:var(–mono);font-size:10px;color:var(–text-3);background:var(–navy-3);padding:3px 8px;border-radius:20px;border:1px solid var(–border);white-space:nowrap;flex-shrink:0;}
+.le-name{font-size:12px;color:var(–text-2);margin-bottom:10px;line-height:1.4;}
 .le-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-.lef{background:var(--navy-3);border-radius:6px;padding:7px 9px;border:1px solid var(--border);}
-.lef.bf{border-color:var(--amber-bdr);background:var(--amber-dim);}
-.lfl{font-family:var(--mono);font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
-.lef.bf .lfl{color:var(--amber);opacity:0.8;}
-.lfv{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);word-break:break-all;}
-.lef.bf .lfv{color:var(--amber);}
-.log-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text-3);font-size:13px;padding:40px;text-align:center;}
-.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--navy-3);border:1px solid var(--border-2);color:var(--text);font-family:var(--sans);font-size:12.5px;font-weight:500;padding:9px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.lef{background:var(–navy-3);border-radius:6px;padding:7px 9px;border:1px solid var(–border);}
+.lef.bf{border-color:var(–amber-bdr);background:var(–amber-dim);}
+.lfl{font-family:var(–mono);font-size:9px;color:var(–text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
+.lef.bf .lfl{color:var(–amber);opacity:0.8;}
+.lfv{font-family:var(–mono);font-size:11px;font-weight:500;color:var(–text);word-break:break-all;}
+.lef.bf .lfv{color:var(–amber);}
+.log-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(–text-3);font-size:13px;padding:40px;text-align:center;}
+.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(12px);background:var(–navy-3);border:1px solid var(–border-2);color:var(–text);font-family:var(–sans);font-size:12.5px;font-weight:500;padding:9px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .toast.ok{border-color:rgba(34,197,94,0.4);}
 .toast.err{border-color:rgba(239,68,68,0.4);}
 </style>
+
 </head>
 <body>
+
+<!-- BIN SETUP -->
 
 <div class="screen" id="sBin">
   <div class="logo-wrap">&#x2B21;</div>
   <div class="setup-title">Novus Scanner</div>
-  <div class="setup-desc">AI-powered label reader for Plant 1730. One photo captures everything.</div>
+  <div class="setup-desc">100% free, offline OCR label reader for Plant 1730. No accounts, no API keys, no charges.</div>
+  <div class="free-badge">
+    <div class="free-badge-icon">&#x2705;</div>
+    <div class="free-badge-text"><strong>Completely free.</strong> Runs on your phone using on-device OCR. No internet required after first load.</div>
+  </div>
   <label class="setup-lbl" for="binInput">Which bin are you scanning?</label>
   <input id="binInput" type="text" placeholder="e.g. WE31A" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
   <button class="setup-btn" onclick="confirmBin()">Start Scanning &#x2192;</button>
   <div class="setup-err" id="setupErr">Please enter a bin location first.</div>
 </div>
+
+<!-- CAMERA -->
 
 <div class="screen hidden" id="sCam">
   <input type="file" id="fileInput" accept="image/*" capture="environment">
@@ -137,26 +186,31 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
     <div class="cam-box">
       <div class="cgc cgc-tl"></div><div class="cgc cgc-tr"></div>
       <div class="cgc cgc-bl"></div><div class="cgc cgc-br"></div>
-      <div class="cam-hint">Fill frame with entire label</div>
+      <div class="cam-hint">Fill frame with the entire label</div>
     </div>
   </div>
   <div class="cam-bottom">
-    <button class="cam-side-btn" onclick="goToSetup()">&#x2190;</button>
+    <button class="cam-side" onclick="goToSetup()">&#x2190;</button>
     <button class="cam-shutter" onclick="triggerCapture()">&#x1F4F8; Capture Label</button>
-    <button class="cam-side-btn" onclick="goToLog()">&#x1F4CB;</button>
+    <button class="cam-side" onclick="goToLog()">&#x1F4CB;</button>
   </div>
 </div>
 
+<!-- PROCESSING -->
+
 <div class="screen hidden" id="sProcess">
   <div class="spinner"></div>
-  <div class="proc-title">Reading label&#x2026;</div>
-  <div class="proc-sub">Claude AI is analyzing your label. Takes about 2 seconds.</div>
+  <div class="proc-title" id="procTitle">Preparing image&#x2026;</div>
+  <div class="proc-sub" id="procSub">Enhancing contrast and sharpness for best OCR results.</div>
+  <div class="proc-bar-wrap"><div class="proc-bar" id="procBar"></div></div>
   <div class="proc-steps">
-    <div class="pstep active" id="ps1"><div class="pstep-icon">&#x1F4E4;</div><div class="pstep-text">Sending image to Claude AI</div></div>
-    <div class="pstep" id="ps2"><div class="pstep-icon">&#x1F50D;</div><div class="pstep-text">Extracting label fields</div></div>
-    <div class="pstep" id="ps3"><div class="pstep-icon">&#x2705;</div><div class="pstep-text">Preparing results</div></div>
+    <div class="pstep active" id="ps1"><div class="pstep-icon">&#x1F5BC;</div><div class="pstep-text">Preprocessing image (contrast, sharpen, scale)</div></div>
+    <div class="pstep" id="ps2"><div class="pstep-icon">&#x1F50D;</div><div class="pstep-text">Running OCR engine on enhanced image</div></div>
+    <div class="pstep" id="ps3"><div class="pstep-icon">&#x1F4CB;</div><div class="pstep-text">Parsing Novus label fields</div></div>
   </div>
 </div>
+
+<!-- RESULTS -->
 
 <div class="screen hidden" id="sResults">
   <div class="res-hdr">
@@ -168,13 +222,13 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
       <img id="resImg" src="" alt="Captured label">
       <div class="res-img-cap">Captured label &#x2014; tap any field to correct</div>
     </div>
-    <div class="ai-badge">
-      <div class="ai-badge-icon">&#x1F916;</div>
-      <div class="ai-badge-text">Read by <strong>Claude AI Vision</strong>. Edit anything that looks off before saving.</div>
+    <div class="ocr-badge">
+      <div class="ocr-badge-icon">&#x1F4BB;</div>
+      <div class="ocr-badge-text">Read by <strong>on-device OCR</strong> with image enhancement. Edit anything that needs correction.</div>
     </div>
     <div>
       <div class="field-lbl">HU Number</div>
-      <div class="efield"><div class="efield-top"><span class="efield-name">Handling Unit</span><span class="ebadge eb-ok" id="st-hu">&#x2713; Read</span></div><input class="efield-inp" id="f-hu" type="text" placeholder="Not found" autocomplete="off" spellcheck="false"></div>
+      <div class="efield"><div class="efield-top"><span class="efield-name">Handling Unit</span><span class="ebadge eb-ok" id="st-hu">&#x2713; Read</span></div><input class="efield-inp" id="f-hu" type="text" placeholder="Not found &#x2014; enter manually" autocomplete="off" spellcheck="false"></div>
     </div>
     <div>
       <div class="field-lbl">Item Description</div>
@@ -195,6 +249,8 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
   </div>
 </div>
 
+<!-- LOG -->
+
 <div class="screen hidden" id="sLog">
   <div class="log-hdr">
     <div class="log-hdr-title">Scan History</div>
@@ -213,134 +269,471 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 <div class="toast" id="toast"></div>
 
 <script>
-var currentBin='',capturedB64=null,scanLog=[],camStream=null;
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+var currentBin  = '';
+var capturedB64 = null;  // original photo
+var processedB64= null;  // preprocessed for OCR
+var scanLog     = [];
+var camStream   = null;
 
-function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.add('hidden');});document.getElementById(id).classList.remove('hidden');}
-
-function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.classList.remove('show');},2800);}
-
-function setStep(n){for(var i=1;i<=3;i++){var el=document.getElementById('ps'+i);el.className='pstep'+(i<n?' done':i===n?' active':'');if(i<n)el.querySelector('.pstep-icon').textContent='✅';}}
-
-function confirmBin(){
-  var bin=document.getElementById('binInput').value.trim().toUpperCase();
-  if(!bin){document.getElementById('setupErr').style.display='block';return;}
-  document.getElementById('setupErr').style.display='none';
-  currentBin=bin;
-  document.getElementById('camBinChip').textContent='📍 '+currentBin;
-  document.getElementById('resBinChip').textContent='📍 '+currentBin;
-  show('sCam');
-  startPreview();
-  setupFileInput();
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.add('hidden'); });
+  document.getElementById(id).classList.remove('hidden');
 }
 
-function setupFileInput(){
-  var fi=document.getElementById('fileInput');
-  fi.onchange=function(e){
-    var file=e.target.files[0];
-    if(!file)return;
-    var reader=new FileReader();
-    reader.onload=function(ev){
-      capturedB64=ev.target.result;
-      document.getElementById('resImg').src=capturedB64;
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+
+function setStep(n) {
+  for (var i = 1; i <= 3; i++) {
+    var el = document.getElementById('ps' + i);
+    el.className = 'pstep' + (i < n ? ' done' : i === n ? ' active' : '');
+    if (i < n) el.querySelector('.pstep-icon').textContent = '✅';
+  }
+}
+
+function setBar(pct) {
+  document.getElementById('procBar').style.width = pct + '%';
+}
+
+// ══════════════════════════════════════════════
+// BIN SETUP
+// ══════════════════════════════════════════════
+function confirmBin() {
+  var bin = document.getElementById('binInput').value.trim().toUpperCase();
+  if (!bin) { document.getElementById('setupErr').style.display = 'block'; return; }
+  document.getElementById('setupErr').style.display = 'none';
+  currentBin = bin;
+  document.getElementById('camBinChip').textContent = '📍 ' + currentBin;
+  document.getElementById('resBinChip').textContent = '📍 ' + currentBin;
+  show('sCam');
+  setupFileInput();
+  startPreview();
+}
+
+function goToSetup() {
+  stopPreview();
+  document.getElementById('binInput').value = currentBin;
+  show('sBin');
+}
+
+// ══════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════
+function startPreview() {
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+    audio: false
+  }).then(function(s) {
+    camStream = s;
+    var v = document.getElementById('camVideo');
+    v.srcObject = s;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.muted = true;
+    v.play();
+  }).catch(function() {});
+}
+
+function stopPreview() {
+  if (camStream) { camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
+}
+
+function setupFileInput() {
+  var fi = document.getElementById('fileInput');
+  fi.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      capturedB64 = ev.target.result;
+      document.getElementById('resImg').src = capturedB64;
       stopPreview();
       show('sProcess');
-      setStep(1);
-      callClaude(capturedB64);
+      setStep(1); setBar(5);
+      preprocessAndOCR(capturedB64);
     };
     reader.readAsDataURL(file);
-    fi.value='';
+    fi.value = '';
   };
 }
 
-function startPreview(){
-  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})
-  .then(function(s){camStream=s;var v=document.getElementById('camVideo');v.srcObject=s;v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');v.muted=true;v.play();})
-  .catch(function(){});
-}
-
-function stopPreview(){if(camStream){camStream.getTracks().forEach(function(t){t.stop();});camStream=null;}}
-
-function goToSetup(){stopPreview();document.getElementById('binInput').value=currentBin;show('sBin');}
-
-function retake(){show('sCam');startPreview();}
-
-function triggerCapture(){
-  var video=document.getElementById('camVideo');
-  if(camStream&&video.videoWidth>0){
-    var c=document.getElementById('camCanvas');
-    c.width=video.videoWidth;c.height=video.videoHeight;
-    c.getContext('2d').drawImage(video,0,0);
-    capturedB64=c.toDataURL('image/jpeg',0.92);
-    document.getElementById('resImg').src=capturedB64;
-    stopPreview();show('sProcess');setStep(1);
-    callClaude(capturedB64);
+function triggerCapture() {
+  var video = document.getElementById('camVideo');
+  if (camStream && video.videoWidth > 0) {
+    var c = document.getElementById('camCanvas');
+    c.width  = video.videoWidth;
+    c.height = video.videoHeight;
+    c.getContext('2d').drawImage(video, 0, 0);
+    capturedB64 = c.toDataURL('image/jpeg', 0.95);
+    document.getElementById('resImg').src = capturedB64;
+    stopPreview();
+    show('sProcess');
+    setStep(1); setBar(5);
+    preprocessAndOCR(capturedB64);
   } else {
     document.getElementById('fileInput').click();
   }
 }
 
-function callClaude(imgData){
-  var b64=imgData.replace(/^data:image\/(jpeg|png|webp);base64,/,'');
-  var mt=imgData.startsWith('data:image/png')?'image/png':'image/jpeg';
-  setStep(1);
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({
-      model:'claude-haiku-4-5-20251001',
-      max_tokens:400,
-      system:'You are a warehouse label reader. Return ONLY a JSON object, no markdown, no explanation.',
-      messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:mt,data:b64}},
-        {type:'text',text:'Read this Novus Foods warehouse label. Return ONLY this JSON:\n{"hu":"HU Number value","item_name":"product description","material":"Material Number value","quantity":"quantity number only","uom":"unit of measure (EA/LB/CS/etc)","expiry":"expiration date MM/DD/YYYY","batch":"Batch Number value"}\nUse "" for missing fields.'}
-      ]}]
-    })
-  })
-  .then(function(r){setStep(2);if(!r.ok)return r.json().then(function(e){throw new Error(e.error?e.error.message:'Error '+r.status);});return r.json();})
-  .then(function(d){
-    setStep(3);
-    var raw=d.content[0].text.trim().replace(/```json/g,'').replace(/```/g,'').trim();
-    var p=JSON.parse(raw);
-    setTimeout(function(){renderResults(p);},300);
-  })
-  .catch(function(err){show('sCam');startPreview();toast(err.message?err.message.slice(0,80):'Error — try again','err');});
+function retake() {
+  show('sCam');
+  startPreview();
 }
 
-function renderResults(d){
-  function fill(fid,sid,val){
-    var inp=document.getElementById(fid),st=document.getElementById(sid);
-    if(val&&val.trim()){inp.value=val.trim();st.textContent='✓ Read';st.className='ebadge eb-ok';}
-    else{inp.value='';st.textContent='Not found';st.className='ebadge eb-miss';}
+// ══════════════════════════════════════════════
+// IMAGE PREPROCESSING PIPELINE
+// This is the key improvement over plain Tesseract.
+// Steps: load → upscale → grayscale → contrast stretch
+//        → adaptive threshold → sharpen → output
+// ══════════════════════════════════════════════
+function preprocessAndOCR(dataUrl) {
+  document.getElementById('procTitle').textContent = 'Enhancing image…';
+  document.getElementById('procSub').textContent   = 'Applying contrast boost and sharpening for best OCR accuracy.';
+  setBar(10);
+
+  var img = new Image();
+  img.onload = function() {
+    var c   = document.createElement('canvas');
+    var ctx = c.getContext('2d');
+
+    // Step 1 — Upscale to at least 2400px wide for better OCR
+    var scaleFactor = Math.max(1, 2400 / img.width);
+    c.width  = Math.round(img.width  * scaleFactor);
+    c.height = Math.round(img.height * scaleFactor);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    setBar(20);
+
+    // Step 2 — Get pixel data
+    var imageData = ctx.getImageData(0, 0, c.width, c.height);
+    var d = imageData.data;
+
+    // Step 3 — Convert to grayscale
+    for (var i = 0; i < d.length; i += 4) {
+      var gray = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+      d[i] = d[i+1] = d[i+2] = gray;
+    }
+    setBar(35);
+
+    // Step 4 — Find min/max for contrast stretching
+    var minV = 255, maxV = 0;
+    for (var i = 0; i < d.length; i += 4) {
+      if (d[i] < minV) minV = d[i];
+      if (d[i] > maxV) maxV = d[i];
+    }
+    var range = maxV - minV || 1;
+
+    // Step 5 — Contrast stretch + gamma correction
+    // This makes dark text blacker and white background whiter
+    for (var i = 0; i < d.length; i += 4) {
+      var stretched = Math.round(((d[i] - minV) / range) * 255);
+      // Apply S-curve: darken darks, lighten lights
+      var gamma = stretched < 128
+        ? Math.round(Math.pow(stretched / 255, 0.75) * 255)
+        : Math.round(255 - Math.pow((255 - stretched) / 255, 0.75) * 255);
+      d[i] = d[i+1] = d[i+2] = gamma;
+    }
+    setBar(55);
+
+    // Step 6 — Unsharp mask (sharpening)
+    // Run a blur pass, then subtract from original to enhance edges
+    ctx.putImageData(imageData, 0, 0);
+    var blurred = document.createElement('canvas');
+    blurred.width = c.width; blurred.height = c.height;
+    var bctx = blurred.getContext('2d');
+    bctx.filter = 'blur(1.5px)';
+    bctx.drawImage(c, 0, 0);
+    bctx.filter = 'none';
+    var blurData = bctx.getImageData(0, 0, c.width, c.height).data;
+
+    var sharp = 2.5; // sharpening strength
+    for (var i = 0; i < d.length; i += 4) {
+      var v = Math.round(d[i] + sharp * (d[i] - blurData[i]));
+      v = Math.max(0, Math.min(255, v));
+      d[i] = d[i+1] = d[i+2] = v;
+    }
+    setBar(70);
+
+    // Step 7 — Binarize with adaptive threshold
+    // Convert to pure black/white using Otsu-inspired threshold
+    var histogram = new Array(256).fill(0);
+    for (var i = 0; i < d.length; i += 4) histogram[d[i]]++;
+    var total = c.width * c.height;
+    var sum = 0;
+    for (var t = 0; t < 256; t++) sum += t * histogram[t];
+    var sumB = 0, wB = 0, wF = 0, varMax = 0, threshold = 128;
+    for (var t = 0; t < 256; t++) {
+      wB += histogram[t];
+      if (!wB) continue;
+      wF = total - wB;
+      if (!wF) break;
+      sumB += t * histogram[t];
+      var mB = sumB / wB;
+      var mF = (sum - sumB) / wF;
+      var varBetween = wB * wF * (mB - mF) * (mB - mF);
+      if (varBetween > varMax) { varMax = varBetween; threshold = t; }
+    }
+
+    // Apply threshold — pure black or white
+    for (var i = 0; i < d.length; i += 4) {
+      var v = d[i] < threshold ? 0 : 255;
+      d[i] = d[i+1] = d[i+2] = v;
+    }
+    setBar(82);
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Add white padding around image (helps Tesseract)
+    var padded = document.createElement('canvas');
+    var pad = 40;
+    padded.width  = c.width  + pad * 2;
+    padded.height = c.height + pad * 2;
+    var pctx = padded.getContext('2d');
+    pctx.fillStyle = '#ffffff';
+    pctx.fillRect(0, 0, padded.width, padded.height);
+    pctx.drawImage(c, pad, pad);
+
+    processedB64 = padded.toDataURL('image/png');
+    setBar(88);
+    setStep(2);
+
+    document.getElementById('procTitle').textContent = 'Reading text…';
+    document.getElementById('procSub').textContent   = 'OCR engine scanning label fields.';
+
+    runTesseract(processedB64);
+  };
+  img.src = dataUrl;
+}
+
+// ══════════════════════════════════════════════
+// TESSERACT OCR
+// ══════════════════════════════════════════════
+function runTesseract(imageData) {
+  Tesseract.recognize(imageData, 'eng', {
+    logger: function(m) {
+      if (m.status === 'recognizing text') {
+        var pct = Math.round(88 + (m.progress || 0) * 10);
+        setBar(pct);
+      }
+    },
+    // Tesseract config tuned for label/form text
+    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./:- ',
+    preserve_interword_spaces: '1',
+  })
+  .then(function(result) {
+    setBar(100);
+    setStep(3);
+    var text = result.data.text;
+    var parsed = parseNovusLabel(text);
+    setTimeout(function(){ renderResults(parsed); }, 300);
+  })
+  .catch(function(err) {
+    show('sCam');
+    startPreview();
+    toast('OCR failed — try better lighting', 'err');
+  });
+}
+
+// ══════════════════════════════════════════════
+// PARSER — tuned for Novus Foods label format
+// ══════════════════════════════════════════════
+function parseNovusLabel(text) {
+  var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+  var result = { hu:'', name:'', mat:'', qty:'', uom:'', exp:'', bat:'' };
+
+  // ── HU Number ──────────────────────────────
+  // Look for "HU Number:" anchor then grab the number on same or next few lines
+  var huLine = findLineIndex(lines, /HU\s*Number/i);
+  if (huLine >= 0) {
+    for (var i = huLine; i <= Math.min(huLine + 4, lines.length - 1); i++) {
+      var m = lines[i].match(/\b(\d{7,12})\b/);
+      if (m) { result.hu = m[1]; break; }
+    }
   }
-  fill('f-hu','st-hu',d.hu);
-  fill('f-name','st-name',d.item_name);
-  fill('f-mat','st-mat',d.material);
-  fill('f-qty','st-qty',d.quantity?(d.quantity+(d.uom?' '+d.uom:'')):'');
-  fill('f-exp','st-exp',d.expiry);
-  fill('f-bat','st-bat',d.batch);
-  document.getElementById('resScroll').scrollTop=0;
+  // Fallback: find any 9-digit standalone number in full text
+  if (!result.hu) {
+    var hm = text.match(/\b(\d{9,12})\b/);
+    if (hm) result.hu = hm[1];
+  }
+
+  // ── Material Number ────────────────────────
+  var matLine = findLineIndex(lines, /Material\s*Number/i);
+  if (matLine >= 0) {
+    for (var i = matLine; i <= Math.min(matLine + 4, lines.length - 1); i++) {
+      var m = lines[i].match(/\b(\d{5,8})\b/);
+      if (m && m[1] !== result.hu) { result.mat = m[1]; break; }
+    }
+  }
+
+  // ── Item Description ───────────────────────
+  // Product name is a text line between HU and Material sections
+  // It contains letters, is not a label keyword, and is not all numbers
+  var skipRe = /^(HU|Material|Quantity|Expir|Batch|UoM|No\s*Allergen|Allergen|JZAVALA|Produced|^\d+$|EA|LB|CS|KG|OZ)/i;
+  var nameCandidates = lines.filter(function(l) {
+    return l.length > 4 &&
+           /[a-zA-Z]/.test(l) &&
+           !skipRe.test(l) &&
+           !/^\d+$/.test(l) &&
+           l.length < 70 &&
+           (l.match(/\s/g) || []).length >= 1; // at least 2 words
+  });
+  if (nameCandidates.length > 0) {
+    // Sort by word count descending — product names have more words
+    nameCandidates.sort(function(a, b) {
+      return (b.match(/\s/g)||[]).length - (a.match(/\s/g)||[]).length;
+    });
+    result.name = nameCandidates[0];
+  }
+
+  // ── Quantity ───────────────────────────────
+  var qtyLine = findLineIndex(lines, /Quantity/i);
+  if (qtyLine >= 0) {
+    for (var i = qtyLine; i <= Math.min(qtyLine + 3, lines.length - 1); i++) {
+      var m = lines[i].match(/\b(\d{2,6})\b/);
+      if (m) { result.qty = m[1]; break; }
+    }
+  }
+
+  // ── UoM ────────────────────────────────────
+  var uomM = text.match(/UoM[:\s]*([A-Z]{1,4})\b/i);
+  if (uomM) { result.uom = uomM[1].toUpperCase(); }
+  if (!result.uom) {
+    var uomM2 = text.match(/\b(EA|LB|CS|KG|OZ|GA|PC|CT)\b/);
+    if (uomM2) result.uom = uomM2[1].toUpperCase();
+  }
+
+  // ── Expiration Date ────────────────────────
+  var expM = text.match(/Expir\w*\s*Date[:\s]*([\d]{1,2}[\/\-][\d]{1,2}[\/\-][\d]{2,4})/i);
+  if (!expM) expM = text.match(/([\d]{1,2}[\/\-][\d]{1,2}[\/\-][\d]{4})/);
+  if (expM) result.exp = expM[1];
+
+  // ── Batch Number ───────────────────────────
+  var batLine = findLineIndex(lines, /Batch\s*Number/i);
+  if (batLine >= 0) {
+    for (var i = batLine; i <= Math.min(batLine + 3, lines.length - 1); i++) {
+      var m = lines[i].match(/\b(\d{3,8})\b/);
+      if (m) { result.bat = m[1]; break; }
+    }
+  }
+  if (!result.bat) {
+    var batM = text.match(/Batch[:\s]*(\d{3,8})/i);
+    if (batM) result.bat = batM[1];
+  }
+
+  return result;
+}
+
+function findLineIndex(lines, re) {
+  for (var i = 0; i < lines.length; i++) {
+    if (re.test(lines[i])) return i;
+  }
+  return -1;
+}
+
+// ══════════════════════════════════════════════
+// RENDER RESULTS
+// ══════════════════════════════════════════════
+function renderResults(d) {
+  function fill(fid, sid, val) {
+    var inp = document.getElementById(fid);
+    var st  = document.getElementById(sid);
+    if (val && val.trim()) {
+      inp.value      = val.trim();
+      st.textContent = '✓ Read';
+      st.className   = 'ebadge eb-ok';
+    } else {
+      inp.value      = '';
+      st.textContent = 'Not found';
+      st.className   = 'ebadge eb-miss';
+    }
+  }
+  fill('f-hu',   'st-hu',   d.hu);
+  fill('f-name', 'st-name', d.name);
+  fill('f-mat',  'st-mat',  d.mat);
+  fill('f-qty',  'st-qty',  d.qty ? (d.qty + (d.uom ? ' ' + d.uom : '')) : '');
+  fill('f-exp',  'st-exp',  d.exp);
+  fill('f-bat',  'st-bat',  d.bat);
+  document.getElementById('resScroll').scrollTop = 0;
   show('sResults');
 }
 
-function saveEntry(){
-  scanLog.unshift({bin:currentBin,hu:document.getElementById('f-hu').value.trim()||'—',name:document.getElementById('f-name').value.trim()||'—',mat:document.getElementById('f-mat').value.trim()||'—',qty:document.getElementById('f-qty').value.trim()||'—',exp:document.getElementById('f-exp').value.trim()||'—',bat:document.getElementById('f-bat').value.trim()||'—',time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}),date:new Date().toLocaleDateString()});
-  toast('Saved ✓','ok');show('sCam');startPreview();
+// ══════════════════════════════════════════════
+// SAVE
+// ══════════════════════════════════════════════
+function saveEntry() {
+  scanLog.unshift({
+    bin:  currentBin,
+    hu:   document.getElementById('f-hu').value.trim()   || '—',
+    name: document.getElementById('f-name').value.trim() || '—',
+    mat:  document.getElementById('f-mat').value.trim()  || '—',
+    qty:  document.getElementById('f-qty').value.trim()  || '—',
+    exp:  document.getElementById('f-exp').value.trim()  || '—',
+    bat:  document.getElementById('f-bat').value.trim()  || '—',
+    time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+    date: new Date().toLocaleDateString()
+  });
+  toast('Saved ✓', 'ok');
+  show('sCam');
+  startPreview();
 }
 
-function goToLog(){
-  var body=document.getElementById('logBody');body.innerHTML='';
-  if(!scanLog.length){body.innerHTML='<div class="log-empty"><div style="font-size:36px;opacity:0.4">📋</div><div>No scans yet.</div></div>';}
-  else{scanLog.forEach(function(e){var d=document.createElement('div');d.className='le';d.innerHTML='<div class="le-r1"><div class="le-hu">'+e.hu+'</div><div class="le-tm">'+e.time+'</div></div><div class="le-name">'+e.name+'</div><div class="le-grid"><div class="lef bf"><div class="lfl">Bin</div><div class="lfv">'+e.bin+'</div></div><div class="lef"><div class="lfl">Material</div><div class="lfv">'+e.mat+'</div></div><div class="lef"><div class="lfl">Quantity</div><div class="lfv">'+e.qty+'</div></div><div class="lef"><div class="lfl">Expiry</div><div class="lfv">'+e.exp+'</div></div><div class="lef"><div class="lfl">Batch</div><div class="lfv">'+e.bat+'</div></div><div class="lef"><div class="lfl">Date</div><div class="lfv">'+e.date+'</div></div></div>';body.appendChild(d);});}
+// ══════════════════════════════════════════════
+// LOG
+// ══════════════════════════════════════════════
+function goToLog() {
+  var body = document.getElementById('logBody');
+  body.innerHTML = '';
+  if (!scanLog.length) {
+    body.innerHTML = '<div class="log-empty"><div style="font-size:36px;opacity:0.4">📋</div><div>No scans yet.</div></div>';
+  } else {
+    scanLog.forEach(function(e) {
+      var d = document.createElement('div');
+      d.className = 'le';
+      d.innerHTML =
+        '<div class="le-r1"><div class="le-hu">' + e.hu + '</div><div class="le-tm">' + e.time + '</div></div>' +
+        '<div class="le-name">' + e.name + '</div>' +
+        '<div class="le-grid">' +
+          '<div class="lef bf"><div class="lfl">Bin</div><div class="lfv">'     + e.bin  + '</div></div>' +
+          '<div class="lef"><div class="lfl">Material</div><div class="lfv">'   + e.mat  + '</div></div>' +
+          '<div class="lef"><div class="lfl">Quantity</div><div class="lfv">'   + e.qty  + '</div></div>' +
+          '<div class="lef"><div class="lfl">Expiry</div><div class="lfv">'     + e.exp  + '</div></div>' +
+          '<div class="lef"><div class="lfl">Batch</div><div class="lfv">'      + e.bat  + '</div></div>' +
+          '<div class="lef"><div class="lfl">Date</div><div class="lfv">'       + e.date + '</div></div>' +
+        '</div>';
+      body.appendChild(d);
+    });
+  }
   show('sLog');
 }
 
-function doClearLog(){scanLog=[];document.getElementById('logBody').innerHTML='<div class="log-empty"><div style="font-size:36px;opacity:0.4">📋</div><div>No scans yet.</div></div>';toast('Log cleared');}
+function doClearLog() {
+  scanLog = [];
+  document.getElementById('logBody').innerHTML = '<div class="log-empty"><div style="font-size:36px;opacity:0.4">📋</div><div>No scans yet.</div></div>';
+  toast('Log cleared');
+}
 
-function doExport(){
-  if(!scanLog.length){toast('Nothing to export yet');return;}
-  var csv=['Bin,HU Number,Item Name,Material Number,Quantity,Expiry Date,Batch Number,Date,Time'].concat(scanLog.map(function(e){return[e.bin,e.hu,'"'+e.name+'"',e.mat,e.qty,e.exp,e.bat,e.date,e.time].join(',');})).join('\n');
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='novus_scan_'+new Date().toISOString().slice(0,10)+'.csv';a.click();toast('Exported ✓','ok');
+function doExport() {
+  if (!scanLog.length) { toast('Nothing to export yet'); return; }
+  var csv = ['Bin,HU Number,Item Name,Material Number,Quantity,Expiry Date,Batch Number,Date,Time']
+    .concat(scanLog.map(function(e) {
+      return [e.bin, e.hu, '"' + e.name + '"', e.mat, e.qty, e.exp, e.bat, e.date, e.time].join(',');
+    })).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = 'novus_scan_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('Exported ✓', 'ok');
 }
 </script>
+
 </body>
 </html>

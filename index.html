@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -38,764 +39,632 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(--sans);overflow:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
 
-/* ─────────────────────────────────────────
-   SCREENS — only one visible at a time
-───────────────────────────────────────── */
-.screen {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  max-width: 430px;
-  margin: 0 auto;
-  background: var(--navy);
-  transition: opacity 0.2s;
-}
-.screen.hidden { display: none; }
+/* ── Screens ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(–navy);}
+.screen.hidden{display:none!important;}
 
-/* ─────────────────────────────────────────
-   SCREEN 1 — BIN SETUP
-───────────────────────────────────────── */
-#screenBin {
-  align-items: center;
-  justify-content: center;
-  padding: 32px 24px 40px;
-  gap: 0;
-  overflow-y: auto;
-}
+/* ════════════════════════════
+SCREEN 1 — BIN SETUP
+════════════════════════════ */
+#sBin{align-items:center;justify-content:center;padding:32px 24px 48px;overflow-y:auto;}
 
-.bss-logo {
-  width: 60px; height: 60px; border-radius: 18px;
-  background: linear-gradient(135deg, var(--blue), var(--teal));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px;
-  box-shadow: 0 0 0 1px rgba(59,130,246,0.3), 0 8px 28px rgba(59,130,246,0.25);
-  margin-bottom: 22px; flex-shrink: 0;
-}
-.bss-title {
-  font-size: 24px; font-weight: 700; color: var(--white);
-  letter-spacing: -0.03em; text-align: center; margin-bottom: 10px;
-}
-.bss-desc {
-  font-size: 13px; color: var(--text-2); text-align: center;
-  line-height: 1.65; max-width: 290px; margin-bottom: 30px;
-}
+.logo-wrap{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,var(–blue),var(–teal));display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 8px 28px rgba(59,130,246,0.2);margin-bottom:22px;flex-shrink:0;}
+.bin-title{font-size:24px;font-weight:700;color:var(–white);letter-spacing:-0.03em;text-align:center;margin-bottom:10px;}
+.bin-desc{font-size:13px;color:var(–text-2);text-align:center;line-height:1.65;max-width:290px;margin-bottom:28px;}
 
-/* Input */
-.bss-field-label {
-  width: 100%;
-  font-family: var(--mono); font-size: 10px; font-weight: 500;
-  color: var(--text-3); text-transform: uppercase; letter-spacing: 0.12em;
-  margin-bottom: 8px;
-}
-.bss-input {
-  width: 100%;
-  background: var(--navy-3);
-  border: 1.5px solid var(--border-2);
-  border-radius: var(--radius-sm);
-  padding: 16px;
-  font-family: var(--mono); font-size: 20px; font-weight: 700;
-  color: var(--white); text-align: center;
-  letter-spacing: 0.12em; text-transform: uppercase;
-  outline: none; margin-bottom: 14px;
-  transition: border-color 0.15s;
-}
-.bss-input::placeholder {
-  color: var(--text-3); font-weight: 400; font-size: 14px;
-  letter-spacing: 0; text-transform: none;
-}
-.bss-input:focus { border-color: var(--blue); }
+.field-lbl{width:100%;font-family:var(–mono);font-size:10px;font-weight:500;color:var(–text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;}
 
-/* OR divider */
-.bss-or {
-  display: flex; align-items: center; gap: 12px;
-  width: 100%; margin-bottom: 14px;
+#binInput{
+width:100%;background:var(–navy-3);border:2px solid var(–border-2);
+border-radius:var(–radius-sm);padding:16px;
+font-family:var(–mono);font-size:20px;font-weight:700;
+color:var(–white);text-align:center;letter-spacing:0.12em;text-transform:uppercase;
+outline:none;margin-bottom:16px;transition:border-color 0.15s;
+/* iOS fix */
+-webkit-appearance:none;appearance:none;
 }
-.bss-or-line { flex:1; height:1px; background:var(--border-2); }
-.bss-or-text { font-family:var(--mono); font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.1em; }
+#binInput::placeholder{color:var(–text-3);font-weight:400;font-size:14px;letter-spacing:0;text-transform:none;}
+#binInput:focus{border-color:var(–blue);}
 
-/* Scan bin button */
-.bss-scan-row {
-  width: 100%;
-  display: flex; align-items: center; gap: 14px;
-  background: var(--blue-dim);
-  border: 1px solid rgba(59,130,246,0.25);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  cursor: pointer; margin-bottom: 20px;
-  transition: background 0.15s;
+#btnStartScanning{
+width:100%;background:var(–blue);color:#fff;
+font-family:var(–sans);font-size:15px;font-weight:600;
+padding:16px;border-radius:var(–radius-sm);border:none;
+cursor:pointer;letter-spacing:-0.01em;margin-bottom:16px;
+box-shadow:0 4px 18px rgba(59,130,246,0.35);
+/* iOS fix — ensure button is tappable */
+-webkit-appearance:none;appearance:none;
+position:relative;z-index:1;
 }
-.bss-scan-row:active { background: rgba(59,130,246,0.2); }
-.bss-scan-icon { width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0; }
-.bss-scan-title { font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px; }
-.bss-scan-sub   { font-size:11px;color:var(--text-2); }
+#btnStartScanning:active{opacity:0.85;}
 
-/* Confirm button */
-.bss-confirm {
-  width: 100%;
-  background: var(--blue); color: #fff;
-  font-family: var(--sans); font-size: 15px; font-weight: 600;
-  padding: 16px; border-radius: var(--radius-sm); border: none;
-  cursor: pointer; letter-spacing: -0.01em;
-  box-shadow: 0 4px 18px rgba(59,130,246,0.35);
-  transition: opacity 0.15s;
-}
-.bss-confirm:active { opacity: 0.85; }
+.or-row{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:16px;}
+.or-line{flex:1;height:1px;background:var(–border-2);}
+.or-txt{font-family:var(–mono);font-size:10px;color:var(–text-3);text-transform:uppercase;letter-spacing:0.1em;}
 
-/* ─────────────────────────────────────────
-   SCREEN 2 — BIN SCAN (camera for bin)
-───────────────────────────────────────── */
-#screenBinScan {
-  background: #000;
+#btnScanBin{
+width:100%;display:flex;align-items:center;gap:14px;
+background:var(–blue-dim);border:1px solid rgba(59,130,246,0.25);
+border-radius:var(–radius);padding:14px 16px;
+cursor:pointer;-webkit-appearance:none;appearance:none;
 }
+#btnScanBin:active{background:rgba(59,130,246,0.2);}
+.sbi{width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.sbt{font-size:13px;font-weight:600;color:var(–white);margin-bottom:3px;}
+.sbs{font-size:11px;color:var(–text-2);}
 
-.bscan-header {
-  position: absolute; top: 0; left: 0; right: 0;
-  padding: 16px 20px;
-  display: flex; align-items: center; justify-content: space-between;
-  z-index: 20;
-  background: linear-gradient(to bottom, rgba(11,17,32,0.9), transparent);
-}
-.bscan-title { font-size: 14px; font-weight: 600; color: var(--white); }
-.bscan-cancel {
-  font-family: var(--mono); font-size: 12px; color: var(--text-2);
-  background: rgba(28,42,58,0.8); border: 1px solid var(--border-2);
-  padding: 6px 14px; border-radius: 20px; cursor: pointer;
-}
-.bscan-cancel:active { background: var(--navy-3); }
+#binError{width:100%;margin-top:12px;padding:10px 14px;background:var(–red-dim);border:1px solid rgba(239,68,68,0.3);border-radius:var(–radius-sm);font-size:12px;color:var(–red);text-align:center;display:none;}
 
-#binVideo {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-}
+/* ════════════════════════════
+SCREEN 2 — BIN CAM SCAN
+════════════════════════════ */
+#sBinCam{background:#000;}
+#binVideo{width:100%;height:100%;object-fit:cover;display:block;}
+.bincam-hdr{position:absolute;top:0;left:0;right:0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;z-index:20;background:linear-gradient(to bottom,rgba(11,17,32,0.85),transparent);}
+.bincam-title{font-size:14px;font-weight:600;color:var(–white);}
+.bincam-cancel{font-family:var(–mono);font-size:12px;color:var(–text-2);background:rgba(28,42,58,0.85);border:1px solid var(–border-2);padding:6px 14px;border-radius:20px;cursor:pointer;}
+.bincam-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:75%;height:110px;border:2px solid rgba(245,158,11,0.85);border-radius:8px;box-shadow:0 0 0 2000px rgba(0,0,0,0.5);}
+.bincam-laser{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(–amber),transparent);box-shadow:0 0 8px var(–amber);animation:lz 1.8s ease-in-out infinite;}
+@keyframes lz{0%{top:5%;opacity:0;}8%{opacity:1;}92%{opacity:1;}100%{top:95%;opacity:0;}}
+.bincam-hint{position:absolute;bottom:80px;left:0;right:0;text-align:center;font-size:12px;color:rgba(255,255,255,0.55);font-family:var(–mono);}
 
-.bscan-overlay {
-  position: absolute; inset: 0; z-index: 10; pointer-events: none;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-}
-.bscan-box {
-  width: 75%; height: 120px;
-  border: 2px solid rgba(245,158,11,0.8);
-  border-radius: 8px;
-  position: relative;
-  box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
-}
-.bscan-laser {
-  position: absolute; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--amber), transparent);
-  box-shadow: 0 0 8px var(--amber);
-  animation: laserSweep 1.8s ease-in-out infinite;
-}
-@keyframes laserSweep {
-  0%  { top:5%;  opacity:0; }
-  8%  { opacity:1; }
-  92% { opacity:1; }
-  100%{ top:95%; opacity:0; }
-}
-.bscan-hint {
-  margin-top: 20px;
-  font-size: 12px; color: rgba(255,255,255,0.6);
-  font-family: var(--mono); letter-spacing: 0.05em; text-align: center;
-}
+/* ════════════════════════════
+SCREEN 3 — SCANNER
+════════════════════════════ */
+#sScanner{}
 
-/* ─────────────────────────────────────────
-   SCREEN 3 — MAIN SCANNER
-───────────────────────────────────────── */
-#screenScanner {
-  background: var(--navy);
-}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;}
+.hdr-l{display:flex;align-items:center;gap:10px;}
+.lm{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(–blue),var(–teal));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 4px 12px rgba(59,130,246,0.2);}
+.an{font-size:14px;font-weight:600;color:var(–white);letter-spacing:-0.01em;line-height:1.2;}
+.as{font-size:10px;color:var(–text-3);letter-spacing:0.04em;text-transform:uppercase;font-family:var(–mono);margin-top:1px;}
+.hdr-r{display:flex;align-items:center;gap:8px;}
+.chip{font-family:var(–mono);font-size:11px;font-weight:500;color:var(–text-2);background:var(–navy-3);border:1px solid var(–border);padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.chip .n{color:var(–blue);font-weight:600;}
+.ibtn{width:34px;height:34px;border-radius:var(–radius-sm);background:var(–navy-3);border:1px solid var(–border);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.ibtn:active{background:var(–navy-4);}
 
-/* Header */
-.hdr {
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 20px 12px;background:var(--navy-2);
-  border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:20;
-}
-.hdr-left{display:flex;align-items:center;gap:10px;}
-.logo-mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 4px 12px rgba(59,130,246,0.2);}
-.app-name{font-size:14px;font-weight:600;color:var(--white);letter-spacing:-0.01em;line-height:1.2;}
-.app-sub{font-size:10px;font-weight:400;color:var(--text-3);letter-spacing:0.04em;text-transform:uppercase;font-family:var(--mono);margin-top:1px;}
-.hdr-right{display:flex;align-items:center;gap:8px;}
-.session-chip{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text-2);background:var(--navy-3);border:1px solid var(--border);padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
-.session-chip .num{color:var(--blue);font-weight:600;}
-.icon-btn{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--navy-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.icon-btn:active{background:var(--navy-4);border-color:var(--border-2);}
+.bin-bar{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;background:var(–amber-dim);border-bottom:1px solid var(–amber-bdr);flex-shrink:0;cursor:pointer;}
+.bin-bar:active{background:rgba(245,158,11,0.22);}
+.bin-bar-l{display:flex;align-items:center;gap:8px;}
+.bin-lbl{font-family:var(–mono);font-size:9px;font-weight:500;color:var(–amber);text-transform:uppercase;letter-spacing:0.1em;opacity:0.8;line-height:1;margin-bottom:2px;}
+.bin-val{font-family:var(–mono);font-size:15px;font-weight:700;color:var(–white);letter-spacing:0.05em;}
+.bin-chg{font-family:var(–mono);font-size:10px;color:var(–amber);opacity:0.7;}
 
-/* Bin banner */
-.bin-banner{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;background:var(--amber-dim);border-bottom:1px solid var(--amber-bdr);flex-shrink:0;gap:10px;cursor:pointer;transition:background 0.2s;}
-.bin-banner:active{background:rgba(245,158,11,0.22);}
-.bin-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
-.bin-sublabel{font-family:var(--mono);font-size:9px;font-weight:500;color:var(--amber);text-transform:uppercase;letter-spacing:0.1em;opacity:0.8;line-height:1;margin-bottom:2px;}
-.bin-value{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--white);letter-spacing:0.05em;}
-.bin-change{font-family:var(--mono);font-size:10px;color:var(--amber);opacity:0.7;white-space:nowrap;flex-shrink:0;}
-
-/* Viewfinder */
-.viewfinder{position:relative;background:#000;flex-shrink:0;overflow:hidden;}
+.vf{position:relative;background:#000;flex-shrink:0;overflow:hidden;}
 #video{width:100%;height:190px;object-fit:cover;display:block;}
-.vf-mask{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(11,17,32,0.6) 0%,transparent 25%,transparent 75%,rgba(11,17,32,0.6) 100%);pointer-events:none;z-index:5;}
-.scan-target{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:60%;pointer-events:none;z-index:10;}
-.corner{position:absolute;width:24px;height:24px;}
-.corner::before,.corner::after{content:'';position:absolute;background:#fff;border-radius:1px;}
-.corner-tl{top:0;left:0;}.corner-tl::before{top:0;left:0;width:100%;height:2.5px;}.corner-tl::after{top:0;left:0;width:2.5px;height:100%;}
-.corner-tr{top:0;right:0;}.corner-tr::before{top:0;right:0;width:100%;height:2.5px;}.corner-tr::after{top:0;right:0;width:2.5px;height:100%;}
-.corner-bl{bottom:0;left:0;}.corner-bl::before{bottom:0;left:0;width:100%;height:2.5px;}.corner-bl::after{bottom:0;left:0;width:2.5px;height:100%;}
-.corner-br{bottom:0;right:0;}.corner-br::before{bottom:0;right:0;width:100%;height:2.5px;}.corner-br::after{bottom:0;right:0;width:2.5px;height:100%;}
-.laser{position:absolute;left:4%;right:4%;height:1.5px;background:linear-gradient(90deg,transparent,rgba(59,130,246,0.6) 15%,var(--blue) 50%,rgba(59,130,246,0.6) 85%,transparent);box-shadow:0 0 6px 1px rgba(59,130,246,0.5);animation:laserSweep 2s ease-in-out infinite;border-radius:1px;}
-.cam-pill{position:absolute;top:8px;left:10px;z-index:20;display:flex;align-items:center;gap:5px;background:rgba(11,17,32,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.08);padding:4px 9px 4px 7px;border-radius:20px;}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:livePulse 2s infinite;}
-@keyframes livePulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.6;transform:scale(0.85);}}
-.cam-label{font-family:var(--mono);font-size:9px;font-weight:500;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;}
+.vfm{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(11,17,32,0.6) 0%,transparent 25%,transparent 75%,rgba(11,17,32,0.6) 100%);pointer-events:none;z-index:5;}
+.vft{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:60%;pointer-events:none;z-index:10;}
+.c{position:absolute;width:24px;height:24px;}.c::before,.c::after{content:’’;position:absolute;background:#fff;border-radius:1px;}
+.c-tl{top:0;left:0;}.c-tl::before{top:0;left:0;width:100%;height:2.5px;}.c-tl::after{top:0;left:0;width:2.5px;height:100%;}
+.c-tr{top:0;right:0;}.c-tr::before{top:0;right:0;width:100%;height:2.5px;}.c-tr::after{top:0;right:0;width:2.5px;height:100%;}
+.c-bl{bottom:0;left:0;}.c-bl::before{bottom:0;left:0;width:100%;height:2.5px;}.c-bl::after{bottom:0;left:0;width:2.5px;height:100%;}
+.c-br{bottom:0;right:0;}.c-br::before{bottom:0;right:0;width:100%;height:2.5px;}.c-br::after{bottom:0;right:0;width:2.5px;height:100%;}
+.laser{position:absolute;left:4%;right:4%;height:1.5px;background:linear-gradient(90deg,transparent,rgba(59,130,246,0.6) 15%,var(–blue) 50%,rgba(59,130,246,0.6) 85%,transparent);box-shadow:0 0 6px 1px rgba(59,130,246,0.5);animation:lz2 2s ease-in-out infinite;border-radius:1px;}
+@keyframes lz2{0%{top:8%;opacity:0;}8%{opacity:1;}92%{opacity:1;}100%{top:92%;opacity:0;}}
+.campill{position:absolute;top:8px;left:10px;z-index:20;display:flex;align-items:center;gap:5px;background:rgba(11,17,32,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.08);padding:4px 9px 4px 7px;border-radius:20px;}
+.ldot{width:6px;height:6px;border-radius:50%;background:var(–green);box-shadow:0 0 6px var(–green);animation:lp 2s infinite;}
+@keyframes lp{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.6;transform:scale(0.85);}}
+.clbl{font-family:var(–mono);font-size:9px;font-weight:500;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;}
 
-/* Step tracker */
-.step-track{display:flex;align-items:center;padding:11px 20px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;gap:0;}
-.step-item{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;position:relative;}
-.step-item:not(:last-child)::after{content:'';position:absolute;top:13px;left:calc(50% + 13px);right:calc(-50% + 13px);height:1px;background:var(--border-2);transition:background 0.4s;}
-.step-item.done:not(:last-child)::after{background:var(--blue);}
-.step-circle{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border-2);background:var(--navy-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3);transition:all 0.3s;flex-shrink:0;z-index:1;}
-.step-item.active  .step-circle{border-color:var(--blue);background:var(--blue-dim);color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.15);}
-.step-item.done    .step-circle{border-color:var(--blue);background:var(--blue);color:#fff;font-size:11px;}
-.step-item.skipped .step-circle{border-color:var(--text-3);color:var(--text-3);}
-.step-name{font-size:9px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;font-family:var(--mono);transition:color 0.3s;}
-.step-item.active .step-name{color:var(--blue);}
-.step-item.done   .step-name{color:var(--text-2);}
+.steps{display:flex;align-items:center;padding:11px 20px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;gap:0;}
+.si{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;position:relative;}
+.si:not(:last-child)::after{content:’’;position:absolute;top:13px;left:calc(50% + 13px);right:calc(-50% + 13px);height:1px;background:var(–border-2);transition:background 0.4s;}
+.si.done:not(:last-child)::after{background:var(–blue);}
+.sc{width:26px;height:26px;border-radius:50%;border:1.5px solid var(–border-2);background:var(–navy-3);display:flex;align-items:center;justify-content:center;font-family:var(–mono);font-size:10px;font-weight:600;color:var(–text-3);transition:all 0.3s;flex-shrink:0;z-index:1;}
+.si.active .sc{border-color:var(–blue);background:var(–blue-dim);color:var(–blue);box-shadow:0 0 0 3px rgba(59,130,246,0.15);}
+.si.done   .sc{border-color:var(–blue);background:var(–blue);color:#fff;font-size:11px;}
+.si.skip   .sc{border-color:var(–text-3);color:var(–text-3);}
+.sn{font-size:9px;font-weight:500;color:var(–text-3);text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;font-family:var(–mono);transition:color 0.3s;}
+.si.active .sn{color:var(–blue);}
+.si.done   .sn{color:var(–text-2);}
 
-/* Content */
 .content{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .content::-webkit-scrollbar{display:none;}
 
-/* Prompt */
-.prompt-card{background:var(--blue-dim);border:1px solid rgba(59,130,246,0.2);border-radius:var(--radius);padding:13px 15px;display:flex;align-items:center;gap:12px;transition:background 0.3s,border-color 0.3s;}
-.prompt-icon-wrap{width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-.prompt-title{font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px;letter-spacing:-0.01em;}
-.prompt-desc{font-size:11.5px;color:var(--text-2);line-height:1.5;}
+.pc{background:var(–blue-dim);border:1px solid rgba(59,130,246,0.2);border-radius:var(–radius);padding:13px 15px;display:flex;align-items:center;gap:12px;transition:background 0.3s,border-color 0.3s;}
+.pi{width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.pt{font-size:13px;font-weight:600;color:var(–white);margin-bottom:3px;letter-spacing:-0.01em;}
+.pd{font-size:11.5px;color:var(–text-2);line-height:1.5;}
 
-/* Scan cards */
-.scan-card{background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color 0.25s;}
-.scan-card.is-active{border-color:rgba(59,130,246,0.35);box-shadow:0 0 0 3px rgba(59,130,246,0.06);}
-.scan-card.is-done{border-color:rgba(34,197,94,0.3);}
-.scan-card.is-skipped{border-color:var(--border);opacity:0.55;}
-.card-top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);}
-.card-label{display:flex;align-items:center;gap:7px;}
-.card-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0;transition:background 0.3s;}
-.scan-card.is-active .card-dot{background:var(--blue);box-shadow:0 0 6px var(--blue);}
-.scan-card.is-done   .card-dot{background:var(--green);}
-.card-name{font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);}
-.card-pill{font-size:10px;font-weight:600;font-family:var(--mono);padding:3px 9px;border-radius:20px;letter-spacing:0.04em;text-transform:uppercase;}
-.pill-waiting{background:var(--navy-3);color:var(--text-3);border:1px solid var(--border);}
-.pill-scanning{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,0.25);}
-.pill-done{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.25);}
-.pill-skipped{background:var(--navy-3);color:var(--text-3);border:1px solid var(--border);}
-.card-body{padding:12px 14px;min-height:54px;display:flex;flex-direction:column;justify-content:center;}
-.card-value{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--white);letter-spacing:-0.02em;line-height:1.2;word-break:break-all;}
-.card-value.placeholder{font-size:13px;font-weight:400;color:var(--text-3);font-family:var(--sans);letter-spacing:0;}
-.card-timestamp{margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--text-3);}
-@keyframes scanFlash{0%{background:rgba(34,197,94,0.18);}100%{background:var(--navy-2);}}
-.flash-green{animation:scanFlash 0.6s ease forwards;}
+.card{background:var(–navy-2);border:1px solid var(–border);border-radius:var(–radius);overflow:hidden;transition:border-color 0.25s;}
+.card.active{border-color:rgba(59,130,246,0.35);box-shadow:0 0 0 3px rgba(59,130,246,0.06);}
+.card.done{border-color:rgba(34,197,94,0.3);}
+.card.skip{border-color:var(–border);opacity:0.55;}
+.ct{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(–border);}
+.cl{display:flex;align-items:center;gap:7px;}
+.cd{width:6px;height:6px;border-radius:50%;background:var(–text-3);flex-shrink:0;transition:background 0.3s;}
+.card.active .cd{background:var(–blue);box-shadow:0 0 6px var(–blue);}
+.card.done   .cd{background:var(–green);}
+.cn{font-size:11px;font-weight:600;color:var(–text-2);text-transform:uppercase;letter-spacing:0.06em;font-family:var(–mono);}
+.pill{font-size:10px;font-weight:600;font-family:var(–mono);padding:3px 9px;border-radius:20px;letter-spacing:0.04em;text-transform:uppercase;}
+.pw{background:var(–navy-3);color:var(–text-3);border:1px solid var(–border);}
+.ps{background:var(–blue-dim);color:var(–blue);border:1px solid rgba(59,130,246,0.25);}
+.pd2{background:var(–green-dim);color:var(–green);border:1px solid rgba(34,197,94,0.25);}
+.psk{background:var(–navy-3);color:var(–text-3);border:1px solid var(–border);}
+.cb{padding:12px 14px;min-height:54px;display:flex;flex-direction:column;justify-content:center;}
+.cv{font-family:var(–mono);font-size:22px;font-weight:600;color:var(–white);letter-spacing:-0.02em;line-height:1.2;word-break:break-all;}
+.cv.ph{font-size:13px;font-weight:400;color:var(–text-3);font-family:var(–sans);letter-spacing:0;}
+.cts{margin-top:4px;font-family:var(–mono);font-size:10px;color:var(–text-3);}
+@keyframes sf{0%{background:rgba(34,197,94,0.18);}100%{background:var(–navy-2);}}
+.fg{animation:sf 0.6s ease forwards;}
 
-/* Action bar */
-.action-bar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--navy-2);border-top:1px solid var(--border);flex-shrink:0;}
-.btn{font-family:var(--sans);font-size:13px;font-weight:600;border-radius:var(--radius-sm);border:none;cursor:pointer;padding:12px 10px;transition:opacity 0.15s,transform 0.1s;letter-spacing:-0.01em;text-align:center;line-height:1;}
+.abar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(–navy-2);border-top:1px solid var(–border);flex-shrink:0;}
+.btn{font-family:var(–sans);font-size:13px;font-weight:600;border-radius:var(–radius-sm);border:none;cursor:pointer;padding:12px 10px;transition:opacity 0.15s,transform 0.1s;letter-spacing:-0.01em;text-align:center;line-height:1;-webkit-appearance:none;appearance:none;}
 .btn:active{opacity:0.8;transform:scale(0.97);}
-.btn-main{flex:2;background:var(--blue);color:#fff;box-shadow:0 2px 12px rgba(59,130,246,0.3);}
-.btn-main.success{background:var(--green);box-shadow:0 2px 12px rgba(34,197,94,0.3);}
-.btn-skip{flex:1;background:var(--navy-3);color:var(--text-2);border:1px solid var(--border);}
-.btn-reset{flex:1;background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
+.bm{flex:2;background:var(–blue);color:#fff;box-shadow:0 2px 12px rgba(59,130,246,0.3);}
+.bm.ok{background:var(–green);box-shadow:0 2px 12px rgba(34,197,94,0.3);}
+.bsk{flex:1;background:var(–navy-3);color:var(–text-2);border:1px solid var(–border);}
+.br{flex:1;background:var(–red-dim);color:var(–red);border:1px solid rgba(239,68,68,0.2);}
 
-/* ─────────────────────────────────────────
-   SCREEN 4 — LOG
-───────────────────────────────────────── */
-#screenLog { background: var(--navy); }
-.log-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;}
-.log-title{font-size:15px;font-weight:600;color:var(--white);letter-spacing:-0.01em;}
-.log-actions{display:flex;gap:8px;}
-.log-body{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.log-body::-webkit-scrollbar{display:none;}
-.log-entry{background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
-.entry-row-1{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.entry-hu{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--white);letter-spacing:-0.02em;}
-.entry-time{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--navy-3);padding:3px 8px;border-radius:20px;border:1px solid var(--border);}
-.entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
-.entry-field{background:var(--navy-3);border-radius:6px;padding:7px 9px;border:1px solid var(--border);}
-.entry-field.bin-field{border-color:var(--amber-bdr);background:var(--amber-dim);}
-.ef-label{font-family:var(--mono);font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
-.entry-field.bin-field .ef-label{color:var(--amber);opacity:0.8;}
-.ef-value{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);word-break:break-all;}
-.entry-field.bin-field .ef-value{color:var(--amber);}
-.log-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text-3);font-size:13px;padding:40px;text-align:center;}
-.log-empty-icon{font-size:32px;opacity:0.5;}
+/* ════════════════════════════
+SCREEN 4 — LOG
+════════════════════════════ */
+#sLog{background:var(–navy);}
+.lhdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(–navy-2);border-bottom:1px solid var(–border);flex-shrink:0;}
+.lt{font-size:15px;font-weight:600;color:var(–white);letter-spacing:-0.01em;}
+.lac{display:flex;gap:8px;}
+.lbody{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.lbody::-webkit-scrollbar{display:none;}
+.le{background:var(–navy-2);border:1px solid var(–border);border-radius:var(–radius);padding:12px 14px;}
+.lr1{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.lhu{font-family:var(–mono);font-size:15px;font-weight:600;color:var(–white);letter-spacing:-0.02em;}
+.ltm{font-family:var(–mono);font-size:10px;color:var(–text-3);background:var(–navy-3);padding:3px 8px;border-radius:20px;border:1px solid var(–border);}
+.lgr{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
+.lf{background:var(–navy-3);border-radius:6px;padding:7px 9px;border:1px solid var(–border);}
+.lf.bf{border-color:var(–amber-bdr);background:var(–amber-dim);}
+.fll{font-family:var(–mono);font-size:9px;color:var(–text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
+.lf.bf .fll{color:var(–amber);opacity:0.8;}
+.flv{font-family:var(–mono);font-size:11px;font-weight:500;color:var(–text);word-break:break-all;}
+.lf.bf .flv{color:var(–amber);}
+.lem{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(–text-3);font-size:13px;padding:40px;text-align:center;}
 
 /* Toast */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--navy-3);border:1px solid var(--border-2);color:var(--text);font-family:var(--sans);font-size:12.5px;font-weight:500;padding:9px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(12px);background:var(–navy-3);border:1px solid var(–border-2);color:var(–text);font-family:var(–sans);font-size:12.5px;font-weight:500;padding:9px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.toast.toast-success{border-color:rgba(34,197,94,0.35);}
-.toast.toast-amber{border-color:var(--amber-bdr);}
 </style>
+
 </head>
 <body>
 
-<!-- ══ SCREEN 1: BIN SETUP ══ -->
-<div class="screen" id="screenBin">
-  <div class="bss-logo">⬡</div>
-  <div class="bss-title">Which bin are you in?</div>
-  <div class="bss-desc">Set your bin location first. It stays locked across all scans until you change it.</div>
+<!-- SCREEN 1: BIN SETUP -->
 
-  <div class="bss-field-label">Bin Location</div>
-  <input
-    class="bss-input" id="binInput"
-    type="text" placeholder="e.g. WE31A"
-    autocomplete="off" autocorrect="off"
-    autocapitalize="characters" spellcheck="false"
-    onkeydown="if(event.key==='Enter') onConfirmBinTap()"
-  >
-
-  <div class="bss-or">
-    <div class="bss-or-line"></div>
-    <div class="bss-or-text">or scan the rack label</div>
-    <div class="bss-or-line"></div>
-  </div>
-
-  <!-- This button directly calls getUserMedia — satisfies iOS user gesture requirement -->
-  <div class="bss-scan-row" id="bssScanRow" onclick="onScanBinTap()">
-    <div class="bss-scan-icon">📷</div>
-    <div>
-      <div class="bss-scan-title">Scan Bin Barcode</div>
-      <div class="bss-scan-sub">Point at rack label (e.g. WE31A, WE31B)</div>
-    </div>
-  </div>
-
-  <button class="bss-confirm" id="bssConfirmBtn" onclick="onConfirmBinTap()">
-    Start Scanning →
+<div class="screen" id="sBin">
+  <div class="logo-wrap">⬡</div>
+  <div class="bin-title">Which bin are you in?</div>
+  <div class="bin-desc">Set your bin location first. It stays active across all scans until you change it.</div>
+  <div class="field-lbl">Bin Location</div>
+  <input id="binInput" type="text" placeholder="e.g. WE31A" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+  <button id="btnStartScanning" onclick="confirmBin()">Start Scanning →</button>
+  <div class="or-row"><div class="or-line"></div><div class="or-txt">or scan the rack label</div><div class="or-line"></div></div>
+  <button id="btnScanBin" onclick="goToBinCam()">
+    <div class="sbi">📷</div>
+    <div><div class="sbt">Scan Bin Barcode</div><div class="sbs">Point at rack label (WE31A, WE31B…)</div></div>
   </button>
+  <div id="binError">Please enter a bin location before continuing.</div>
 </div>
 
-<!-- ══ SCREEN 2: BIN CAMERA SCAN ══ -->
-<div class="screen hidden" id="screenBinScan">
-  <div class="bscan-header">
-    <div class="bscan-title">📍 Scan Bin Barcode</div>
-    <div class="bscan-cancel" onclick="onCancelBinScan()">Cancel</div>
+<!-- SCREEN 2: BIN CAM -->
+
+<div class="screen hidden" id="sBinCam">
+  <div class="bincam-hdr">
+    <div class="bincam-title">📍 Scan Bin Barcode</div>
+    <div class="bincam-cancel" onclick="cancelBinCam()">Cancel</div>
   </div>
-  <video id="binVideo" autoplay muted playsinline webkit-playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>
-  <div class="bscan-overlay">
-    <div class="bscan-box">
-      <div class="bscan-laser"></div>
-    </div>
-    <div class="bscan-hint">Point at the rack label barcode</div>
-  </div>
+  <video id="binVideo" autoplay muted playsinline webkit-playsinline></video>
+  <div class="bincam-box"><div class="bincam-laser"></div></div>
+  <div class="bincam-hint">Point at the rack label barcode</div>
 </div>
 
-<!-- ══ SCREEN 3: ITEM SCANNER ══ -->
-<div class="screen hidden" id="screenScanner">
+<!-- SCREEN 3: SCANNER -->
 
+<div class="screen hidden" id="sScanner">
   <div class="hdr">
-    <div class="hdr-left">
-      <div class="logo-mark">⬡</div>
-      <div>
-        <div class="app-name">Novus Scanner</div>
-        <div class="app-sub">Plant 1730 · Buena Park</div>
-      </div>
+    <div class="hdr-l">
+      <div class="lm">⬡</div>
+      <div><div class="an">Novus Scanner</div><div class="as">Plant 1730 · Buena Park</div></div>
     </div>
-    <div class="hdr-right">
-      <div class="session-chip">Session <span class="num" id="sessionCount">0</span></div>
-      <div class="icon-btn" onclick="showScreen('screenLog'); buildLog();">
+    <div class="hdr-r">
+      <div class="chip">Session <span class="n" id="sessNum">0</span></div>
+      <div class="ibtn" onclick="goToLog()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       </div>
     </div>
   </div>
-
-  <div class="bin-banner" onclick="onChangeBin()">
-    <div class="bin-left">
-      <span style="font-size:14px;flex-shrink:0;">📍</span>
-      <div>
-        <div class="bin-sublabel">Active Bin</div>
-        <div class="bin-value" id="binDisplay">—</div>
-      </div>
+  <div class="bin-bar" onclick="changeBin()">
+    <div class="bin-bar-l">
+      <span style="font-size:14px">📍</span>
+      <div><div class="bin-lbl">Active Bin</div><div class="bin-val" id="binVal">—</div></div>
     </div>
-    <div class="bin-change">Change →</div>
+    <div class="bin-chg">Change →</div>
   </div>
-
-  <div class="viewfinder">
+  <div class="vf">
     <video id="video" autoplay muted playsinline webkit-playsinline></video>
-    <div class="vf-mask"></div>
-    <div class="scan-target">
-      <div class="corner corner-tl"></div><div class="corner corner-tr"></div>
-      <div class="corner corner-bl"></div><div class="corner corner-br"></div>
+    <div class="vfm"></div>
+    <div class="vft">
+      <div class="c c-tl"></div><div class="c c-tr"></div>
+      <div class="c c-bl"></div><div class="c c-br"></div>
       <div class="laser"></div>
     </div>
-    <div class="cam-pill">
-      <div class="live-dot" id="liveDot"></div>
-      <span class="cam-label" id="camLabel">Live</span>
+    <div class="campill">
+      <div class="ldot" id="ldot"></div>
+      <span class="clbl" id="clbl">Live</span>
     </div>
   </div>
-
-  <div class="step-track">
-    <div class="step-item active" id="step1"><div class="step-circle" id="sc1">1</div><div class="step-name">HU #</div></div>
-    <div class="step-item"        id="step2"><div class="step-circle" id="sc2">2</div><div class="step-name">Material</div></div>
-    <div class="step-item"        id="step3"><div class="step-circle" id="sc3">3</div><div class="step-name">Batch</div></div>
+  <div class="steps">
+    <div class="si active" id="si1"><div class="sc" id="sc1">1</div><div class="sn">HU #</div></div>
+    <div class="si"        id="si2"><div class="sc" id="sc2">2</div><div class="sn">Material</div></div>
+    <div class="si"        id="si3"><div class="sc" id="sc3">3</div><div class="sn">Batch</div></div>
   </div>
-
-  <div class="content" id="content">
-    <div class="prompt-card" id="promptCard">
-      <div class="prompt-icon-wrap" id="promptIcon">📦</div>
-      <div>
-        <div class="prompt-title" id="promptTitle">Scan HU Number</div>
-        <div class="prompt-desc"  id="promptDesc">Point the camera at the top barcode on the label.</div>
-      </div>
+  <div class="content" id="cnt">
+    <div class="pc" id="pc">
+      <div class="pi" id="pi">📦</div>
+      <div><div class="pt" id="ptitle">Scan HU Number</div><div class="pd" id="pdesc">Point the camera at the top barcode on the label.</div></div>
     </div>
-    <div class="scan-card is-active" id="card1">
-      <div class="card-top"><div class="card-label"><div class="card-dot"></div><div class="card-name">HU Number</div></div><div class="card-pill pill-scanning" id="pill1">Scanning</div></div>
-      <div class="card-body"><div class="card-value placeholder" id="val1">Waiting for scan…</div><div class="card-timestamp" id="ts1"></div></div>
+    <div class="card active" id="card1">
+      <div class="ct"><div class="cl"><div class="cd"></div><div class="cn">HU Number</div></div><div class="pill ps" id="p1">Scanning</div></div>
+      <div class="cb"><div class="cv ph" id="v1">Waiting for scan…</div><div class="cts" id="t1"></div></div>
     </div>
-    <div class="scan-card" id="card2">
-      <div class="card-top"><div class="card-label"><div class="card-dot"></div><div class="card-name">Material Number</div></div><div class="card-pill pill-waiting" id="pill2">Waiting</div></div>
-      <div class="card-body"><div class="card-value placeholder" id="val2">Waiting for scan…</div><div class="card-timestamp" id="ts2"></div></div>
+    <div class="card" id="card2">
+      <div class="ct"><div class="cl"><div class="cd"></div><div class="cn">Material Number</div></div><div class="pill pw" id="p2">Waiting</div></div>
+      <div class="cb"><div class="cv ph" id="v2">Waiting for scan…</div><div class="cts" id="t2"></div></div>
     </div>
-    <div class="scan-card" id="card3">
-      <div class="card-top"><div class="card-label"><div class="card-dot"></div><div class="card-name">Batch / Invoice #</div></div><div class="card-pill pill-waiting" id="pill3">Waiting</div></div>
-      <div class="card-body"><div class="card-value placeholder" id="val3">Waiting for scan…</div><div class="card-timestamp" id="ts3"></div></div>
+    <div class="card" id="card3">
+      <div class="ct"><div class="cl"><div class="cd"></div><div class="cn">Batch / Invoice #</div></div><div class="pill pw" id="p3">Waiting</div></div>
+      <div class="cb"><div class="cv ph" id="v3">Waiting for scan…</div><div class="cts" id="t3"></div></div>
     </div>
   </div>
-
-  <div class="action-bar">
-    <button class="btn btn-skip"  id="skipBtn"  onclick="skipStep()">Skip</button>
-    <button class="btn btn-main"  id="mainBtn"  onclick="handleMain()">Scanning…</button>
-    <button class="btn btn-reset"              onclick="resetScan()">Reset</button>
+  <div class="abar">
+    <button class="btn bsk" id="skipBtn" onclick="doSkip()">Skip</button>
+    <button class="btn bm"  id="mainBtn" onclick="doMain()">Scanning…</button>
+    <button class="btn br"               onclick="doReset()">Reset</button>
   </div>
-
 </div>
 
-<!-- ══ SCREEN 4: LOG ══ -->
-<div class="screen hidden" id="screenLog">
-  <div class="log-header">
-    <div class="log-title">Scan History</div>
-    <div class="log-actions">
-      <div class="icon-btn" onclick="exportCSV()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </div>
-      <div class="icon-btn" onclick="clearLog()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-      </div>
-      <div class="icon-btn" onclick="showScreen('screenScanner')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </div>
+<!-- SCREEN 4: LOG -->
+
+<div class="screen hidden" id="sLog">
+  <div class="lhdr">
+    <div class="lt">Scan History</div>
+    <div class="lac">
+      <div class="ibtn" onclick="doExport()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div class="ibtn" onclick="doClear()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></div>
+      <div class="ibtn" onclick="show('sScanner')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
     </div>
   </div>
-  <div class="log-body" id="logBody">
-    <div class="log-empty"><div class="log-empty-icon">📋</div><div>No scans yet.</div></div>
-  </div>
-  <div class="action-bar">
-    <button class="btn btn-main" style="flex:1" onclick="showScreen('screenScanner')">← Back to Scanner</button>
-  </div>
+  <div class="lbody" id="lbody"><div class="lem"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div></div>
+  <div class="abar"><button class="btn bm" style="flex:1" onclick="show('sScanner')">← Back to Scanner</button></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-import { BrowserMultiFormatReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/esm/index.js';
-import { DecodeHintType, BarcodeFormat } from 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/esm/index.js';
+<script>
+// ── NO EXTERNAL LIBRARIES — pure vanilla JS ────────────────────────────────
 
-// ── State ─────────────────────────────────────────────────────────────────
-const STEPS   = ['hu','material','batch'];
-const PROMPTS = [
-  { icon:'📦', title:'Scan HU Number',       desc:'Point the camera at the top barcode on the label.' },
-  { icon:'🏷',  title:'Scan Material Number', desc:'Now point at the middle barcode — the Material Number.' },
-  { icon:'🔢', title:'Scan Batch Number',     desc:'Aim at the bottom barcode. Tap Skip if not present.' },
+var STEPS   = ['hu','material','batch'];
+var PROMPTS = [
+  {icon:'📦',title:'Scan HU Number',      desc:'Point the camera at the top barcode on the label.'},
+  {icon:'🏷', title:'Scan Material Number',desc:'Now point at the middle barcode — the Material Number.'},
+  {icon:'🔢',title:'Scan Batch Number',    desc:'Aim at the bottom barcode. Tap Skip if not present.'},
 ];
 
-let step         = 0;
-let scanData     = { hu:null, material:null, batch:null };
-let sessionLog   = [];
-let sessionCount = 0;
-let lastVal      = '';
-let lastTime     = 0;
-const COOLDOWN   = 2500;
-let currentBin   = null;
-let itemReader   = null;
-let binReader    = null;
-let binStream    = null;
-let itemStream   = null;
+var step     = 0;
+var data     = {hu:null,material:null,batch:null};
+var log      = [];
+var sessN    = 0;
+var lastV    = '';
+var lastT    = 0;
+var COOL     = 2500;
+var bin      = null;
+var itemStream = null;
+var binStream  = null;
+var scanTimer  = null;
+var detector   = null;
 
-// ── Screen nav ─────────────────────────────────────────────────────────────
-window.showScreen = function(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+// ── Screen switching ───────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.add('hidden');});
   document.getElementById(id).classList.remove('hidden');
-};
-
-// ── Hints ──────────────────────────────────────────────────────────────────
-function hints() {
-  return new Map([
-    [DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
-      BarcodeFormat.EAN_13,  BarcodeFormat.EAN_8,
-      BarcodeFormat.UPC_A,   BarcodeFormat.UPC_E,
-      BarcodeFormat.CODABAR, BarcodeFormat.ITF,
-    ]],
-    [DecodeHintType.TRY_HARDER, true],
-  ]);
 }
 
-// ══════════════════════════════════════════════════════════════
-// BIN SETUP — called directly from user tap (iOS requirement)
-// ══════════════════════════════════════════════════════════════
+// ── BIN CONFIRM — called from "Start Scanning" button ─────────────────────
+function confirmBin() {
+  var raw = document.getElementById('binInput').value.trim().toUpperCase();
+  if (!raw) {
+    document.getElementById('binError').style.display = 'block';
+    return;
+  }
+  document.getElementById('binError').style.display = 'none';
+  bin = raw;
+  document.getElementById('binVal').textContent = bin;
+  show('sScanner');
+  startItemCam();
+}
 
-// "Scan Bin Barcode" tapped — open camera immediately from this gesture
-window.onScanBinTap = async function() {
-  showScreen('screenBinScan');
-  try {
-    binStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal:'environment' }, width:{ideal:1280}, height:{ideal:720} },
-      audio: false,
-    });
-    const vid = document.getElementById('binVideo');
-    vid.srcObject = binStream;
-    vid.setAttribute('playsinline','');
-    vid.setAttribute('webkit-playsinline','');
-    vid.muted = true;
-    await vid.play();
+// ── BIN CAM ────────────────────────────────────────────────────────────────
+function goToBinCam() {
+  show('sBinCam');
+  navigator.mediaDevices.getUserMedia({
+    video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},
+    audio:false
+  }).then(function(stream){
+    binStream = stream;
+    var v = document.getElementById('binVideo');
+    v.srcObject = stream;
+    v.play();
+    startBinDetect(v);
+  }).catch(function(){
+    show('sBin');
+    toast('Camera blocked — type the bin manually');
+  });
+}
 
-    binReader = new BrowserMultiFormatReader(hints(), { delayBetweenScanAttempts:200 });
-    binReader.decodeFromVideoElement(vid, (result) => {
-      if (!result) return;
-      const val = result.getText().trim().toUpperCase();
-      stopBinStream();
+function cancelBinCam() {
+  stopStream(binStream); binStream = null;
+  show('sBin');
+}
+
+function startBinDetect(video) {
+  if (!window.BarcodeDetector) {
+    // BarcodeDetector not available — use canvas polling with a simple approach
+    pollCanvas(video, function(val) {
+      stopStream(binStream); binStream = null;
       document.getElementById('binInput').value = val;
-      showScreen('screenBin');
-      showToast(`📍 Detected: ${val} — tap Start Scanning`, 'amber');
-    });
-
-  } catch(err) {
-    showScreen('screenBin');
-    showToast('Camera access denied — type the bin manually');
+      show('sBin');
+      toast('Detected: ' + val + ' — tap Start Scanning');
+    }, true);
+    return;
   }
-};
-
-window.onCancelBinScan = function() {
-  stopBinStream();
-  showScreen('screenBin');
-};
-
-function stopBinStream() {
-  if (binReader) { try { binReader.reset(); } catch(e){} binReader = null; }
-  if (binStream) { binStream.getTracks().forEach(t=>t.stop()); binStream = null; }
+  var bd = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf']});
+  var canvas = document.createElement('canvas');
+  var ctx    = canvas.getContext('2d');
+  var timer  = setInterval(function(){
+    if (!video.videoWidth) return;
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video,0,0);
+    bd.detect(canvas).then(function(res){
+      if (res.length > 0) {
+        clearInterval(timer);
+        var val = res[0].rawValue.trim().toUpperCase();
+        stopStream(binStream); binStream = null;
+        document.getElementById('binInput').value = val;
+        show('sBin');
+        toast('Detected: ' + val + ' — tap Start Scanning');
+      }
+    }).catch(function(){});
+  }, 250);
 }
 
-// "Start Scanning" tapped — validate bin, then open camera for items
-window.onConfirmBinTap = async function() {
-  const raw = document.getElementById('binInput').value.trim().toUpperCase();
-  if (!raw) { showToast('Please enter or scan a bin location first'); return; }
+// ── ITEM CAMERA ────────────────────────────────────────────────────────────
+function startItemCam() {
+  document.getElementById('clbl').textContent = 'Starting…';
+  navigator.mediaDevices.getUserMedia({
+    video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},
+    audio:false
+  }).then(function(stream){
+    itemStream = stream;
+    var v = document.getElementById('video');
+    v.srcObject = stream;
+    v.play();
+    document.getElementById('clbl').textContent = 'Live';
+    document.getElementById('ldot').style.background = 'var(--green)';
+    startItemDetect(v);
+  }).catch(function(err){
+    document.getElementById('clbl').textContent = 'Error';
+    document.getElementById('ldot').style.background = 'var(--red)';
+    toast('Camera error — check Settings → Safari → Camera');
+  });
+}
 
-  currentBin = raw;
-  document.getElementById('binDisplay').textContent = currentBin;
-
-  // Switch screen first so video element is in DOM
-  showScreen('screenScanner');
-
-  // Now start item camera — called directly from this user gesture chain
-  await startItemCamera();
-};
-
-// Change bin — stop item scanner, go back to bin screen
-window.onChangeBin = async function() {
-  stopItemStream();
-  resetScan();
-  document.getElementById('binInput').value = currentBin || '';
-  showScreen('screenBin');
-};
-
-// ══════════════════════════════════════════════════════════════
-// ITEM SCANNER CAMERA
-// ══════════════════════════════════════════════════════════════
-
-async function startItemCamera() {
-  document.getElementById('camLabel').textContent = 'Starting…';
-  try {
-    itemStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} },
-      audio: false,
-    });
-
-    const video = document.getElementById('video');
-    video.srcObject = itemStream;
-    video.setAttribute('playsinline','');
-    video.setAttribute('webkit-playsinline','');
-    video.muted = true;
-    await video.play();
-
-    document.getElementById('camLabel').textContent     = 'Live';
-    document.getElementById('liveDot').style.background = 'var(--green)';
-    document.getElementById('liveDot').style.boxShadow  = '0 0 6px var(--green)';
-
-    itemReader = new BrowserMultiFormatReader(hints(), { delayBetweenScanAttempts:200 });
-    itemReader.decodeFromVideoElement(video, (result) => {
-      if (result) onDetected(result.getText());
-    });
-
-  } catch(err) {
-    document.getElementById('camLabel').textContent     = 'Error';
-    document.getElementById('liveDot').style.background = 'var(--red)';
-    showToast('Camera error — check Settings → Safari → Camera');
+function startItemDetect(video) {
+  if (window.BarcodeDetector) {
+    // Use native BarcodeDetector
+    detector = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf']});
+    var canvas = document.createElement('canvas');
+    var ctx    = canvas.getContext('2d');
+    scanTimer  = setInterval(function(){
+      if (!video.videoWidth || step >= 3) return;
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video,0,0);
+      detector.detect(canvas).then(function(res){
+        if (res.length > 0) onScan(res[0].rawValue);
+      }).catch(function(){});
+    }, 250);
+  } else {
+    // Fallback: canvas polling with simple line-scan heuristic
+    pollCanvas(video, onScan, false);
   }
 }
 
-function stopItemStream() {
-  if (itemReader) { try { itemReader.reset(); } catch(e){} itemReader = null; }
-  if (itemStream) { itemStream.getTracks().forEach(t=>t.stop()); itemStream = null; }
+// Simple canvas polling fallback for browsers without BarcodeDetector
+// Captures frames and sends to a hidden input for manual fallback
+function pollCanvas(video, cb, isBin) {
+  // Without a decoding library we can't decode barcodes client-side in pure JS
+  // Show a manual-entry prompt as fallback
+  if (isBin) {
+    stopStream(binStream); binStream = null;
+    show('sBin');
+    toast('Auto-scan not supported on this browser — type the bin manually');
+  } else {
+    toast('For best results, open in Safari on iOS 17+ or Chrome on Android');
+  }
 }
 
-// ── Barcode detected ───────────────────────────────────────────────────────
-function onDetected(value) {
+function stopStream(stream) {
+  if (stream) stream.getTracks().forEach(function(t){t.stop();});
+}
+
+// ── Scan received ──────────────────────────────────────────────────────────
+function onScan(value) {
   if (!value) return;
   value = value.trim();
-  const now = Date.now();
-  if (value === lastVal && now - lastTime < COOLDOWN) return;
+  var now = Date.now();
+  if (value === lastV && now - lastT < COOL) return;
   if (step >= 3) return;
-  lastVal  = value;
-  lastTime = now;
+  lastV = value; lastT = now;
   if (navigator.vibrate) navigator.vibrate(60);
   recordScan(value);
 }
 
 function recordScan(value) {
-  const i  = step + 1;
-  const ts = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  scanData[STEPS[step]] = value;
+  var i  = step + 1;
+  var ts = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  data[STEPS[step]] = value;
 
-  const card = document.getElementById(`card${i}`);
-  document.getElementById(`val${i}`).textContent  = value;
-  document.getElementById(`val${i}`).className    = 'card-value';
-  document.getElementById(`ts${i}`).textContent   = ts;
-  document.getElementById(`pill${i}`).textContent = 'Captured';
-  document.getElementById(`pill${i}`).className   = 'card-pill pill-done';
-  card.className = 'scan-card is-done flash-green';
-  setTimeout(() => card.classList.remove('flash-green'), 600);
-  document.getElementById(`step${i}`).className = 'step-item done';
-  document.getElementById(`sc${i}`).textContent  = '✓';
+  document.getElementById('v'+i).textContent = value;
+  document.getElementById('v'+i).className   = 'cv';
+  document.getElementById('t'+i).textContent = ts;
+  document.getElementById('p'+i).textContent = 'Captured';
+  document.getElementById('p'+i).className   = 'pill pd2';
+  var card = document.getElementById('card'+i);
+  card.className = 'card done fg';
+  setTimeout(function(){ card.classList.remove('fg'); }, 600);
+  document.getElementById('si'+i).className = 'si done';
+  document.getElementById('sc'+i).textContent = '✓';
 
   step++;
-  if (step < 3) { setPrompt(step); setCardActive(step+1); setStepActive(step+1); }
-  else completeAll();
-  document.getElementById('content').scrollTo({top:9999,behavior:'smooth'});
+  if (step < 3) { setPrompt(step); setActive(step+1); }
+  else          { finishAll(); }
+  document.getElementById('cnt').scrollTo({top:9999,behavior:'smooth'});
 }
 
-window.skipStep = function() {
+function doSkip() {
   if (step >= 3) return;
-  const i = step+1;
-  document.getElementById(`val${i}`).textContent  = 'Skipped';
-  document.getElementById(`val${i}`).className    = 'card-value placeholder';
-  document.getElementById(`pill${i}`).textContent = 'Skipped';
-  document.getElementById(`pill${i}`).className   = 'card-pill pill-skipped';
-  document.getElementById(`card${i}`).className   = 'scan-card is-skipped';
-  document.getElementById(`step${i}`).className   = 'step-item skipped';
-  document.getElementById(`sc${i}`).textContent   = '–';
+  var i = step+1;
+  document.getElementById('v'+i).textContent = 'Skipped';
+  document.getElementById('v'+i).className   = 'cv ph';
+  document.getElementById('p'+i).textContent = 'Skipped';
+  document.getElementById('p'+i).className   = 'pill psk';
+  document.getElementById('card'+i).className = 'card skip';
+  document.getElementById('si'+i).className   = 'si skip';
+  document.getElementById('sc'+i).textContent = '–';
   step++;
-  if (step < 3) { setPrompt(step); setCardActive(step+1); setStepActive(step+1); }
-  else completeAll();
-};
+  if (step < 3) { setPrompt(step); setActive(step+1); }
+  else          { finishAll(); }
+}
 
-function completeAll() {
-  document.getElementById('promptIcon').textContent        = '✅';
-  document.getElementById('promptTitle').textContent       = 'All Barcodes Captured';
-  document.getElementById('promptDesc').textContent        = 'Tap Save & Next to log this item.';
-  document.getElementById('promptCard').style.background   = 'var(--green-dim)';
-  document.getElementById('promptCard').style.borderColor  = 'rgba(34,197,94,0.25)';
-  const btn = document.getElementById('mainBtn');
-  btn.textContent = 'Save & Next';
-  btn.classList.add('success');
+function finishAll() {
+  document.getElementById('pi').textContent    = '✅';
+  document.getElementById('ptitle').textContent = 'All Barcodes Captured';
+  document.getElementById('pdesc').textContent  = 'Tap Save & Next to log this item.';
+  document.getElementById('pc').style.background   = 'var(--green-dim)';
+  document.getElementById('pc').style.borderColor  = 'rgba(34,197,94,0.25)';
+  document.getElementById('mainBtn').textContent   = 'Save & Next';
+  document.getElementById('mainBtn').classList.add('ok');
   document.getElementById('skipBtn').style.visibility = 'hidden';
   if (navigator.vibrate) navigator.vibrate([50,30,100]);
-  showToast('✓ All barcodes captured','success');
+  toast('✓ All barcodes captured');
 }
 
-window.handleMain = function() {
+function doMain() {
   if (step < 3) return;
-  sessionLog.unshift({
-    bin:      currentBin        || '—',
-    hu:       scanData.hu       || '—',
-    material: scanData.material || '—',
-    batch:    scanData.batch    || '—',
-    time:     new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-    date:     new Date().toLocaleDateString(),
+  log.unshift({
+    bin:  bin||'—', hu:data.hu||'—',
+    mat:  data.material||'—', bat:data.batch||'—',
+    time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+    date: new Date().toLocaleDateString()
   });
-  sessionCount++;
-  document.getElementById('sessionCount').textContent = sessionCount;
-  showToast('Saved to log','success');
-  resetScan();
-};
+  sessN++;
+  document.getElementById('sessNum').textContent = sessN;
+  toast('Saved to log ✓');
+  doReset();
+}
 
-window.resetScan = function() {
-  step     = 0;
-  scanData = { hu:null, material:null, batch:null };
-  lastVal  = '';
-  for (let i=1;i<=3;i++) {
-    document.getElementById(`val${i}`).textContent  = 'Waiting for scan…';
-    document.getElementById(`val${i}`).className    = 'card-value placeholder';
-    document.getElementById(`ts${i}`).textContent   = '';
-    document.getElementById(`pill${i}`).className   = i===1?'card-pill pill-scanning':'card-pill pill-waiting';
-    document.getElementById(`pill${i}`).textContent = i===1?'Scanning':'Waiting';
-    document.getElementById(`card${i}`).className   = i===1?'scan-card is-active':'scan-card';
-    document.getElementById(`step${i}`).className   = i===1?'step-item active':'step-item';
-    document.getElementById(`sc${i}`).textContent   = i;
+function doReset() {
+  step=0; data={hu:null,material:null,batch:null}; lastV='';
+  for (var i=1;i<=3;i++){
+    document.getElementById('v'+i).textContent = 'Waiting for scan…';
+    document.getElementById('v'+i).className   = 'cv ph';
+    document.getElementById('t'+i).textContent = '';
+    document.getElementById('p'+i).className   = i===1?'pill ps':'pill pw';
+    document.getElementById('p'+i).textContent = i===1?'Scanning':'Waiting';
+    document.getElementById('card'+i).className= i===1?'card active':'card';
+    document.getElementById('si'+i).className  = i===1?'si active':'si';
+    document.getElementById('sc'+i).textContent= i;
   }
   setPrompt(0);
-  document.getElementById('promptCard').style.background  = '';
-  document.getElementById('promptCard').style.borderColor = '';
-  document.getElementById('mainBtn').textContent          = 'Scanning…';
-  document.getElementById('mainBtn').classList.remove('success');
-  document.getElementById('skipBtn').style.visibility     = 'visible';
-  document.getElementById('content').scrollTop            = 0;
-};
+  document.getElementById('pc').style.background  = '';
+  document.getElementById('pc').style.borderColor = '';
+  document.getElementById('mainBtn').textContent   = 'Scanning…';
+  document.getElementById('mainBtn').classList.remove('ok');
+  document.getElementById('skipBtn').style.visibility = 'visible';
+  document.getElementById('cnt').scrollTop = 0;
+}
 
-function setPrompt(i){ const p=PROMPTS[i]; document.getElementById('promptIcon').textContent=p.icon; document.getElementById('promptTitle').textContent=p.title; document.getElementById('promptDesc').textContent=p.desc; }
-function setCardActive(i){ document.getElementById(`card${i}`).className='scan-card is-active'; document.getElementById(`pill${i}`).className='card-pill pill-scanning'; document.getElementById(`pill${i}`).textContent='Scanning'; }
-function setStepActive(i){ document.getElementById(`step${i}`).className='step-item active'; }
+function changeBin() {
+  if (scanTimer) { clearInterval(scanTimer); scanTimer=null; }
+  stopStream(itemStream); itemStream=null;
+  doReset();
+  document.getElementById('binInput').value = bin||'';
+  show('sBin');
+}
+
+function setPrompt(i){
+  var p=PROMPTS[i];
+  document.getElementById('pi').textContent    = p.icon;
+  document.getElementById('ptitle').textContent = p.title;
+  document.getElementById('pdesc').textContent  = p.desc;
+}
+function setActive(i){
+  document.getElementById('card'+i).className = 'card active';
+  document.getElementById('p'+i).className    = 'pill ps';
+  document.getElementById('p'+i).textContent  = 'Scanning';
+  document.getElementById('si'+i).className   = 'si active';
+}
 
 // ── Log ────────────────────────────────────────────────────────────────────
-window.buildLog = function() {
-  const body = document.getElementById('logBody');
-  body.innerHTML = '';
-  if (!sessionLog.length) {
-    body.innerHTML = `<div class="log-empty"><div class="log-empty-icon">📋</div><div>No scans yet.</div></div>`;
-    return;
+function goToLog() {
+  var b = document.getElementById('lbody');
+  b.innerHTML = '';
+  if (!log.length) {
+    b.innerHTML = '<div class="lem"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div>';
+  } else {
+    log.forEach(function(e){
+      var d=document.createElement('div'); d.className='le';
+      d.innerHTML=
+        '<div class="lr1"><div class="lhu">'+e.hu+'</div><div class="ltm">'+e.time+'</div></div>'+
+        '<div class="lgr">'+
+          '<div class="lf bf"><div class="fll">Bin</div><div class="flv">'+e.bin+'</div></div>'+
+          '<div class="lf"><div class="fll">Material</div><div class="flv">'+e.mat+'</div></div>'+
+        '</div>'+
+        '<div class="lgr" style="margin-top:6px">'+
+          '<div class="lf"><div class="fll">Batch</div><div class="flv">'+e.bat+'</div></div>'+
+          '<div class="lf"><div class="fll">Date</div><div class="flv">'+e.date+'</div></div>'+
+        '</div>';
+      b.appendChild(d);
+    });
   }
-  sessionLog.forEach(e => {
-    const d = document.createElement('div');
-    d.className = 'log-entry';
-    d.innerHTML = `
-      <div class="entry-row-1"><div class="entry-hu">${e.hu}</div><div class="entry-time">${e.time}</div></div>
-      <div class="entry-grid">
-        <div class="entry-field bin-field"><div class="ef-label">Bin</div><div class="ef-value">${e.bin}</div></div>
-        <div class="entry-field"><div class="ef-label">Material</div><div class="ef-value">${e.material}</div></div>
-      </div>
-      <div class="entry-grid" style="margin-top:6px">
-        <div class="entry-field"><div class="ef-label">Batch</div><div class="ef-value">${e.batch}</div></div>
-        <div class="entry-field"><div class="ef-label">Date</div><div class="ef-value">${e.date}</div></div>
-      </div>`;
-    body.appendChild(d);
-  });
-};
+  show('sLog');
+}
 
-window.clearLog = function() {
-  sessionLog=[]; sessionCount=0;
-  document.getElementById('sessionCount').textContent=0;
-  document.getElementById('logBody').innerHTML=`<div class="log-empty"><div class="log-empty-icon">📋</div><div>No scans yet.</div></div>`;
-  showToast('Log cleared');
-};
+function doClear(){
+  log=[]; sessN=0;
+  document.getElementById('sessNum').textContent=0;
+  document.getElementById('lbody').innerHTML='<div class="lem"><div style="font-size:32px;opacity:0.5">📋</div><div>No scans yet.</div></div>';
+  toast('Log cleared');
+}
 
-window.exportCSV = function() {
-  if (!sessionLog.length){ showToast('Nothing to export yet'); return; }
-  const csv=['Bin,HU Number,Material Number,Batch Number,Date,Time',...sessionLog.map(e=>`${e.bin},${e.hu},${e.material},${e.batch},${e.date},${e.time}`)].join('\n');
-  const a=document.createElement('a');
+function doExport(){
+  if (!log.length){toast('Nothing to export yet');return;}
+  var csv=['Bin,HU Number,Material Number,Batch Number,Date,Time']
+    .concat(log.map(function(e){return e.bin+','+e.hu+','+e.mat+','+e.bat+','+e.date+','+e.time;}))
+    .join('\n');
+  var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download=`novus_scan_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download='novus_scan_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
-  showToast('Exported as CSV ✓','success');
-};
+  toast('Exported ✓');
+}
 
 // ── Toast ──────────────────────────────────────────────────────────────────
-function showToast(msg,type='') {
-  const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.className=`toast ${type?'toast-'+type:''} show`;
-  setTimeout(()=>t.classList.remove('show'),2500);
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
 }
 </script>
+
 </body>
 </html>

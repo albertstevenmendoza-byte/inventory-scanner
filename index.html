@@ -4,1114 +4,1327 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0a0f0a">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0B1120">
 <title>Novus Scanner</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-<!-- ZXing barcode decoder library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.19.1/zxing.min.js"></script>
-
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:       #0a0f0a;
-    --surface:  #111811;
-    --surface2: #182018;
-    --border:   #1e2e1e;
-    --green:    #4ade80;
-    --green2:   #22c55e;
-    --green-dim:#14321e;
-    --red:      #f87171;
-    --red-dim:  #3a1010;
-    --yellow:   #fbbf24;
-    --muted:    #4a5e4a;
-    --text:     #c8d8c8;
-    --white:    #f0faf0;
-    --mono:     'IBM Plex Mono', monospace;
-    --sans:     'IBM Plex Sans', sans-serif;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-  html, body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
-
-  /* ── App Shell ── */
-  .app {
-    display: flex;
-    flex-direction: column;
-    height: 100dvh;
-    max-width: 480px;
-    margin: 0 auto;
-    position: relative;
-  }
-
-  /* ── Header ── */
-  .header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0.85rem 1.2rem 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 10;
-  }
-
-  .header::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, var(--green), transparent 60%);
-    opacity: 0.4;
-  }
-
-  .brand {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-
-  .brand-name {
-    font-family: var(--mono);
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--white);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .brand-sub {
-    font-family: var(--mono);
-    font-size: 0.58rem;
-    color: var(--muted);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-  }
-
-  .scan-counter {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--muted);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 0.25rem 0.6rem;
-    border-radius: 3px;
-  }
-
-  .scan-counter span { color: var(--green); }
-
-  .btn-icon {
-    width: 32px; height: 32px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: border-color 0.15s;
-  }
-  .btn-icon:active { border-color: var(--green); }
-
-  /* ── Camera Viewfinder ── */
-  .viewfinder-wrap {
-    position: relative;
-    flex-shrink: 0;
-    background: #000;
-    overflow: hidden;
-  }
-
-  #video {
-    width: 100%;
-    display: block;
-    object-fit: cover;
-    height: 260px;
-  }
-
-  /* Scan overlay */
-  .scan-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  /* Darkened edges */
-  .scan-overlay::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(to right, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.5) 100%),
-      linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.4) 100%);
-  }
-
-  /* Scan line */
-  .scan-line {
-    position: absolute;
-    left: 10%; right: 10%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--green), transparent);
-    box-shadow: 0 0 8px var(--green), 0 0 20px rgba(74,222,128,0.3);
-    animation: scanLine 2.5s ease-in-out infinite;
-    top: 20%;
-  }
-
-  @keyframes scanLine {
-    0%   { top: 15%; opacity: 0; }
-    10%  { opacity: 1; }
-    90%  { opacity: 1; }
-    100% { top: 85%; opacity: 0; }
-  }
-
-  /* Corner brackets */
-  .brackets {
-    position: absolute;
-    inset: 12px;
-  }
-
-  .bracket {
-    position: absolute;
-    width: 20px; height: 20px;
-    border-color: var(--green);
-    border-style: solid;
-    opacity: 0.7;
-  }
-  .bracket-tl { top: 0; left: 0; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
-  .bracket-tr { top: 0; right: 0; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
-  .bracket-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
-  .bracket-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
-
-  /* Camera status pill */
-  .cam-status {
-    position: absolute;
-    top: 10px; right: 10px;
-    font-family: var(--mono);
-    font-size: 0.6rem;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    padding: 0.2rem 0.5rem;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    letter-spacing: 0.05em;
-  }
-
-  .cam-dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--green);
-    animation: blink 1.5s infinite;
-  }
-
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-  /* ── Step Indicator ── */
-  .step-bar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0.6rem 1.2rem;
-    display: flex;
-    gap: 0.4rem;
-    flex-shrink: 0;
-  }
-
-  .step {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.3rem;
-  }
-
-  .step-pill {
-    width: 100%;
-    height: 3px;
-    background: var(--border);
-    border-radius: 2px;
-    transition: background 0.3s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .step-pill.active::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--green);
-    animation: fillPill 0.3s ease forwards;
-  }
-
-  @keyframes fillPill { from { width: 0; } to { width: 100%; } }
-
-  .step-pill.done { background: var(--green2); }
-  .step-pill.skip { background: var(--muted); opacity: 0.4; }
-
-  .step-label {
-    font-family: var(--mono);
-    font-size: 0.58rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    transition: color 0.3s;
-    text-align: center;
-  }
-
-  .step-label.active { color: var(--green); }
-  .step-label.done   { color: var(--green2); }
-
-  /* ── Scroll Area ── */
-  .scroll-area {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0.8rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .scroll-area::-webkit-scrollbar { display: none; }
-
-  /* ── Instruction Card ── */
-  .instruction {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.9rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    transition: all 0.3s;
-  }
-
-  .instruction.active {
-    border-color: rgba(74,222,128,0.4);
-    background: rgba(74,222,128,0.04);
-  }
-
-  .instr-icon {
-    font-size: 1.4rem;
-    flex-shrink: 0;
-  }
-
-  .instr-body {}
-  .instr-title {
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    color: var(--green);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.15rem;
-  }
-  .instr-desc {
-    font-size: 0.8rem;
-    color: var(--text);
-    line-height: 1.4;
-  }
-
-  /* ── Result Cards ── */
-  .result-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    animation: cardIn 0.25s ease;
-    transition: border-color 0.3s;
-  }
-
-  .result-card.match    { border-color: rgba(74,222,128,0.5); }
-  .result-card.nomatch  { border-color: rgba(248,113,113,0.5); }
-  .result-card.pending  { border-color: var(--border); }
-
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .card-header {
-    padding: 0.6rem 0.9rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .card-type {
-    font-family: var(--mono);
-    font-size: 0.62rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  .card-badge {
-    font-family: var(--mono);
-    font-size: 0.6rem;
-    padding: 0.15rem 0.5rem;
-    border-radius: 3px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-  }
-  .badge-scanned { background: var(--green-dim); color: var(--green); }
-  .badge-waiting { background: var(--surface2); color: var(--muted); }
-  .badge-skipped { background: rgba(251,191,36,0.15); color: var(--yellow); }
-
-  .card-body {
-    padding: 0.7rem 0.9rem;
-  }
-
-  .card-value {
-    font-family: var(--mono);
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--white);
-    letter-spacing: 0.03em;
-    margin-bottom: 0.2rem;
-    word-break: break-all;
-  }
-
-  .card-value.empty {
-    color: var(--muted);
-    font-weight: 300;
-    font-size: 0.85rem;
-    font-style: italic;
-  }
-
-  .card-meta {
-    font-size: 0.72rem;
-    color: var(--muted);
-    font-family: var(--mono);
-  }
-
-  /* ── Action Bar ── */
-  .action-bar {
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 0.75rem 1rem;
-    display: flex;
-    gap: 0.6rem;
-    flex-shrink: 0;
-  }
-
-  .btn {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 0.7rem 1rem;
-    border-radius: 8px;
-    border: 1px solid;
-    cursor: pointer;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    transition: all 0.15s;
-    text-align: center;
-  }
-
-  .btn-primary {
-    flex: 2;
-    background: var(--green-dim);
-    border-color: var(--green2);
-    color: var(--green);
-  }
-  .btn-primary:active { background: rgba(74,222,128,0.2); }
-
-  .btn-secondary {
-    flex: 1;
-    background: var(--surface2);
-    border-color: var(--border);
-    color: var(--muted);
-  }
-  .btn-secondary:active { border-color: var(--green); color: var(--green); }
-
-  .btn-danger {
-    flex: 1;
-    background: var(--red-dim);
-    border-color: rgba(248,113,113,0.4);
-    color: var(--red);
-  }
-  .btn-danger:active { background: rgba(248,113,113,0.2); }
-
-  .btn:disabled {
-    opacity: 0.35;
-    pointer-events: none;
-  }
-
-  /* ── Log View ── */
-  .log-view {
-    display: none;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  .log-view.visible { display: flex; }
-
-  .log-header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0.75rem 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-
-  .log-title {
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--white);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .log-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0.8rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .log-entry {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.7rem 0.9rem;
-    animation: cardIn 0.2s ease;
-  }
-
-  .log-entry-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.5rem;
-  }
-
-  .log-entry-hu {
-    font-family: var(--mono);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--white);
-  }
-
-  .log-entry-time {
-    font-family: var(--mono);
-    font-size: 0.62rem;
-    color: var(--muted);
-  }
-
-  .log-entry-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.3rem;
-  }
-
-  .log-detail {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-  }
-
-  .log-detail-label { color: var(--muted); }
-  .log-detail-value { color: var(--text); }
-
-  .log-empty {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.75rem;
-  }
-
-  /* ── Toast ── */
-  .toast {
-    position: fixed;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--green-dim);
-    border: 1px solid var(--green2);
-    color: var(--green);
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    opacity: 0;
-    transition: all 0.25s;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 999;
-    letter-spacing: 0.05em;
-  }
-
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  /* ── Scanner View ── */
-  .scanner-view {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  /* ── Vibration helper (visual) ── */
-  @keyframes successPulse {
-    0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
-    70%  { box-shadow: 0 0 0 12px rgba(74,222,128,0); }
-    100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-  }
-
-  .pulse { animation: successPulse 0.4s ease; }
+
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --navy:       #0B1120;
+  --navy-2:     #111827;
+  --navy-3:     #1C2A3A;
+  --navy-4:     #243447;
+  --border:     rgba(255,255,255,0.07);
+  --border-2:   rgba(255,255,255,0.12);
+  --blue:       #3B82F6;
+  --blue-dim:   rgba(59,130,246,0.12);
+  --blue-glow:  rgba(59,130,246,0.25);
+  --teal:       #14B8A6;
+  --teal-dim:   rgba(20,184,166,0.12);
+  --green:      #22C55E;
+  --green-dim:  rgba(34,197,94,0.12);
+  --amber:      #F59E0B;
+  --amber-dim:  rgba(245,158,11,0.12);
+  --red:        #EF4444;
+  --red-dim:    rgba(239,68,68,0.12);
+  --text:       #E2E8F0;
+  --text-2:     #94A3B8;
+  --text-3:     #475569;
+  --white:      #F8FAFC;
+  --sans:       'Sora', sans-serif;
+  --mono:       'JetBrains Mono', monospace;
+  --radius:     12px;
+  --radius-sm:  8px;
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after {
+  margin: 0; padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  height: 100%;
+  background: var(--navy);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════ */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 12px;
+  background: var(--navy-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.3), 0 4px 12px rgba(59,130,246,0.2);
+}
+
+.header-titles {}
+.app-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.app-sub {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  margin-top: 1px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  background: var(--navy-3);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.session-chip .num {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--navy-3);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  transition: border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.icon-btn:active {
+  background: var(--navy-4);
+  border-color: var(--border-2);
+}
+
+/* ═══════════════════════════════════════════
+   VIEWFINDER
+═══════════════════════════════════════════ */
+.viewfinder {
+  position: relative;
+  background: #000;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+#video {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Gradient mask — darkens top/bottom, keeps centre bright */
+.vf-mask {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom,
+      rgba(11,17,32,0.6) 0%,
+      transparent 25%,
+      transparent 75%,
+      rgba(11,17,32,0.6) 100%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Scan target area */
+.scan-target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72%;
+  height: 60%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Rounded corner brackets */
+.corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+}
+.corner::before,
+.corner::after {
+  content: '';
+  position: absolute;
+  background: #fff;
+  border-radius: 1px;
+}
+.corner-tl { top: 0; left: 0; }
+.corner-tl::before { top: 0; left: 0; width: 100%; height: 2.5px; }
+.corner-tl::after  { top: 0; left: 0; width: 2.5px; height: 100%; }
+.corner-tr { top: 0; right: 0; }
+.corner-tr::before { top: 0; right: 0; width: 100%; height: 2.5px; }
+.corner-tr::after  { top: 0; right: 0; width: 2.5px; height: 100%; }
+.corner-bl { bottom: 0; left: 0; }
+.corner-bl::before { bottom: 0; left: 0; width: 100%; height: 2.5px; }
+.corner-bl::after  { bottom: 0; left: 0; width: 2.5px; height: 100%; }
+.corner-br { bottom: 0; right: 0; }
+.corner-br::before { bottom: 0; right: 0; width: 100%; height: 2.5px; }
+.corner-br::after  { bottom: 0; right: 0; width: 2.5px; height: 100%; }
+
+/* Laser scan line */
+.laser {
+  position: absolute;
+  left: 4%; right: 4%;
+  height: 1.5px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(59,130,246,0.6) 15%,
+    var(--blue) 50%,
+    rgba(59,130,246,0.6) 85%,
+    transparent 100%);
+  box-shadow: 0 0 6px 1px rgba(59,130,246,0.5);
+  animation: laserSweep 2s ease-in-out infinite;
+  border-radius: 1px;
+}
+
+@keyframes laserSweep {
+  0%   { top: 8%;  opacity: 0; }
+  6%   { opacity: 1; }
+  94%  { opacity: 1; }
+  100% { top: 92%; opacity: 0; }
+}
+
+/* Camera status top-left */
+.cam-status {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(11,17,32,0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 4px 9px 4px 7px;
+  border-radius: 20px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+.cam-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Permission overlay */
+.perm-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 30;
+  padding: 24px;
+  text-align: center;
+}
+.perm-overlay.hidden { display: none; }
+
+.perm-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(59,130,246,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+
+.perm-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: -0.01em;
+}
+
+.perm-desc {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.6;
+  max-width: 240px;
+}
+
+.perm-btn {
+  margin-top: 4px;
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 28px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.35);
+  transition: opacity 0.15s;
+}
+.perm-btn:active { opacity: 0.85; }
+
+/* ═══════════════════════════════════════════
+   STEP TRACKER
+═══════════════════════════════════════════ */
+.step-track {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: var(--navy-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 0;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  position: relative;
+}
+
+/* Connector line between steps */
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: calc(50% + 13px);
+  right: calc(-50% + 13px);
+  height: 1px;
+  background: var(--border-2);
+  transition: background 0.4s;
+}
+
+.step-item.done:not(:last-child)::after {
+  background: var(--blue);
+}
+
+.step-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-2);
+  background: var(--navy-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-3);
+  transition: all 0.3s;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.step-item.active .step-circle {
+  border-color: var(--blue);
+  background: var(--blue-dim);
+  color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+.step-item.done .step-circle {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+  font-size: 11px;
+}
+
+.step-item.skipped .step-circle {
+  border-color: var(--text-3);
+  color: var(--text-3);
+}
+
+.step-name {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  font-family: var(--mono);
+  transition: color 0.3s;
+}
+
+.step-item.active .step-name { color: var(--blue); }
+.step-item.done   .step-name { color: var(--text-2); }
+
+/* ═══════════════════════════════════════════
+   CONTENT SCROLL
+═══════════════════════════════════════════ */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.content::-webkit-scrollbar { display: none; }
+
+/* ═══════════════════════════════════════════
+   PROMPT CARD
+═══════════════════════════════════════════ */
+.prompt-card {
+  background: var(--blue-dim);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.prompt-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(59,130,246,0.15);
+  border: 1px solid rgba(59,130,246,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.prompt-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 3px;
+  letter-spacing: -0.01em;
+}
+
+.prompt-desc {
+  font-size: 11.5px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════
+   SCAN RESULT CARDS
+═══════════════════════════════════════════ */
+.scan-card {
+  background: var(--navy-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.25s;
+}
+
+.scan-card.is-active {
+  border-color: rgba(59,130,246,0.35);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.06);
+}
+
+.scan-card.is-done {
+  border-color: rgba(34,197,94,0.3);
+}
+
+.scan-card.is-skipped {
+  border-color: var(--border);
+  opacity: 0.6;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.card-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.scan-card.is-active .card-dot { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+.scan-card.is-done   .card-dot { background: var(--green); }
+
+.card-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--mono);
+}
+
+.card-pill {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--mono);
+  padding: 3px 9px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pill-waiting  { background: var(--navy-3); color: var(--text-3); border: 1px solid var(--border); }
+.pill-scanning { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
+.pill-done     { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
+.pill-skipped  { background: var(--navy-3); color: var(--text-3); border: 1px solid var(--border); }
+
+.card-body {
+  padding: 12px 14px;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.card-value {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.card-value.placeholder {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-3);
+  font-family: var(--sans);
+  letter-spacing: 0;
+}
+
+.card-timestamp {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+/* Scan flash animation */
+@keyframes scanFlash {
+  0%   { background: rgba(34,197,94,0.18); }
+  100% { background: var(--navy-2); }
+}
+.flash-green { animation: scanFlash 0.6s ease forwards; }
+
+/* ═══════════════════════════════════════════
+   BOTTOM ACTION BAR
+═══════════════════════════════════════════ */
+.action-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  background: var(--navy-2);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.btn {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  padding: 12px 10px;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: -0.01em;
+  text-align: center;
+  line-height: 1;
+}
+.btn:active { opacity: 0.8; transform: scale(0.97); }
+
+.btn-main {
+  flex: 2;
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(59,130,246,0.3);
+}
+
+.btn-main.success {
+  background: var(--green);
+  box-shadow: 0 2px 12px rgba(34,197,94,0.3);
+}
+
+.btn-skip {
+  flex: 1;
+  background: var(--navy-3);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+.btn-reset {
+  flex: 1;
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid rgba(239,68,68,0.2);
+}
+
+/* ═══════════════════════════════════════════
+   LOG VIEW
+═══════════════════════════════════════════ */
+.log-view {
+  display: none;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 430px;
+  margin: 0 auto;
+  background: var(--navy);
+}
+.log-view.visible { display: flex; }
+
+.log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--navy-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.log-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: -0.01em;
+}
+
+.log-actions { display: flex; gap: 8px; }
+
+.log-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.log-body::-webkit-scrollbar { display: none; }
+
+.log-entry {
+  background: var(--navy-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  animation: entryIn 0.2s ease;
+}
+
+@keyframes entryIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.entry-row-1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.entry-hu {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: -0.02em;
+}
+
+.entry-time {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+  background: var(--navy-3);
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+.entry-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.entry-field {
+  background: var(--navy-3);
+  border-radius: 6px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+}
+
+.ef-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+}
+
+.ef-value {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.log-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-3);
+  font-size: 13px;
+  padding: 40px;
+  text-align: center;
+}
+
+.log-empty-icon {
+  font-size: 32px;
+  opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--navy-3);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 9px 18px;
+  border-radius: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  z-index: 9999;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.toast-success { border-color: rgba(34,197,94,0.3); }
+.toast.toast-error   { border-color: rgba(239,68,68,0.3); }
+
 </style>
 </head>
 <body>
 
-<div class="app">
+<!-- ════════════════════════════════════════
+     SCANNER VIEW
+════════════════════════════════════════ -->
+<div class="app" id="scannerView">
 
-  <!-- ══ SCANNER VIEW ══ -->
-  <div class="scanner-view" id="scannerView">
-
-    <!-- Header -->
-    <div class="header">
-      <div class="brand">
-        <div class="brand-name">Novus Scanner</div>
-        <div class="brand-sub">Plant 1730 · Inventory Control</div>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark">⬡</div>
+      <div class="header-titles">
+        <div class="app-name">Novus Scanner</div>
+        <div class="app-sub">Plant 1730 · Buena Park</div>
       </div>
-      <div class="header-right">
-        <div class="scan-counter">Session: <span id="sessionCount">0</span></div>
-        <div class="btn-icon" onclick="showLog()" title="View Log">📋</div>
+    </div>
+    <div class="header-right">
+      <div class="session-chip">
+        <span>Session</span>
+        <span class="num" id="sessionCount">0</span>
+      </div>
+      <div class="icon-btn" onclick="showLog()" title="View Log">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Viewfinder -->
+  <div class="viewfinder">
+    <video id="video" autoplay muted playsinline webkit-playsinline></video>
+    <canvas id="canvas" style="display:none"></canvas>
+
+    <div class="vf-mask"></div>
+
+    <div class="scan-target">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+      <div class="laser"></div>
+    </div>
+
+    <div class="cam-status">
+      <div class="live-dot" id="liveDot"></div>
+      <span class="cam-label" id="camLabel">Ready</span>
+    </div>
+
+    <!-- Permission Overlay -->
+    <div class="perm-overlay" id="permOverlay">
+      <div class="perm-icon">📷</div>
+      <div class="perm-title">Enable Camera</div>
+      <div class="perm-desc">Tap below to allow camera access — required to scan barcodes.</div>
+      <button class="perm-btn" onclick="startScanner()">Start Scanner</button>
+    </div>
+  </div>
+
+  <!-- Step Tracker -->
+  <div class="step-track">
+    <div class="step-item active" id="step1">
+      <div class="step-circle" id="sc1">1</div>
+      <div class="step-name">HU #</div>
+    </div>
+    <div class="step-item" id="step2">
+      <div class="step-circle" id="sc2">2</div>
+      <div class="step-name">Material</div>
+    </div>
+    <div class="step-item" id="step3">
+      <div class="step-circle" id="sc3">3</div>
+      <div class="step-name">Batch</div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content" id="content">
+
+    <!-- Prompt -->
+    <div class="prompt-card" id="promptCard">
+      <div class="prompt-icon-wrap" id="promptIcon">📦</div>
+      <div>
+        <div class="prompt-title" id="promptTitle">Scan HU Number</div>
+        <div class="prompt-desc"  id="promptDesc">Point the camera at the top barcode on the label.</div>
       </div>
     </div>
 
-    <!-- Camera -->
-    <div class="viewfinder-wrap">
-      <video id="video" autoplay muted playsinline></video>
-      <canvas id="canvas" style="display:none"></canvas>
-      <div class="scan-overlay">
-        <div class="scan-line"></div>
-        <div class="brackets">
-          <div class="bracket bracket-tl"></div>
-          <div class="bracket bracket-tr"></div>
-          <div class="bracket bracket-bl"></div>
-          <div class="bracket bracket-br"></div>
+    <!-- Card 1 — HU -->
+    <div class="scan-card is-active" id="card1">
+      <div class="card-top">
+        <div class="card-label">
+          <div class="card-dot"></div>
+          <div class="card-name">HU Number</div>
         </div>
+        <div class="card-pill pill-scanning" id="pill1">Scanning</div>
       </div>
-      <div class="cam-status">
-        <div class="cam-dot"></div>
-        <span id="camStatusText">LIVE</span>
+      <div class="card-body">
+        <div class="card-value placeholder" id="val1">Waiting for scan…</div>
+        <div class="card-timestamp" id="ts1"></div>
       </div>
     </div>
 
-    <!-- Step Indicators -->
-    <div class="step-bar">
-      <div class="step">
-        <div class="step-pill active" id="step1pill"></div>
-        <div class="step-label active" id="step1label">HU #</div>
+    <!-- Card 2 — Material -->
+    <div class="scan-card" id="card2">
+      <div class="card-top">
+        <div class="card-label">
+          <div class="card-dot"></div>
+          <div class="card-name">Material Number</div>
+        </div>
+        <div class="card-pill pill-waiting" id="pill2">Waiting</div>
       </div>
-      <div class="step">
-        <div class="step-pill" id="step2pill"></div>
-        <div class="step-label" id="step2label">Material #</div>
-      </div>
-      <div class="step">
-        <div class="step-pill" id="step3pill"></div>
-        <div class="step-label" id="step3label">Batch #</div>
+      <div class="card-body">
+        <div class="card-value placeholder" id="val2">Waiting for scan…</div>
+        <div class="card-timestamp" id="ts2"></div>
       </div>
     </div>
 
-    <!-- Scroll Content -->
-    <div class="scroll-area" id="scrollArea">
-
-      <!-- Instruction -->
-      <div class="instruction active" id="instrCard">
-        <div class="instr-icon">📦</div>
-        <div class="instr-body">
-          <div class="instr-title">Scan HU Number</div>
-          <div class="instr-desc" id="instrDesc">Point camera at the top barcode on the label — the HU Number.</div>
+    <!-- Card 3 — Batch -->
+    <div class="scan-card" id="card3">
+      <div class="card-top">
+        <div class="card-label">
+          <div class="card-dot"></div>
+          <div class="card-name">Batch / Invoice #</div>
         </div>
+        <div class="card-pill pill-waiting" id="pill3">Waiting</div>
       </div>
-
-      <!-- HU Result Card -->
-      <div class="result-card pending" id="card1">
-        <div class="card-header">
-          <span class="card-type">HU Number</span>
-          <span class="card-badge badge-waiting" id="badge1">Waiting</span>
-        </div>
-        <div class="card-body">
-          <div class="card-value empty" id="val1">— not yet scanned —</div>
-          <div class="card-meta" id="meta1"></div>
-        </div>
+      <div class="card-body">
+        <div class="card-value placeholder" id="val3">Waiting for scan…</div>
+        <div class="card-timestamp" id="ts3"></div>
       </div>
-
-      <!-- Material Result Card -->
-      <div class="result-card pending" id="card2">
-        <div class="card-header">
-          <span class="card-type">Material Number</span>
-          <span class="card-badge badge-waiting" id="badge2">Waiting</span>
-        </div>
-        <div class="card-body">
-          <div class="card-value empty" id="val2">— not yet scanned —</div>
-          <div class="card-meta" id="meta2"></div>
-        </div>
-      </div>
-
-      <!-- Batch Result Card -->
-      <div class="result-card pending" id="card3">
-        <div class="card-header">
-          <span class="card-type">Batch / Invoice #</span>
-          <span class="card-badge badge-waiting" id="badge3">Waiting</span>
-        </div>
-        <div class="card-body">
-          <div class="card-value empty" id="val3">— not yet scanned —</div>
-          <div class="card-meta" id="meta3"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Action Bar -->
-    <div class="action-bar" id="actionBar">
-      <button class="btn btn-secondary" id="skipBtn" onclick="skipCurrent()">Skip</button>
-      <button class="btn btn-primary" id="mainBtn" onclick="handleMainBtn()">Scanning…</button>
-      <button class="btn btn-danger" id="resetBtn" onclick="resetScan()">Reset</button>
     </div>
 
   </div>
 
-  <!-- ══ LOG VIEW ══ -->
-  <div class="log-view" id="logView">
-    <div class="log-header">
-      <span class="log-title">📋 Scan Log</span>
-      <div style="display:flex; gap:0.5rem; align-items:center;">
-        <div class="btn-icon" onclick="exportLog()" title="Export">⬇</div>
-        <div class="btn-icon" onclick="clearLog()" title="Clear">🗑</div>
-        <div class="btn-icon" onclick="hideLog()" title="Back">✕</div>
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="btn btn-skip"  id="skipBtn"  onclick="skipStep()">Skip</button>
+    <button class="btn btn-main"  id="mainBtn"  onclick="handleMain()">Scanning…</button>
+    <button class="btn btn-reset"              onclick="resetAll()">Reset</button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     LOG VIEW
+════════════════════════════════════════ -->
+<div class="log-view" id="logView">
+  <div class="log-header">
+    <div class="log-title">Scan History</div>
+    <div class="log-actions">
+      <div class="icon-btn" onclick="exportCSV()" title="Export CSV">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
       </div>
-    </div>
-    <div class="log-scroll" id="logScroll">
-      <div class="log-empty" id="logEmpty">No scans logged yet</div>
-    </div>
-    <div class="action-bar">
-      <button class="btn btn-primary" style="flex:1" onclick="hideLog()">← Back to Scanner</button>
+      <div class="icon-btn" onclick="clearLog()" title="Clear">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+        </svg>
+      </div>
+      <div class="icon-btn" onclick="hideLog()" title="Close">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </div>
     </div>
   </div>
 
+  <div class="log-body" id="logBody">
+    <div class="log-empty" id="logEmpty">
+      <div class="log-empty-icon">📋</div>
+      <div>No scans logged yet.<br>Complete a scan to see it here.</div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn btn-main" style="flex:1" onclick="hideLog()">← Back to Scanner</button>
+  </div>
 </div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<script>
-// ── State ─────────────────────────────────────────────────────────────────────
+<script type="module">
+import { BrowserMultiFormatReader } from 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/esm/index.js';
+import { DecodeHintType, BarcodeFormat } from 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/esm/index.js';
+
+// ── State ──────────────────────────────────────────────────────────────────
 const STEPS = ['hu', 'material', 'batch'];
-let currentStep = 0;   // 0=HU, 1=Material, 2=Batch
-let scanData    = { hu: null, material: null, batch: null };
-let sessionLog  = [];
+const PROMPTS = [
+  { icon: '📦', title: 'Scan HU Number',       desc: 'Point the camera at the top barcode on the label.' },
+  { icon: '🏷',  title: 'Scan Material Number', desc: 'Now point at the middle barcode — the Material Number.' },
+  { icon: '🔢', title: 'Scan Batch Number',     desc: 'Finally, scan the bottom barcode. Tap Skip if not present.' },
+];
+
+let step         = 0;
+let scanData     = { hu: null, material: null, batch: null };
+let sessionLog   = [];
 let sessionCount = 0;
-let scanning    = false;
-let videoStream = null;
-let scanInterval = null;
-let lastDecoded = null;
-let lastDecodedTime = 0;
-const COOLDOWN  = 2000; // ms before same barcode fires again
+let lastVal      = '';
+let lastTime     = 0;
+const COOLDOWN   = 2500;
+let reader       = null;
 
-// ── Camera Setup ──────────────────────────────────────────────────────────────
-async function startCamera() {
-  const video = document.getElementById('video');
+// ── Start Scanner ──────────────────────────────────────────────────────────
+window.startScanner = async function () {
+  document.getElementById('permOverlay').classList.add('hidden');
+  document.getElementById('camLabel').textContent = 'Starting…';
+
   try {
-    videoStream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: 'environment',  // rear camera
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
+        facingMode: { ideal: 'environment' },
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 },
       },
-      audio: false
+      audio: false,
     });
-    video.srcObject = videoStream;
-    video.play();
-    video.addEventListener('loadedmetadata', () => {
-      startDecoding();
+
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.muted = true;
+    await video.play();
+
+    document.getElementById('camLabel').textContent = 'Live';
+    document.getElementById('liveDot').style.background = 'var(--green)';
+
+    const hints = new Map([
+      [DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODABAR,
+        BarcodeFormat.ITF,
+      ]],
+      [DecodeHintType.TRY_HARDER, true],
+    ]);
+
+    reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 200 });
+    reader.decodeFromVideoElement(video, (result) => {
+      if (result) onDetected(result.getText());
     });
+
   } catch (err) {
-    document.getElementById('camStatusText').textContent = 'NO CAM';
-    showToast('Camera access denied — check browser permissions');
+    document.getElementById('camLabel').textContent = 'Blocked';
+    document.getElementById('liveDot').style.background = 'var(--red)';
+    document.getElementById('permOverlay').classList.remove('hidden');
+    document.querySelector('.perm-icon').textContent  = '🚫';
+    document.querySelector('.perm-title').textContent = 'Camera Blocked';
+    document.querySelector('.perm-desc').textContent  =
+      'Go to Settings → Safari → Camera → Allow. Then close and reopen the app.';
+    document.querySelector('.perm-btn').style.display = 'none';
   }
-}
+};
 
-// ── Barcode Decoding (ZXing) ──────────────────────────────────────────────────
-let codeReader = null;
-
-function startDecoding() {
-  const video  = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const ctx    = canvas.getContext('2d');
-
-  // Use ZXing if available, else fallback to BarcodeDetector
-  if (typeof ZXing !== 'undefined') {
-    const hints = new Map();
-    const formats = [
-      ZXing.BarcodeFormat.CODE_128,
-      ZXing.BarcodeFormat.CODE_39,
-      ZXing.BarcodeFormat.EAN_13,
-      ZXing.BarcodeFormat.UPC_A,
-      ZXing.BarcodeFormat.QR_CODE,
-      ZXing.BarcodeFormat.DATA_MATRIX,
-    ];
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-    codeReader = new ZXing.MultiFormatReader();
-    codeReader.setHints(hints);
-
-    scanInterval = setInterval(() => {
-      if (!video.videoWidth) return;
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
-      try {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const luminanceSource = new ZXing.RGBLuminanceSource(imageData.data, canvas.width, canvas.height);
-        const binaryBitmap    = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
-        const result          = codeReader.decode(binaryBitmap);
-        if (result) onBarcodeDetected(result.getText());
-      } catch (e) { /* no barcode in frame */ }
-    }, 150);
-
-  } else if ('BarcodeDetector' in window) {
-    // Native BarcodeDetector API (Chrome Android)
-    const detector = new BarcodeDetector({
-      formats: ['code_128', 'code_39', 'ean_13', 'upc_a', 'qr_code', 'data_matrix']
-    });
-    scanInterval = setInterval(async () => {
-      if (!video.videoWidth) return;
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
-      try {
-        const barcodes = await detector.detect(canvas);
-        if (barcodes.length > 0) onBarcodeDetected(barcodes[0].rawValue);
-      } catch (e) {}
-    }, 200);
-  } else {
-    showToast('Barcode detection not supported on this browser');
-  }
-
-  scanning = true;
-  updateMainBtn();
-}
-
-// ── On Barcode Detected ───────────────────────────────────────────────────────
-function onBarcodeDetected(value) {
+// ── Barcode Detected ───────────────────────────────────────────────────────
+function onDetected(value) {
+  if (!value) return;
+  value = value.trim();
   const now = Date.now();
-  if (value === lastDecoded && now - lastDecodedTime < COOLDOWN) return;
-  lastDecoded     = value;
-  lastDecodedTime = now;
-
-  // Vibrate
+  if (value === lastVal && now - lastTime < COOLDOWN) return;
+  if (step >= 3) return;
+  lastVal  = value;
+  lastTime = now;
   if (navigator.vibrate) navigator.vibrate(60);
-
   recordScan(value);
 }
 
-// ── Record Scan ───────────────────────────────────────────────────────────────
+// ── Record ─────────────────────────────────────────────────────────────────
 function recordScan(value) {
-  const key       = STEPS[currentStep];
-  scanData[key]   = value;
-  const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const i  = step + 1;
+  const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  scanData[STEPS[step]] = value;
 
-  // Update card
-  const cardIndex = currentStep + 1;
-  const valEl     = document.getElementById(`val${cardIndex}`);
-  const badgeEl   = document.getElementById(`badge${cardIndex}`);
-  const metaEl    = document.getElementById(`meta${cardIndex}`);
-  const cardEl    = document.getElementById(`card${cardIndex}`);
+  const card = document.getElementById(`card${i}`);
+  const val  = document.getElementById(`val${i}`);
+  const pill = document.getElementById(`pill${i}`);
+  const tsEl = document.getElementById(`ts${i}`);
+  const si   = document.getElementById(`step${i}`);
+  const sc   = document.getElementById(`sc${i}`);
 
-  valEl.textContent   = value;
-  valEl.className     = 'card-value';
-  badgeEl.textContent = '✓ Scanned';
-  badgeEl.className   = 'card-badge badge-scanned';
-  metaEl.textContent  = timestamp;
-  cardEl.classList.add('pulse');
-  setTimeout(() => cardEl.classList.remove('pulse'), 400);
+  val.textContent   = value;
+  val.className     = 'card-value';
+  tsEl.textContent  = ts;
+  pill.textContent  = 'Captured';
+  pill.className    = 'card-pill pill-done';
+  card.className    = 'scan-card is-done flash-green';
+  setTimeout(() => card.classList.remove('flash-green'), 600);
 
-  // Update step pill
-  const pillEl  = document.getElementById(`step${cardIndex}pill`);
-  const lblEl   = document.getElementById(`step${cardIndex}label`);
-  pillEl.className  = 'step-pill done';
-  lblEl.className   = 'step-label done';
+  si.className  = 'step-item done';
+  sc.textContent = '✓';
 
-  // Advance
-  currentStep++;
-  if (currentStep < 3) {
-    updateInstruction();
-    updateStepActive();
+  step++;
+  if (step < 3) {
+    setPrompt(step);
+    setCardActive(step + 1);
+    setStepActive(step + 1);
   } else {
-    // All done
-    completeScan();
+    completeAll();
   }
 
-  scrollToBottom();
+  scrollBottom();
 }
 
-// ── Complete Scan ─────────────────────────────────────────────────────────────
-function completeScan() {
+// ── Skip ───────────────────────────────────────────────────────────────────
+window.skipStep = function () {
+  if (step >= 3) return;
+  const i  = step + 1;
+  const si = document.getElementById(`step${i}`);
+  const sc = document.getElementById(`sc${i}`);
+
+  document.getElementById(`val${i}`).textContent  = 'Skipped';
+  document.getElementById(`val${i}`).className    = 'card-value placeholder';
+  document.getElementById(`pill${i}`).textContent = 'Skipped';
+  document.getElementById(`pill${i}`).className   = 'card-pill pill-skipped';
+  document.getElementById(`card${i}`).className   = 'scan-card is-skipped';
+  si.className  = 'step-item skipped';
+  sc.textContent = '–';
+
+  step++;
+  if (step < 3) { setPrompt(step); setCardActive(step + 1); setStepActive(step + 1); }
+  else completeAll();
+  scrollBottom();
+};
+
+// ── Complete ───────────────────────────────────────────────────────────────
+function completeAll() {
+  document.getElementById('promptIcon').textContent  = '✅';
+  document.getElementById('promptTitle').textContent = 'All Barcodes Captured';
+  document.getElementById('promptDesc').textContent  = 'Tap Save & Next to log this item.';
+  document.getElementById('promptCard').style.background = 'var(--green-dim)';
+  document.getElementById('promptCard').style.borderColor = 'rgba(34,197,94,0.25)';
+
+  const btn = document.getElementById('mainBtn');
+  btn.textContent = 'Save & Next';
+  btn.classList.add('success');
+  document.getElementById('skipBtn').style.visibility = 'hidden';
+
+  if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
+  showToast('✓ All barcodes captured', 'success');
+}
+
+// ── Save & Reset ───────────────────────────────────────────────────────────
+window.handleMain = function () {
+  if (step < 3) return;
+  sessionLog.unshift({
+    hu:       scanData.hu       || '—',
+    material: scanData.material || '—',
+    batch:    scanData.batch    || '—',
+    time:     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    date:     new Date().toLocaleDateString(),
+  });
   sessionCount++;
   document.getElementById('sessionCount').textContent = sessionCount;
+  showToast('Saved to log', 'success');
+  resetAll();
+};
 
-  const entry = {
-    hu:        scanData.hu       || '—',
-    material:  scanData.material || '—',
-    batch:     scanData.batch    || '—',
-    time:      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    date:      new Date().toLocaleDateString()
-  };
+window.resetAll = function () {
+  step     = 0;
+  scanData = { hu: null, material: null, batch: null };
+  lastVal  = '';
 
-  sessionLog.unshift(entry);
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById(`val${i}`).textContent  = 'Waiting for scan…';
+    document.getElementById(`val${i}`).className    = 'card-value placeholder';
+    document.getElementById(`ts${i}`).textContent   = '';
+    document.getElementById(`pill${i}`).className   = i === 1 ? 'card-pill pill-scanning' : 'card-pill pill-waiting';
+    document.getElementById(`pill${i}`).textContent = i === 1 ? 'Scanning' : 'Waiting';
+    document.getElementById(`card${i}`).className   = i === 1 ? 'scan-card is-active' : 'scan-card';
+    document.getElementById(`step${i}`).className   = i === 1 ? 'step-item active' : 'step-item';
+    document.getElementById(`sc${i}`).textContent   = i;
+  }
 
-  // Update instruction
-  const instrCard = document.getElementById('instrCard');
-  instrCard.querySelector('.instr-title').textContent = '✓ Scan Complete';
-  instrCard.querySelector('.instr-desc').textContent  = 'All barcodes captured. Tap "Save & Next" to log this item and start a new scan.';
-  instrCard.querySelector('.instr-icon').textContent  = '✅';
-  instrCard.className = 'instruction active';
+  setPrompt(0);
+  document.getElementById('promptCard').style.background   = '';
+  document.getElementById('promptCard').style.borderColor  = '';
 
-  // Update button
-  document.getElementById('mainBtn').textContent = 'Save & Next';
-  document.getElementById('skipBtn').style.display = 'none';
+  const btn = document.getElementById('mainBtn');
+  btn.textContent = 'Scanning…';
+  btn.classList.remove('success');
+  document.getElementById('skipBtn').style.visibility = 'visible';
+  document.getElementById('content').scrollTop = 0;
+};
 
-  if (navigator.vibrate) navigator.vibrate([60, 40, 120]);
-  showToast('All 3 barcodes captured!');
+// ── Helpers ────────────────────────────────────────────────────────────────
+function setPrompt(i) {
+  const p = PROMPTS[i];
+  document.getElementById('promptIcon').textContent  = p.icon;
+  document.getElementById('promptTitle').textContent = p.title;
+  document.getElementById('promptDesc').textContent  = p.desc;
 }
 
-// ── Reset / New Scan ──────────────────────────────────────────────────────────
-function resetScan() {
-  currentStep = 0;
-  scanData    = { hu: null, material: null, batch: null };
-  lastDecoded = null;
-
-  // Reset cards
-  [1,2,3].forEach(i => {
-    document.getElementById(`val${i}`).textContent   = '— not yet scanned —';
-    document.getElementById(`val${i}`).className     = 'card-value empty';
-    document.getElementById(`badge${i}`).textContent = 'Waiting';
-    document.getElementById(`badge${i}`).className   = 'card-badge badge-waiting';
-    document.getElementById(`meta${i}`).textContent  = '';
-    document.getElementById(`card${i}`).className    = 'result-card pending';
-  });
-
-  // Reset steps
-  [1,2,3].forEach(i => {
-    document.getElementById(`step${i}pill`).className  = 'step-pill';
-    document.getElementById(`step${i}label`).className = 'step-label';
-  });
-  document.getElementById('step1pill').className  = 'step-pill active';
-  document.getElementById('step1label').className = 'step-label active';
-
-  // Reset instruction
-  document.getElementById('instrCard').querySelector('.instr-title').textContent = 'Scan HU Number';
-  document.getElementById('instrCard').querySelector('.instr-desc').textContent  = 'Point camera at the top barcode on the label — the HU Number.';
-  document.getElementById('instrCard').querySelector('.instr-icon').textContent  = '📦';
-
-  // Reset buttons
-  document.getElementById('mainBtn').textContent       = 'Scanning…';
-  document.getElementById('skipBtn').style.display     = '';
-
-  document.getElementById('scrollArea').scrollTop = 0;
+function setCardActive(i) {
+  document.getElementById(`card${i}`).className   = 'scan-card is-active';
+  document.getElementById(`pill${i}`).className   = 'card-pill pill-scanning';
+  document.getElementById(`pill${i}`).textContent = 'Scanning';
 }
 
-// ── Skip Current Step ─────────────────────────────────────────────────────────
-function skipCurrent() {
-  if (currentStep >= 3) return;
+function setStepActive(i) {
+  document.getElementById(`step${i}`).className = 'step-item active';
+}
 
-  const key       = STEPS[currentStep];
-  scanData[key]   = null;
+function scrollBottom() {
+  const c = document.getElementById('content');
+  setTimeout(() => c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' }), 80);
+}
 
-  const cardIndex = currentStep + 1;
-  const valEl     = document.getElementById(`val${cardIndex}`);
-  const badgeEl   = document.getElementById(`badge${cardIndex}`);
-  const pillEl    = document.getElementById(`step${cardIndex}pill`);
-  const lblEl     = document.getElementById(`step${cardIndex}label`);
+// ── Log ────────────────────────────────────────────────────────────────────
+window.showLog = function () {
+  const body  = document.getElementById('logBody');
+  const empty = document.getElementById('logEmpty');
+  body.innerHTML = '';
 
-  valEl.textContent   = '— skipped —';
-  valEl.className     = 'card-value empty';
-  badgeEl.textContent = 'Skipped';
-  badgeEl.className   = 'card-badge badge-skipped';
-  pillEl.className    = 'step-pill skip';
-  lblEl.className     = 'step-label';
-
-  currentStep++;
-  if (currentStep < 3) {
-    updateInstruction();
-    updateStepActive();
+  if (!sessionLog.length) {
+    body.innerHTML = `
+      <div class="log-empty">
+        <div class="log-empty-icon">📋</div>
+        <div>No scans logged yet.<br>Complete a scan to see it here.</div>
+      </div>`;
   } else {
-    completeScan();
+    sessionLog.forEach(e => {
+      const d = document.createElement('div');
+      d.className = 'log-entry';
+      d.innerHTML = `
+        <div class="entry-row-1">
+          <div class="entry-hu">${e.hu}</div>
+          <div class="entry-time">${e.time}</div>
+        </div>
+        <div class="entry-row-2">
+          <div class="entry-field"><div class="ef-label">Material</div><div class="ef-value">${e.material}</div></div>
+          <div class="entry-field"><div class="ef-label">Batch</div><div class="ef-value">${e.batch}</div></div>
+          <div class="entry-field"><div class="ef-label">Date</div><div class="ef-value">${e.date}</div></div>
+        </div>`;
+      body.appendChild(d);
+    });
   }
 
-  scrollToBottom();
-}
-
-// ── Main Button ───────────────────────────────────────────────────────────────
-function handleMainBtn() {
-  if (currentStep >= 3) {
-    // Save & reset
-    addToLog(sessionLog[0]);
-    resetScan();
-    showToast('Saved to log ✓');
-  }
-}
-
-// ── Instruction Update ────────────────────────────────────────────────────────
-const instrMap = [
-  { icon: '📦', title: 'Scan HU Number',       desc: 'Point camera at the top barcode on the label — the HU Number.' },
-  { icon: '🏷',  title: 'Scan Material Number', desc: 'Now scan the second barcode — the Material Number.' },
-  { icon: '🔢', title: 'Scan Batch Number',     desc: 'Finally, scan the third barcode — the Batch or Invoice Number. Tap Skip if not present.' },
-];
-
-function updateInstruction() {
-  if (currentStep >= 3) return;
-  const m = instrMap[currentStep];
-  document.getElementById('instrCard').querySelector('.instr-icon').textContent  = m.icon;
-  document.getElementById('instrCard').querySelector('.instr-title').textContent = m.title;
-  document.getElementById('instrCard').querySelector('.instr-desc').textContent  = m.desc;
-}
-
-function updateStepActive() {
-  [1,2,3].forEach(i => {
-    const pill = document.getElementById(`step${i}pill`);
-    const lbl  = document.getElementById(`step${i}label`);
-    if (pill.className === 'step-pill' && i === currentStep + 1) {
-      pill.className = 'step-pill active';
-      lbl.className  = 'step-label active';
-    }
-  });
-}
-
-function updateMainBtn() {
-  document.getElementById('mainBtn').textContent = currentStep < 3 ? 'Scanning…' : 'Save & Next';
-}
-
-// ── Log ───────────────────────────────────────────────────────────────────────
-function addToLog(entry) {
-  const scroll  = document.getElementById('logScroll');
-  const empty   = document.getElementById('logEmpty');
-  if (empty) empty.remove();
-
-  const div = document.createElement('div');
-  div.className = 'log-entry';
-  div.innerHTML = `
-    <div class="log-entry-top">
-      <div class="log-entry-hu">${entry.hu}</div>
-      <div class="log-entry-time">${entry.time}</div>
-    </div>
-    <div class="log-entry-details">
-      <div class="log-detail"><span class="log-detail-label">Material: </span><span class="log-detail-value">${entry.material}</span></div>
-      <div class="log-detail"><span class="log-detail-label">Batch: </span><span class="log-detail-value">${entry.batch}</span></div>
-      <div class="log-detail"><span class="log-detail-label">Date: </span><span class="log-detail-value">${entry.date}</span></div>
-    </div>
-  `;
-  scroll.insertBefore(div, scroll.firstChild);
-}
-
-function showLog() {
   document.getElementById('scannerView').style.display = 'none';
   document.getElementById('logView').classList.add('visible');
+};
 
-  // Rebuild log
-  const scroll = document.getElementById('logScroll');
-  scroll.innerHTML = '';
-  if (sessionLog.length === 0) {
-    scroll.innerHTML = '<div class="log-empty" id="logEmpty">No scans logged yet</div>';
-    return;
-  }
-  sessionLog.forEach(e => addToLogView(e, scroll));
-}
-
-function addToLogView(entry, scroll) {
-  const div = document.createElement('div');
-  div.className = 'log-entry';
-  div.innerHTML = `
-    <div class="log-entry-top">
-      <div class="log-entry-hu">${entry.hu}</div>
-      <div class="log-entry-time">${entry.time}</div>
-    </div>
-    <div class="log-entry-details">
-      <div class="log-detail"><span class="log-detail-label">Material: </span><span class="log-detail-value">${entry.material}</span></div>
-      <div class="log-detail"><span class="log-detail-label">Batch: </span><span class="log-detail-value">${entry.batch}</span></div>
-      <div class="log-detail"><span class="log-detail-label">Date: </span><span class="log-detail-value">${entry.date}</span></div>
-    </div>
-  `;
-  scroll.appendChild(div);
-}
-
-function hideLog() {
+window.hideLog = function () {
   document.getElementById('logView').classList.remove('visible');
   document.getElementById('scannerView').style.display = 'flex';
-}
+};
 
-function clearLog() {
+window.clearLog = function () {
   sessionLog = [];
   sessionCount = 0;
   document.getElementById('sessionCount').textContent = 0;
-  document.getElementById('logScroll').innerHTML = '<div class="log-empty" id="logEmpty">No scans logged yet</div>';
   showToast('Log cleared');
-}
+};
 
-function exportLog() {
-  if (sessionLog.length === 0) { showToast('No data to export'); return; }
-
-  const header = 'HU Number,Material Number,Batch Number,Time,Date\n';
-  const rows   = sessionLog.map(e =>
-    `${e.hu},${e.material},${e.batch},${e.time},${e.date}`
-  ).join('\n');
-
-  const blob = new Blob([header + rows], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `novus_scan_log_${new Date().toISOString().slice(0,10)}.csv`;
+window.exportCSV = function () {
+  if (!sessionLog.length) { showToast('Nothing to export yet'); return; }
+  const csv = [
+    'HU Number,Material Number,Batch Number,Date,Time',
+    ...sessionLog.map(e => `${e.hu},${e.material},${e.batch},${e.date},${e.time}`)
+  ].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = `novus_scan_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
-  URL.revokeObjectURL(url);
-  showToast('Exported as CSV ✓');
-}
+  showToast('Exported as CSV ✓', 'success');
+};
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function showToast(msg) {
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg, type = '') {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  t.className   = `toast ${type ? 'toast-' + type : ''} show`;
+  setTimeout(() => t.classList.remove('show'), 2500);
 }
-
-// ── Scroll Helper ─────────────────────────────────────────────────────────────
-function scrollToBottom() {
-  const area = document.getElementById('scrollArea');
-  setTimeout(() => area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' }), 100);
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  startCamera();
-});
 </script>
 </body>
 </html>

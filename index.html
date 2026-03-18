@@ -8,272 +8,329 @@
 <meta name="theme-color" content="#0B1120">
 <title>Novus Scanner</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
-:root{
-  --navy:#0B1120;--navy-2:#111827;--navy-3:#1C2A3A;--navy-4:#243447;
-  --border:rgba(255,255,255,0.07);--border-2:rgba(255,255,255,0.12);
-  --blue:#3B82F6;--blue-dim:rgba(59,130,246,0.12);--teal:#14B8A6;
-  --green:#22C55E;--green-dim:rgba(34,197,94,0.12);
-  --amber:#F59E0B;--amber-dim:rgba(245,158,11,0.15);--amber-bdr:rgba(245,158,11,0.3);
-  --red:#EF4444;--red-dim:rgba(239,68,68,0.12);
-  --text:#E2E8F0;--text-2:#94A3B8;--text-3:#475569;--white:#F8FAFC;
-  --sans:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
-  --radius:12px;--radius-sm:8px;
+:root {
+  --navy:      #0B1120;
+  --navy-2:    #111827;
+  --navy-3:    #1C2A3A;
+  --navy-4:    #243447;
+  --border:    rgba(255,255,255,0.07);
+  --border-2:  rgba(255,255,255,0.12);
+  --blue:      #3B82F6;
+  --blue-dim:  rgba(59,130,246,0.12);
+  --teal:      #14B8A6;
+  --green:     #22C55E;
+  --green-dim: rgba(34,197,94,0.12);
+  --amber:     #F59E0B;
+  --amber-dim: rgba(245,158,11,0.15);
+  --amber-bdr: rgba(245,158,11,0.3);
+  --red:       #EF4444;
+  --red-dim:   rgba(239,68,68,0.12);
+  --text:      #E2E8F0;
+  --text-2:    #94A3B8;
+  --text-3:    #475569;
+  --white:     #F8FAFC;
+  --sans:      'Sora', sans-serif;
+  --mono:      'JetBrains Mono', monospace;
+  --radius:    12px;
+  --radius-sm: 8px;
 }
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(--sans);overflow:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
-.screen{position:fixed;inset:0;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(--navy);}
-.screen.hidden{display:none!important;}
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; background:var(--navy); color:var(--text); font-family:var(--sans); overflow:hidden; overscroll-behavior:none; -webkit-font-smoothing:antialiased; }
 
-/* ── BIN SETUP ── */
-#sBin{align-items:center;justify-content:center;padding:32px 24px 48px;overflow-y:auto;gap:0;}
-.logo-wrap{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 8px 32px rgba(59,130,246,0.25);margin-bottom:22px;flex-shrink:0;}
-.setup-title{font-size:24px;font-weight:700;color:var(--white);letter-spacing:-0.03em;text-align:center;margin-bottom:8px;}
-.setup-desc{font-size:13px;color:var(--text-2);text-align:center;line-height:1.65;max-width:290px;margin-bottom:28px;}
-.setup-lbl{width:100%;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;display:block;}
-#binInput{width:100%;background:var(--navy-3);border:2px solid var(--border-2);border-radius:var(--radius-sm);padding:16px;font-family:var(--mono);font-size:22px;font-weight:700;color:var(--white);text-align:center;letter-spacing:0.14em;text-transform:uppercase;outline:none;margin-bottom:16px;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
-#binInput::placeholder{color:var(--text-3);font-weight:400;font-size:14px;letter-spacing:0;text-transform:none;}
-#binInput:focus{border-color:var(--blue);}
-.setup-btn{width:100%;background:var(--blue);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;padding:16px;border-radius:var(--radius-sm);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,0.35);-webkit-appearance:none;appearance:none;}
-.setup-btn:active{opacity:0.85;}
-.setup-err{width:100%;margin-top:10px;padding:10px 14px;background:var(--red-dim);border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);font-size:12px;color:var(--red);text-align:center;display:none;}
-.free-badge{display:flex;align-items:center;gap:8px;background:var(--green-dim);border:1px solid rgba(34,197,94,0.25);border-radius:var(--radius);padding:10px 14px;width:100%;margin-bottom:20px;}
-.free-badge-icon{font-size:16px;}
-.free-badge-text{font-size:12px;color:var(--text-2);line-height:1.5;}
-.free-badge-text strong{color:var(--green);}
+.screen { position:fixed; inset:0; display:flex; flex-direction:column; max-width:430px; margin:0 auto; background:var(--navy); }
+.screen.hidden { display:none!important; }
 
-/* ── CAMERA ── */
-#sCam{background:#000;}
-#camVideo{width:100%;flex:1;object-fit:cover;display:block;}
-#fileInput{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;}
-.cam-top{position:absolute;top:0;left:0;right:0;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;z-index:20;background:linear-gradient(to bottom,rgba(11,17,32,0.92),transparent);}
-.cam-top-title{font-size:13px;font-weight:600;color:var(--white);}
-.cam-bin-chip{font-family:var(--mono);font-size:11px;color:var(--amber);background:rgba(245,158,11,0.15);border:1px solid var(--amber-bdr);padding:4px 10px;border-radius:20px;}
-.cam-guide{position:absolute;inset:0;z-index:10;pointer-events:none;display:flex;align-items:center;justify-content:center;}
-.cam-box{width:88%;aspect-ratio:1.65;border:2px solid rgba(255,255,255,0.5);border-radius:8px;position:relative;box-shadow:0 0 0 9999px rgba(0,0,0,0.45);}
-.cgc{position:absolute;width:22px;height:22px;}
-.cgc::before,.cgc::after{content:'';position:absolute;background:#fff;border-radius:1px;}
-.cgc-tl{top:-1px;left:-1px;}.cgc-tl::before{top:0;left:0;width:100%;height:3px;}.cgc-tl::after{top:0;left:0;width:3px;height:100%;}
-.cgc-tr{top:-1px;right:-1px;}.cgc-tr::before{top:0;right:0;width:100%;height:3px;}.cgc-tr::after{top:0;right:0;width:3px;height:100%;}
-.cgc-bl{bottom:-1px;left:-1px;}.cgc-bl::before{bottom:0;left:0;width:100%;height:3px;}.cgc-bl::after{bottom:0;left:0;width:3px;height:100%;}
-.cgc-br{bottom:-1px;right:-1px;}.cgc-br::before{bottom:0;right:0;width:100%;height:3px;}.cgc-br::after{bottom:0;right:0;width:3px;height:100%;}
-.cam-hint{position:absolute;bottom:-28px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.5);font-family:var(--mono);letter-spacing:0.04em;}
-.cam-bottom{position:absolute;bottom:0;left:0;right:0;padding:18px 16px;padding-bottom:max(18px,env(safe-area-inset-bottom));background:linear-gradient(to top,rgba(11,17,32,0.95) 70%,transparent);display:flex;gap:10px;z-index:20;align-items:center;}
-.cam-side{flex:0 0 46px;width:46px;height:46px;border-radius:50%;background:rgba(28,42,58,0.9);border:1px solid var(--border-2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;-webkit-appearance:none;appearance:none;}
-.cam-shutter{flex:1;background:#fff;color:var(--navy);font-family:var(--sans);font-size:15px;font-weight:700;padding:15px;border-radius:30px;border:none;cursor:pointer;-webkit-appearance:none;appearance:none;display:flex;align-items:center;justify-content:center;gap:8px;}
-.cam-shutter:active{opacity:0.85;transform:scale(0.97);}
+/* ══ BIN SETUP ══ */
+#sBin { align-items:center; justify-content:center; padding:32px 24px 48px; overflow-y:auto; gap:0; }
+.logo { width:64px; height:64px; border-radius:20px; background:linear-gradient(135deg,var(--blue),var(--teal)); display:flex; align-items:center; justify-content:center; font-size:30px; box-shadow:0 0 0 1px rgba(59,130,246,0.3),0 8px 32px rgba(59,130,246,0.25); margin-bottom:22px; flex-shrink:0; }
+.s-title { font-size:24px; font-weight:700; color:var(--white); letter-spacing:-0.03em; text-align:center; margin-bottom:8px; }
+.s-desc  { font-size:13px; color:var(--text-2); text-align:center; line-height:1.65; max-width:290px; margin-bottom:28px; }
+.s-lbl   { width:100%; font-family:var(--mono); font-size:10px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.12em; margin-bottom:8px; display:block; }
+#binInput { width:100%; background:var(--navy-3); border:2px solid var(--border-2); border-radius:var(--radius-sm); padding:16px; font-family:var(--mono); font-size:22px; font-weight:700; color:var(--white); text-align:center; letter-spacing:0.14em; text-transform:uppercase; outline:none; margin-bottom:16px; transition:border-color 0.15s; -webkit-appearance:none; }
+#binInput::placeholder { color:var(--text-3); font-weight:400; font-size:14px; letter-spacing:0; text-transform:none; }
+#binInput:focus { border-color:var(--blue); }
+.s-btn { width:100%; background:var(--blue); color:#fff; font-family:var(--sans); font-size:15px; font-weight:600; padding:16px; border-radius:var(--radius-sm); border:none; cursor:pointer; box-shadow:0 4px 20px rgba(59,130,246,0.35); -webkit-appearance:none; }
+.s-btn:active { opacity:0.85; }
+.s-err { width:100%; margin-top:10px; padding:10px 14px; background:var(--red-dim); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm); font-size:12px; color:var(--red); text-align:center; display:none; }
 
-/* ── PROCESSING ── */
-#sProcess{align-items:center;justify-content:center;gap:16px;padding:40px 28px;}
-.spinner{width:60px;height:60px;border-radius:50%;border:3px solid var(--navy-3);border-top-color:var(--blue);animation:spin 0.85s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.proc-title{font-size:20px;font-weight:600;color:var(--white);letter-spacing:-0.02em;}
-.proc-sub{font-size:12px;color:var(--text-2);text-align:center;line-height:1.6;max-width:260px;}
-.proc-bar-wrap{width:100%;max-width:300px;height:5px;background:var(--navy-3);border-radius:3px;overflow:hidden;}
-.proc-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:3px;width:0%;transition:width 0.4s ease;}
-.proc-steps{display:flex;flex-direction:column;gap:7px;width:100%;max-width:300px;}
-.pstep{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius-sm);}
-.pstep.active{border-color:rgba(59,130,246,0.3);background:var(--blue-dim);}
-.pstep.done{border-color:rgba(34,197,94,0.25);}
-.pstep-icon{font-size:14px;flex-shrink:0;}
-.pstep-text{font-size:11.5px;font-weight:500;color:var(--text-2);}
-.pstep.active .pstep-text{color:var(--blue);}
-.pstep.done .pstep-text{color:var(--green);}
+/* ══ SCANNER ══ */
+#sScanner { background:var(--navy); }
 
-/* ── PREVIEW (show processed image) ── */
-#sPreview{align-items:center;justify-content:flex-start;padding:0;overflow-y:auto;}
-.preview-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;width:100%;}
-.preview-title{font-size:14px;font-weight:600;color:var(--white);}
-.preview-desc{font-size:12px;color:var(--text-2);padding:12px 16px;line-height:1.5;flex-shrink:0;}
-.preview-imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 12px;flex-shrink:0;}
-.preview-img-wrap{border-radius:8px;overflow:hidden;border:1px solid var(--border-2);}
-.preview-img-wrap img{width:100%;display:block;}
-.preview-img-lbl{padding:5px 8px;background:var(--navy-3);font-family:var(--mono);font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;}
-.preview-bar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--navy-2);border-top:1px solid var(--border);flex-shrink:0;width:100%;margin-top:auto;}
+.scan-hdr { display:flex; align-items:center; justify-content:space-between; padding:14px 16px 12px; background:var(--navy-2); border-bottom:1px solid var(--border); flex-shrink:0; }
+.scan-hdr-l { display:flex; align-items:center; gap:10px; }
+.hdr-logo { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,var(--blue),var(--teal)); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; box-shadow:0 0 0 1px rgba(59,130,246,0.3); }
+.hdr-name { font-size:14px; font-weight:600; color:var(--white); letter-spacing:-0.01em; }
+.hdr-sub  { font-size:10px; color:var(--text-3); letter-spacing:0.04em; text-transform:uppercase; font-family:var(--mono); margin-top:1px; }
+.hdr-r { display:flex; align-items:center; gap:8px; }
+.sess-chip { font-family:var(--mono); font-size:11px; font-weight:500; color:var(--text-2); background:var(--navy-3); border:1px solid var(--border); padding:4px 10px; border-radius:20px; display:flex; align-items:center; gap:5px; }
+.sess-chip .n { color:var(--blue); font-weight:600; }
+.ibtn { width:34px; height:34px; border-radius:var(--radius-sm); background:var(--navy-3); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.ibtn:active { background:var(--navy-4); }
 
-/* ── RESULTS ── */
-#sResults{background:var(--navy);}
-.res-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;}
-.res-hdr-title{font-size:14px;font-weight:600;color:var(--white);}
-.res-bin-chip{font-family:var(--mono);font-size:11px;color:var(--amber);background:var(--amber-dim);border:1px solid var(--amber-bdr);padding:3px 10px;border-radius:20px;}
-.res-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.res-scroll::-webkit-scrollbar{display:none;}
-.res-img-wrap{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border-2);}
-.res-img-wrap img{width:100%;display:block;max-height:130px;object-fit:cover;}
-.res-img-cap{padding:6px 10px;background:var(--navy-3);font-family:var(--mono);font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;}
-.ocr-badge{display:flex;align-items:center;gap:8px;background:var(--blue-dim);border:1px solid rgba(59,130,246,0.2);border-radius:var(--radius);padding:10px 14px;}
-.ocr-badge-icon{font-size:18px;}
-.ocr-badge-text{font-size:11.5px;color:var(--text-2);line-height:1.5;}
-.ocr-badge-text strong{color:var(--green);font-weight:600;}
-.field-lbl{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px;}
-.efield{background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color 0.2s;}
-.efield:focus-within{border-color:rgba(59,130,246,0.4);}
-.efield-top{display:flex;align-items:center;justify-content:space-between;padding:8px 13px;border-bottom:1px solid var(--border);}
-.efield-name{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;}
-.ebadge{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:0.05em;}
-.eb-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.25);}
-.eb-miss{background:var(--navy-3);color:var(--text-3);border:1px solid var(--border);}
-.efield-inp{width:100%;background:transparent;border:none;outline:none;padding:11px 13px;font-family:var(--mono);font-size:17px;font-weight:600;color:var(--white);letter-spacing:0.01em;-webkit-appearance:none;appearance:none;}
-.efield-inp::placeholder{color:var(--text-3);font-weight:400;font-size:13px;font-family:var(--sans);letter-spacing:0;}
-.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.res-bar{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--navy-2);border-top:1px solid var(--border);flex-shrink:0;}
-.btn{font-family:var(--sans);font-size:13px;font-weight:600;border-radius:var(--radius-sm);border:none;cursor:pointer;padding:13px 10px;letter-spacing:-0.01em;text-align:center;line-height:1;-webkit-appearance:none;appearance:none;}
-.btn:active{opacity:0.8;transform:scale(0.97);}
-.btn-save{flex:2;background:var(--green);color:#fff;box-shadow:0 2px 14px rgba(34,197,94,0.3);}
-.btn-retake{flex:1;background:var(--navy-3);color:var(--text-2);border:1px solid var(--border);}
-.btn-blue{flex:1;background:var(--blue);color:#fff;}
+/* Bin bar */
+.bin-bar { display:flex; align-items:center; justify-content:space-between; padding:9px 16px; background:var(--amber-dim); border-bottom:1px solid var(--amber-bdr); flex-shrink:0; cursor:pointer; }
+.bin-bar:active { background:rgba(245,158,11,0.22); }
+.bin-bar-l { display:flex; align-items:center; gap:8px; }
+.bin-lbl { font-family:var(--mono); font-size:9px; font-weight:500; color:var(--amber); text-transform:uppercase; letter-spacing:0.1em; opacity:0.8; line-height:1; margin-bottom:2px; }
+.bin-val { font-family:var(--mono); font-size:15px; font-weight:700; color:var(--white); letter-spacing:0.05em; }
+.bin-chg { font-family:var(--mono); font-size:10px; color:var(--amber); opacity:0.7; }
 
-/* ── LOG ── */
-#sLog{background:var(--navy);}
-.log-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;}
-.log-hdr-title{font-size:15px;font-weight:600;color:var(--white);}
-.log-acts{display:flex;gap:8px;}
-.ibtn{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--navy-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.ibtn:active{background:var(--navy-4);}
-.log-body{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.log-body::-webkit-scrollbar{display:none;}
-.le{background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;}
-.le-r1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:8px;}
-.le-hu{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--white);}
-.le-tm{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--navy-3);padding:3px 8px;border-radius:20px;border:1px solid var(--border);white-space:nowrap;flex-shrink:0;}
-.le-name{font-size:12px;color:var(--text-2);margin-bottom:10px;line-height:1.4;}
-.le-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-.lef{background:var(--navy-3);border-radius:6px;padding:7px 9px;border:1px solid var(--border);}
-.lef.bf{border-color:var(--amber-bdr);background:var(--amber-dim);}
-.lfl{font-family:var(--mono);font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
-.lef.bf .lfl{color:var(--amber);opacity:0.8;}
-.lfv{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);word-break:break-all;}
-.lef.bf .lfv{color:var(--amber);}
-.log-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text-3);font-size:13px;padding:40px;text-align:center;}
-.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--navy-3);border:1px solid var(--border-2);color:var(--text);font-family:var(--sans);font-size:12.5px;font-weight:500;padding:9px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.toast.ok{border-color:rgba(34,197,94,0.4);}
-.toast.err{border-color:rgba(239,68,68,0.4);}
+/* Big capture button area */
+.capture-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 20px; gap:20px; }
+
+/* The main capture label — this wraps the file input */
+.capture-label {
+  width:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:var(--blue-dim); border:2px dashed rgba(59,130,246,0.4);
+  border-radius:var(--radius); padding:32px 20px;
+  cursor:pointer; gap:12px; transition:all 0.15s;
+  -webkit-appearance:none;
+}
+.capture-label:active { background:rgba(59,130,246,0.2); border-color:var(--blue); }
+.capture-icon { font-size:48px; line-height:1; }
+.capture-title { font-size:17px; font-weight:700; color:var(--white); letter-spacing:-0.02em; }
+.capture-hint  { font-size:12px; color:var(--text-2); text-align:center; line-height:1.5; max-width:220px; }
+/* Hide the actual file input but keep it functional */
+#photoInput { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
+
+/* Step indicator below button */
+.step-row { display:flex; align-items:center; gap:6px; width:100%; }
+.step-pip { flex:1; height:4px; border-radius:2px; background:var(--border-2); transition:background 0.3s; }
+.step-pip.done   { background:var(--blue); }
+.step-pip.active { background:var(--blue); animation:pipPulse 1s ease infinite; }
+@keyframes pipPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.step-labels { display:flex; gap:0; width:100%; }
+.step-lbl { flex:1; text-align:center; font-family:var(--mono); font-size:9px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.06em; transition:color 0.3s; }
+.step-lbl.active { color:var(--blue); }
+.step-lbl.done   { color:var(--text-2); }
+
+/* Result cards */
+.result-cards { display:flex; flex-direction:column; gap:8px; width:100%; }
+
+.rcard { background:var(--navy-2); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:border-color 0.25s; }
+.rcard.state-waiting  { border-color:var(--border); opacity:0.6; }
+.rcard.state-scanning { border-color:rgba(59,130,246,0.4); box-shadow:0 0 0 3px rgba(59,130,246,0.08); }
+.rcard.state-done     { border-color:rgba(34,197,94,0.4); }
+.rcard.state-skipped  { opacity:0.45; }
+
+.rcard-top { display:flex; align-items:center; justify-content:space-between; padding:9px 13px; border-bottom:1px solid var(--border); }
+.rcard-dot { width:6px; height:6px; border-radius:50%; background:var(--text-3); flex-shrink:0; margin-right:7px; transition:background 0.3s; }
+.rcard.state-scanning .rcard-dot { background:var(--blue); box-shadow:0 0 6px var(--blue); }
+.rcard.state-done     .rcard-dot { background:var(--green); }
+.rcard-name { font-family:var(--mono); font-size:10px; font-weight:600; color:var(--text-2); text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; }
+.rpill { font-family:var(--mono); font-size:9px; font-weight:600; padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.05em; }
+.rp-wait { background:var(--navy-3); color:var(--text-3); border:1px solid var(--border); }
+.rp-next { background:var(--blue-dim); color:var(--blue); border:1px solid rgba(59,130,246,0.25); }
+.rp-done { background:var(--green-dim); color:var(--green); border:1px solid rgba(34,197,94,0.25); }
+.rp-skip { background:var(--navy-3); color:var(--text-3); border:1px solid var(--border); }
+
+.rcard-body { padding:10px 13px; }
+.rcard-val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--white); letter-spacing:-0.01em; word-break:break-all; }
+.rcard-val.ph { font-size:12px; font-weight:400; color:var(--text-3); font-family:var(--sans); }
+.rcard-ts { font-family:var(--mono); font-size:9px; color:var(--text-3); margin-top:3px; }
+
+@keyframes flash { 0%{background:rgba(34,197,94,0.2);} 100%{background:var(--navy-2);} }
+.flash { animation:flash 0.5s ease forwards; }
+
+/* Action bar */
+.abar { display:flex; gap:8px; padding:12px 16px; padding-bottom:max(12px,env(safe-area-inset-bottom)); background:var(--navy-2); border-top:1px solid var(--border); flex-shrink:0; }
+.btn { font-family:var(--sans); font-size:13px; font-weight:600; border-radius:var(--radius-sm); border:none; cursor:pointer; padding:13px 10px; letter-spacing:-0.01em; text-align:center; line-height:1; -webkit-appearance:none; }
+.btn:active { opacity:0.8; transform:scale(0.97); }
+.btn-main   { flex:2; background:var(--blue); color:#fff; box-shadow:0 2px 12px rgba(59,130,246,0.3); }
+.btn-main.ok{ background:var(--green); box-shadow:0 2px 12px rgba(34,197,94,0.3); }
+.btn-skip   { flex:1; background:var(--navy-3); color:var(--text-2); border:1px solid var(--border); }
+.btn-reset  { flex:1; background:var(--red-dim); color:var(--red); border:1px solid rgba(239,68,68,0.2); }
+
+/* ══ LOG ══ */
+#sLog { background:var(--navy); }
+.log-hdr { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--navy-2); border-bottom:1px solid var(--border); flex-shrink:0; }
+.log-hdr-t { font-size:15px; font-weight:600; color:var(--white); }
+.log-acts { display:flex; gap:8px; }
+.log-body { flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:8px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.log-body::-webkit-scrollbar { display:none; }
+.le { background:var(--navy-2); border:1px solid var(--border); border-radius:var(--radius); padding:13px 15px; }
+.le-r1 { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; gap:8px; }
+.le-hu { font-family:var(--mono); font-size:15px; font-weight:700; color:var(--white); }
+.le-tm { font-family:var(--mono); font-size:10px; color:var(--text-3); background:var(--navy-3); padding:3px 8px; border-radius:20px; border:1px solid var(--border); white-space:nowrap; flex-shrink:0; }
+.le-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.lef { background:var(--navy-3); border-radius:6px; padding:7px 9px; border:1px solid var(--border); }
+.lef.bf { border-color:var(--amber-bdr); background:var(--amber-dim); }
+.lfl { font-family:var(--mono); font-size:9px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; }
+.lef.bf .lfl { color:var(--amber); opacity:0.8; }
+.lfv { font-family:var(--mono); font-size:11px; font-weight:500; color:var(--text); word-break:break-all; }
+.lef.bf .lfv { color:var(--amber); }
+.log-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--text-3); font-size:13px; padding:40px; text-align:center; }
+
+.toast { position:fixed; bottom:84px; left:50%; transform:translateX(-50%) translateY(12px); background:var(--navy-3); border:1px solid var(--border-2); color:var(--text); font-family:var(--sans); font-size:12.5px; font-weight:500; padding:9px 18px; border-radius:20px; opacity:0; pointer-events:none; transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1); white-space:nowrap; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.ok  { border-color:rgba(34,197,94,0.4); }
+.toast.err { border-color:rgba(239,68,68,0.4); }
 </style>
 </head>
 <body>
 
-<!-- BIN SETUP -->
+<!-- ══ BIN SETUP ══ -->
 <div class="screen" id="sBin">
-  <div class="logo-wrap">&#x2B21;</div>
-  <div class="setup-title">Novus Scanner</div>
-  <div class="setup-desc">100% free, offline OCR label reader for Plant 1730. No accounts, no API keys, no charges.</div>
-  <div class="free-badge">
-    <div class="free-badge-icon">&#x2705;</div>
-    <div class="free-badge-text"><strong>Completely free.</strong> Runs on your phone using on-device OCR. No internet required after first load.</div>
-  </div>
-  <label class="setup-lbl" for="binInput">Which bin are you scanning?</label>
-  <input id="binInput" type="text" placeholder="e.g. WE31A" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
-  <button class="setup-btn" onclick="confirmBin()">Start Scanning &#x2192;</button>
-  <div class="setup-err" id="setupErr">Please enter a bin location first.</div>
+  <div class="logo">&#x2B21;</div>
+  <div class="s-title">Novus Scanner</div>
+  <div class="s-desc">Photo-based barcode scanner. Take one photo of the label — all three barcodes read instantly. Free, no accounts.</div>
+  <label class="s-lbl" for="binInput">Which bin are you scanning?</label>
+  <input id="binInput" type="text" placeholder="e.g. WE31A"
+    autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+  <button class="s-btn" onclick="confirmBin()">Start Scanning &#x2192;</button>
+  <div class="s-err" id="setupErr">Please enter a bin location first.</div>
 </div>
 
-<!-- CAMERA -->
-<div class="screen hidden" id="sCam">
-  <input type="file" id="fileInput" accept="image/*" capture="environment">
-  <div class="cam-top">
-    <div class="cam-top-title">&#x1F4F7; Novus Scanner</div>
-    <div class="cam-bin-chip" id="camBinChip">&#x2014;</div>
-  </div>
-  <video id="camVideo" autoplay muted playsinline webkit-playsinline></video>
-  <canvas id="camCanvas" style="display:none"></canvas>
-  <div class="cam-guide">
-    <div class="cam-box">
-      <div class="cgc cgc-tl"></div><div class="cgc cgc-tr"></div>
-      <div class="cgc cgc-bl"></div><div class="cgc cgc-br"></div>
-      <div class="cam-hint">Fill frame with the entire label</div>
+<!-- ══ SCANNER ══ -->
+<div class="screen hidden" id="sScanner">
+
+  <!-- Hidden native camera input — key to bypassing all iOS Safari issues -->
+  <input type="file" id="photoInput" accept="image/*" capture="environment">
+
+  <div class="scan-hdr">
+    <div class="scan-hdr-l">
+      <div class="hdr-logo">&#x2B21;</div>
+      <div>
+        <div class="hdr-name">Novus Scanner</div>
+        <div class="hdr-sub">Plant 1730 &middot; Buena Park</div>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <div class="sess-chip">Session <span class="n" id="sessN">0</span></div>
+      <div class="ibtn" onclick="goToLog()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
     </div>
   </div>
-  <div class="cam-bottom">
-    <button class="cam-side" onclick="goToSetup()">&#x2190;</button>
-    <button class="cam-shutter" onclick="triggerCapture()">&#x1F4F8; Capture Label</button>
-    <button class="cam-side" onclick="goToLog()">&#x1F4CB;</button>
+
+  <div class="bin-bar" onclick="changeBin()">
+    <div class="bin-bar-l">
+      <span style="font-size:14px">&#x1F4CD;</span>
+      <div>
+        <div class="bin-lbl">Active Bin</div>
+        <div class="bin-val" id="binVal">&#x2014;</div>
+      </div>
+    </div>
+    <div class="bin-chg">Change &#x2192;</div>
   </div>
+
+  <div class="capture-area">
+
+    <!-- Big tap-to-shoot button -->
+    <label class="capture-label" id="captureLabel" for="photoInput">
+      <div class="capture-icon">&#x1F4F7;</div>
+      <div class="capture-title" id="captureTitle">Tap to Photograph Label</div>
+      <div class="capture-hint" id="captureHint">Point at the full label. All 3 barcodes will be read from one photo.</div>
+    </label>
+
+    <!-- Step progress -->
+    <div style="width:100%;display:flex;flex-direction:column;gap:6px;">
+      <div class="step-row">
+        <div class="step-pip" id="pip1"></div>
+        <div class="step-pip" id="pip2"></div>
+        <div class="step-pip" id="pip3"></div>
+      </div>
+      <div class="step-labels">
+        <div class="step-lbl" id="slbl1">HU #</div>
+        <div class="step-lbl" id="slbl2">Material #</div>
+        <div class="step-lbl" id="slbl3">Batch #</div>
+      </div>
+    </div>
+
+    <!-- Result cards -->
+    <div class="result-cards">
+      <div class="rcard state-waiting" id="rc1">
+        <div class="rcard-top">
+          <div class="rcard-name"><div class="rcard-dot"></div>HU Number</div>
+          <div class="rpill rp-wait" id="rp1">Waiting</div>
+        </div>
+        <div class="rcard-body">
+          <div class="rcard-val ph" id="rv1">&#x2014; awaiting photo</div>
+          <div class="rcard-ts" id="rt1"></div>
+        </div>
+      </div>
+      <div class="rcard state-waiting" id="rc2">
+        <div class="rcard-top">
+          <div class="rcard-name"><div class="rcard-dot"></div>Material Number</div>
+          <div class="rpill rp-wait" id="rp2">Waiting</div>
+        </div>
+        <div class="rcard-body">
+          <div class="rcard-val ph" id="rv2">&#x2014; awaiting photo</div>
+          <div class="rcard-ts" id="rt2"></div>
+        </div>
+      </div>
+      <div class="rcard state-waiting" id="rc3">
+        <div class="rcard-top">
+          <div class="rcard-name"><div class="rcard-dot"></div>Batch / Invoice #</div>
+          <div class="rpill rp-wait" id="rp3">Waiting</div>
+        </div>
+        <div class="rcard-body">
+          <div class="rcard-val ph" id="rv3">&#x2014; awaiting photo</div>
+          <div class="rcard-ts" id="rt3"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="abar">
+    <button class="btn btn-skip"  id="skipBtn"  onclick="skipAndSave()">Skip &amp; Save</button>
+    <button class="btn btn-main"  id="mainBtn"  onclick="handleMain()">Scan Label</button>
+    <button class="btn btn-reset"              onclick="resetAll()">Reset</button>
+  </div>
+
 </div>
 
-<!-- PROCESSING -->
-<div class="screen hidden" id="sProcess">
-  <div class="spinner"></div>
-  <div class="proc-title" id="procTitle">Preparing image&#x2026;</div>
-  <div class="proc-sub" id="procSub">Enhancing contrast and sharpness for best OCR results.</div>
-  <div class="proc-bar-wrap"><div class="proc-bar" id="procBar"></div></div>
-  <div class="proc-steps">
-    <div class="pstep active" id="ps1"><div class="pstep-icon">&#x1F5BC;</div><div class="pstep-text">Preprocessing image (contrast, sharpen, scale)</div></div>
-    <div class="pstep" id="ps2"><div class="pstep-icon">&#x1F50D;</div><div class="pstep-text">Running OCR engine on enhanced image</div></div>
-    <div class="pstep" id="ps3"><div class="pstep-icon">&#x1F4CB;</div><div class="pstep-text">Parsing Novus label fields</div></div>
-  </div>
-</div>
-
-<!-- RESULTS -->
-<div class="screen hidden" id="sResults">
-  <div class="res-hdr">
-    <div class="res-hdr-title">Review &amp; Confirm</div>
-    <div class="res-bin-chip" id="resBinChip">&#x2014;</div>
-  </div>
-  <div class="res-scroll">
-    <div class="res-img-wrap">
-      <img id="resImg" src="" alt="Captured label">
-      <div class="res-img-cap">Captured label &#x2014; tap any field to correct</div>
-    </div>
-    <div class="ocr-badge">
-      <div class="ocr-badge-icon">&#x1F4BB;</div>
-      <div class="ocr-badge-text">Read by <strong>on-device OCR</strong> with image enhancement. Edit anything that needs correction.</div>
-    </div>
-    <div>
-      <div class="field-lbl">HU Number</div>
-      <div class="efield"><div class="efield-top"><span class="efield-name">Handling Unit</span><span class="ebadge eb-ok" id="st-hu">&#x2713; Read</span></div><input class="efield-inp" id="f-hu" type="text" placeholder="Not found &#x2014; enter manually" autocomplete="off" spellcheck="false"></div>
-    </div>
-    <div>
-      <div class="field-lbl">Item Description</div>
-      <div class="efield"><div class="efield-top"><span class="efield-name">Product Name</span><span class="ebadge eb-ok" id="st-name">&#x2713; Read</span></div><input class="efield-inp" id="f-name" type="text" placeholder="Not found" autocomplete="off" spellcheck="false"></div>
-    </div>
-    <div class="fg2">
-      <div><div class="field-lbl">Material #</div><div class="efield"><div class="efield-top"><span class="efield-name">Material</span><span class="ebadge eb-ok" id="st-mat">&#x2713; Read</span></div><input class="efield-inp" id="f-mat" type="text" placeholder="&#x2014;" autocomplete="off" spellcheck="false" style="font-size:15px;"></div></div>
-      <div><div class="field-lbl">Qty + UoM</div><div class="efield"><div class="efield-top"><span class="efield-name">Quantity</span><span class="ebadge eb-ok" id="st-qty">&#x2713; Read</span></div><input class="efield-inp" id="f-qty" type="text" placeholder="&#x2014;" autocomplete="off" spellcheck="false" style="font-size:15px;"></div></div>
-    </div>
-    <div class="fg2">
-      <div><div class="field-lbl">Expiry Date</div><div class="efield"><div class="efield-top"><span class="efield-name">Expiry</span><span class="ebadge eb-ok" id="st-exp">&#x2713; Read</span></div><input class="efield-inp" id="f-exp" type="text" placeholder="&#x2014;" autocomplete="off" spellcheck="false" style="font-size:15px;"></div></div>
-      <div><div class="field-lbl">Batch #</div><div class="efield"><div class="efield-top"><span class="efield-name">Batch</span><span class="ebadge eb-ok" id="st-bat">&#x2713; Read</span></div><input class="efield-inp" id="f-bat" type="text" placeholder="&#x2014;" autocomplete="off" spellcheck="false" style="font-size:15px;"></div></div>
-    </div>
-  </div>
-  <div class="res-bar">
-    <button class="btn btn-retake" onclick="retake()">&#x21A9; Retake</button>
-    <button class="btn btn-save" onclick="saveEntry()">&#x2713; Save to Log</button>
-  </div>
-</div>
-
-<!-- LOG -->
+<!-- ══ LOG ══ -->
 <div class="screen hidden" id="sLog">
   <div class="log-hdr">
-    <div class="log-hdr-title">Scan History</div>
+    <div class="log-hdr-t">Scan History</div>
     <div class="log-acts">
-      <div class="ibtn" onclick="doExport()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
-      <div class="ibtn" onclick="doClearLog()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></div>
-      <div class="ibtn" onclick="show('sCam')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      <div class="ibtn" onclick="doExport()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div class="ibtn" onclick="doClear()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </div>
+      <div class="ibtn" onclick="show('sScanner')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
     </div>
   </div>
-  <div class="log-body" id="logBody"><div class="log-empty"><div style="font-size:36px;opacity:0.4">&#x1F4CB;</div><div>No scans yet.</div></div></div>
+  <div class="log-body" id="logBody">
+    <div class="log-empty"><div style="font-size:36px;opacity:0.4">&#x1F4CB;</div><div>No scans yet.</div></div>
+  </div>
   <div style="padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--navy-2);border-top:1px solid var(--border);flex-shrink:0;">
-    <button class="btn btn-save" style="width:100%" onclick="show('sCam')">&larr; Back to Scanner</button>
+    <button class="btn btn-main" style="width:100%" onclick="show('sScanner')">&larr; Back to Scanner</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════
-var currentBin  = '';
-var capturedB64 = null;  // original photo
-var processedB64= null;  // preprocessed for OCR
-var scanLog     = [];
-var camStream   = null;
+// ══════════════════════════════════════════════════════
+// The core strategy:
+// 1. Use <input type="file" capture="environment"> to open
+//    the native iOS camera — no getUserMedia, no streaming,
+//    no library issues. Just the phone's own camera app.
+// 2. When photo is taken, load it into a canvas.
+// 3. Scan the canvas for ALL barcodes at once using the
+//    native BarcodeDetector API (iOS 17+, Android Chrome).
+// 4. Sort detected barcodes by vertical position (top to
+//    bottom) to identify HU / Material / Batch order.
+// 5. If BarcodeDetector not available, show manual entry.
+// ══════════════════════════════════════════════════════
 
-// ══════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════
+var currentBin = '';
+var scanLog    = [];
+var sessCount  = 0;
+var scanData   = { hu:null, mat:null, bat:null };
+var allDone    = false;
+
+// ── Utils ──────────────────────────────────────────────
 function show(id) {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.add('hidden'); });
   document.getElementById(id).classList.remove('hidden');
@@ -286,402 +343,221 @@ function toast(msg, type) {
   setTimeout(function(){ t.classList.remove('show'); }, 2800);
 }
 
-function setStep(n) {
-  for (var i = 1; i <= 3; i++) {
-    var el = document.getElementById('ps' + i);
-    el.className = 'pstep' + (i < n ? ' done' : i === n ? ' active' : '');
-    if (i < n) el.querySelector('.pstep-icon').textContent = '✅';
-  }
-}
-
-function setBar(pct) {
-  document.getElementById('procBar').style.width = pct + '%';
-}
-
-// ══════════════════════════════════════════════
-// BIN SETUP
-// ══════════════════════════════════════════════
+// ── Setup ──────────────────────────────────────────────
 function confirmBin() {
   var bin = document.getElementById('binInput').value.trim().toUpperCase();
   if (!bin) { document.getElementById('setupErr').style.display = 'block'; return; }
   document.getElementById('setupErr').style.display = 'none';
   currentBin = bin;
-  document.getElementById('camBinChip').textContent = '📍 ' + currentBin;
-  document.getElementById('resBinChip').textContent = '📍 ' + currentBin;
-  show('sCam');
-  setupFileInput();
-  startPreview();
+  document.getElementById('binVal').textContent = currentBin;
+  show('sScanner');
+  initPhotoInput();
 }
 
-function goToSetup() {
-  stopPreview();
+function changeBin() {
   document.getElementById('binInput').value = currentBin;
   show('sBin');
 }
 
-// ══════════════════════════════════════════════
-// CAMERA
-// ══════════════════════════════════════════════
-function startPreview() {
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-    audio: false
-  }).then(function(s) {
-    camStream = s;
-    var v = document.getElementById('camVideo');
-    v.srcObject = s;
-    v.setAttribute('playsinline', '');
-    v.setAttribute('webkit-playsinline', '');
-    v.muted = true;
-    v.play();
-  }).catch(function() {});
-}
-
-function stopPreview() {
-  if (camStream) { camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
-}
-
-function setupFileInput() {
-  var fi = document.getElementById('fileInput');
-  fi.onchange = function(e) {
+// ── Wire up the file input ─────────────────────────────
+function initPhotoInput() {
+  var input = document.getElementById('photoInput');
+  // Remove old listener if any
+  input.onchange = null;
+  input.onchange = function(e) {
     var file = e.target.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      capturedB64 = ev.target.result;
-      document.getElementById('resImg').src = capturedB64;
-      stopPreview();
-      show('sProcess');
-      setStep(1); setBar(5);
-      preprocessAndOCR(capturedB64);
-    };
-    reader.readAsDataURL(file);
-    fi.value = '';
+    input.value = ''; // reset so same photo can be retaken
+    processPhoto(file);
   };
 }
 
-function triggerCapture() {
-  var video = document.getElementById('camVideo');
-  if (camStream && video.videoWidth > 0) {
-    var c = document.getElementById('camCanvas');
-    c.width  = video.videoWidth;
-    c.height = video.videoHeight;
-    c.getContext('2d').drawImage(video, 0, 0);
-    capturedB64 = c.toDataURL('image/jpeg', 0.95);
-    document.getElementById('resImg').src = capturedB64;
-    stopPreview();
-    show('sProcess');
-    setStep(1); setBar(5);
-    preprocessAndOCR(capturedB64);
+// ── Main button ────────────────────────────────────────
+function handleMain() {
+  if (allDone) {
+    saveAndReset();
   } else {
-    document.getElementById('fileInput').click();
+    document.getElementById('photoInput').click();
   }
 }
 
-function retake() {
-  show('sCam');
-  startPreview();
-}
+// ── Process photo ──────────────────────────────────────
+function processPhoto(file) {
+  setUI('scanning');
+  toast('Reading barcodes…');
 
-// ══════════════════════════════════════════════
-// IMAGE PREPROCESSING PIPELINE
-// This is the key improvement over plain Tesseract.
-// Steps: load → upscale → grayscale → contrast stretch
-//        → adaptive threshold → sharpen → output
-// ══════════════════════════════════════════════
-function preprocessAndOCR(dataUrl) {
-  document.getElementById('procTitle').textContent = 'Enhancing image…';
-  document.getElementById('procSub').textContent   = 'Applying contrast boost and sharpening for best OCR accuracy.';
-  setBar(10);
-
+  var url = URL.createObjectURL(file);
   var img = new Image();
+
   img.onload = function() {
-    var c   = document.createElement('canvas');
-    var ctx = c.getContext('2d');
+    var canvas = document.createElement('canvas');
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
 
-    // Step 1 — Upscale to at least 2400px wide for better OCR
-    var scaleFactor = Math.max(1, 2400 / img.width);
-    c.width  = Math.round(img.width  * scaleFactor);
-    c.height = Math.round(img.height * scaleFactor);
-    ctx.drawImage(img, 0, 0, c.width, c.height);
-    setBar(20);
-
-    // Step 2 — Get pixel data
-    var imageData = ctx.getImageData(0, 0, c.width, c.height);
-    var d = imageData.data;
-
-    // Step 3 — Convert to grayscale
-    for (var i = 0; i < d.length; i += 4) {
-      var gray = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
-      d[i] = d[i+1] = d[i+2] = gray;
-    }
-    setBar(35);
-
-    // Step 4 — Find min/max for contrast stretching
-    var minV = 255, maxV = 0;
-    for (var i = 0; i < d.length; i += 4) {
-      if (d[i] < minV) minV = d[i];
-      if (d[i] > maxV) maxV = d[i];
-    }
-    var range = maxV - minV || 1;
-
-    // Step 5 — Contrast stretch + gamma correction
-    // This makes dark text blacker and white background whiter
-    for (var i = 0; i < d.length; i += 4) {
-      var stretched = Math.round(((d[i] - minV) / range) * 255);
-      // Apply S-curve: darken darks, lighten lights
-      var gamma = stretched < 128
-        ? Math.round(Math.pow(stretched / 255, 0.75) * 255)
-        : Math.round(255 - Math.pow((255 - stretched) / 255, 0.75) * 255);
-      d[i] = d[i+1] = d[i+2] = gamma;
-    }
-    setBar(55);
-
-    // Step 6 — Unsharp mask (sharpening)
-    // Run a blur pass, then subtract from original to enhance edges
-    ctx.putImageData(imageData, 0, 0);
-    var blurred = document.createElement('canvas');
-    blurred.width = c.width; blurred.height = c.height;
-    var bctx = blurred.getContext('2d');
-    bctx.filter = 'blur(1.5px)';
-    bctx.drawImage(c, 0, 0);
-    bctx.filter = 'none';
-    var blurData = bctx.getImageData(0, 0, c.width, c.height).data;
-
-    var sharp = 2.5; // sharpening strength
-    for (var i = 0; i < d.length; i += 4) {
-      var v = Math.round(d[i] + sharp * (d[i] - blurData[i]));
-      v = Math.max(0, Math.min(255, v));
-      d[i] = d[i+1] = d[i+2] = v;
-    }
-    setBar(70);
-
-    // Step 7 — Binarize with adaptive threshold
-    // Convert to pure black/white using Otsu-inspired threshold
-    var histogram = new Array(256).fill(0);
-    for (var i = 0; i < d.length; i += 4) histogram[d[i]]++;
-    var total = c.width * c.height;
-    var sum = 0;
-    for (var t = 0; t < 256; t++) sum += t * histogram[t];
-    var sumB = 0, wB = 0, wF = 0, varMax = 0, threshold = 128;
-    for (var t = 0; t < 256; t++) {
-      wB += histogram[t];
-      if (!wB) continue;
-      wF = total - wB;
-      if (!wF) break;
-      sumB += t * histogram[t];
-      var mB = sumB / wB;
-      var mF = (sum - sumB) / wF;
-      var varBetween = wB * wF * (mB - mF) * (mB - mF);
-      if (varBetween > varMax) { varMax = varBetween; threshold = t; }
-    }
-
-    // Apply threshold — pure black or white
-    for (var i = 0; i < d.length; i += 4) {
-      var v = d[i] < threshold ? 0 : 255;
-      d[i] = d[i+1] = d[i+2] = v;
-    }
-    setBar(82);
-
-    ctx.putImageData(imageData, 0, 0);
-
-    // Add white padding around image (helps Tesseract)
-    var padded = document.createElement('canvas');
-    var pad = 40;
-    padded.width  = c.width  + pad * 2;
-    padded.height = c.height + pad * 2;
-    var pctx = padded.getContext('2d');
-    pctx.fillStyle = '#ffffff';
-    pctx.fillRect(0, 0, padded.width, padded.height);
-    pctx.drawImage(c, pad, pad);
-
-    processedB64 = padded.toDataURL('image/png');
-    setBar(88);
-    setStep(2);
-
-    document.getElementById('procTitle').textContent = 'Reading text…';
-    document.getElementById('procSub').textContent   = 'OCR engine scanning label fields.';
-
-    runTesseract(processedB64);
-  };
-  img.src = dataUrl;
-}
-
-// ══════════════════════════════════════════════
-// TESSERACT OCR
-// ══════════════════════════════════════════════
-function runTesseract(imageData) {
-  Tesseract.recognize(imageData, 'eng', {
-    logger: function(m) {
-      if (m.status === 'recognizing text') {
-        var pct = Math.round(88 + (m.progress || 0) * 10);
-        setBar(pct);
-      }
-    },
-    // Tesseract config tuned for label/form text
-    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./:- ',
-    preserve_interword_spaces: '1',
-  })
-  .then(function(result) {
-    setBar(100);
-    setStep(3);
-    var text = result.data.text;
-    var parsed = parseNovusLabel(text);
-    setTimeout(function(){ renderResults(parsed); }, 300);
-  })
-  .catch(function(err) {
-    show('sCam');
-    startPreview();
-    toast('OCR failed — try better lighting', 'err');
-  });
-}
-
-// ══════════════════════════════════════════════
-// PARSER — tuned for Novus Foods label format
-// ══════════════════════════════════════════════
-function parseNovusLabel(text) {
-  var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
-  var result = { hu:'', name:'', mat:'', qty:'', uom:'', exp:'', bat:'' };
-
-  // ── HU Number ──────────────────────────────
-  // Look for "HU Number:" anchor then grab the number on same or next few lines
-  var huLine = findLineIndex(lines, /HU\s*Number/i);
-  if (huLine >= 0) {
-    for (var i = huLine; i <= Math.min(huLine + 4, lines.length - 1); i++) {
-      var m = lines[i].match(/\b(\d{7,12})\b/);
-      if (m) { result.hu = m[1]; break; }
-    }
-  }
-  // Fallback: find any 9-digit standalone number in full text
-  if (!result.hu) {
-    var hm = text.match(/\b(\d{9,12})\b/);
-    if (hm) result.hu = hm[1];
-  }
-
-  // ── Material Number ────────────────────────
-  var matLine = findLineIndex(lines, /Material\s*Number/i);
-  if (matLine >= 0) {
-    for (var i = matLine; i <= Math.min(matLine + 4, lines.length - 1); i++) {
-      var m = lines[i].match(/\b(\d{5,8})\b/);
-      if (m && m[1] !== result.hu) { result.mat = m[1]; break; }
-    }
-  }
-
-  // ── Item Description ───────────────────────
-  // Product name is a text line between HU and Material sections
-  // It contains letters, is not a label keyword, and is not all numbers
-  var skipRe = /^(HU|Material|Quantity|Expir|Batch|UoM|No\s*Allergen|Allergen|JZAVALA|Produced|^\d+$|EA|LB|CS|KG|OZ)/i;
-  var nameCandidates = lines.filter(function(l) {
-    return l.length > 4 &&
-           /[a-zA-Z]/.test(l) &&
-           !skipRe.test(l) &&
-           !/^\d+$/.test(l) &&
-           l.length < 70 &&
-           (l.match(/\s/g) || []).length >= 1; // at least 2 words
-  });
-  if (nameCandidates.length > 0) {
-    // Sort by word count descending — product names have more words
-    nameCandidates.sort(function(a, b) {
-      return (b.match(/\s/g)||[]).length - (a.match(/\s/g)||[]).length;
-    });
-    result.name = nameCandidates[0];
-  }
-
-  // ── Quantity ───────────────────────────────
-  var qtyLine = findLineIndex(lines, /Quantity/i);
-  if (qtyLine >= 0) {
-    for (var i = qtyLine; i <= Math.min(qtyLine + 3, lines.length - 1); i++) {
-      var m = lines[i].match(/\b(\d{2,6})\b/);
-      if (m) { result.qty = m[1]; break; }
-    }
-  }
-
-  // ── UoM ────────────────────────────────────
-  var uomM = text.match(/UoM[:\s]*([A-Z]{1,4})\b/i);
-  if (uomM) { result.uom = uomM[1].toUpperCase(); }
-  if (!result.uom) {
-    var uomM2 = text.match(/\b(EA|LB|CS|KG|OZ|GA|PC|CT)\b/);
-    if (uomM2) result.uom = uomM2[1].toUpperCase();
-  }
-
-  // ── Expiration Date ────────────────────────
-  var expM = text.match(/Expir\w*\s*Date[:\s]*([\d]{1,2}[\/\-][\d]{1,2}[\/\-][\d]{2,4})/i);
-  if (!expM) expM = text.match(/([\d]{1,2}[\/\-][\d]{1,2}[\/\-][\d]{4})/);
-  if (expM) result.exp = expM[1];
-
-  // ── Batch Number ───────────────────────────
-  var batLine = findLineIndex(lines, /Batch\s*Number/i);
-  if (batLine >= 0) {
-    for (var i = batLine; i <= Math.min(batLine + 3, lines.length - 1); i++) {
-      var m = lines[i].match(/\b(\d{3,8})\b/);
-      if (m) { result.bat = m[1]; break; }
-    }
-  }
-  if (!result.bat) {
-    var batM = text.match(/Batch[:\s]*(\d{3,8})/i);
-    if (batM) result.bat = batM[1];
-  }
-
-  return result;
-}
-
-function findLineIndex(lines, re) {
-  for (var i = 0; i < lines.length; i++) {
-    if (re.test(lines[i])) return i;
-  }
-  return -1;
-}
-
-// ══════════════════════════════════════════════
-// RENDER RESULTS
-// ══════════════════════════════════════════════
-function renderResults(d) {
-  function fill(fid, sid, val) {
-    var inp = document.getElementById(fid);
-    var st  = document.getElementById(sid);
-    if (val && val.trim()) {
-      inp.value      = val.trim();
-      st.textContent = '✓ Read';
-      st.className   = 'ebadge eb-ok';
+    if (typeof BarcodeDetector !== 'undefined') {
+      // ── Native BarcodeDetector (iOS 17+, Android Chrome) ──
+      var bd = new BarcodeDetector({
+        formats: ['code_128','code_39','ean_13','ean_8','upc_a','upc_e','codabar','itf','data_matrix','qr_code']
+      });
+      bd.detect(canvas).then(function(results) {
+        if (!results || results.length === 0) {
+          toast('No barcodes found — make sure label is clear and well-lit', 'err');
+          setUI('idle');
+          return;
+        }
+        handleBarcodeResults(results);
+      }).catch(function(err) {
+        toast('Detection error — try again', 'err');
+        setUI('idle');
+      });
     } else {
-      inp.value      = '';
-      st.textContent = 'Not found';
-      st.className   = 'ebadge eb-miss';
+      // ── Fallback: manual entry prompt ──────────────────────
+      toast('Auto-scan not supported on this browser — enter manually below', 'err');
+      setUI('manual');
     }
-  }
-  fill('f-hu',   'st-hu',   d.hu);
-  fill('f-name', 'st-name', d.name);
-  fill('f-mat',  'st-mat',  d.mat);
-  fill('f-qty',  'st-qty',  d.qty ? (d.qty + (d.uom ? ' ' + d.uom : '')) : '');
-  fill('f-exp',  'st-exp',  d.exp);
-  fill('f-bat',  'st-bat',  d.bat);
-  document.getElementById('resScroll').scrollTop = 0;
-  show('sResults');
+  };
+
+  img.onerror = function() {
+    toast('Could not load photo — try again', 'err');
+    setUI('idle');
+  };
+
+  img.src = url;
 }
 
-// ══════════════════════════════════════════════
-// SAVE
-// ══════════════════════════════════════════════
-function saveEntry() {
-  scanLog.unshift({
+// ── Handle detected barcodes ───────────────────────────
+function handleBarcodeResults(results) {
+  // Sort barcodes by vertical position (top to bottom)
+  // This maps them to HU (top) → Material (middle) → Batch (bottom)
+  results.sort(function(a, b) {
+    var aY = a.boundingBox ? a.boundingBox.top : 0;
+    var bY = b.boundingBox ? b.boundingBox.top : 0;
+    return aY - bY;
+  });
+
+  var ts = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  // Assign by position
+  var values = results.map(function(r){ return r.rawValue; });
+
+  if (values.length >= 1) setCard(1, values[0], ts);
+  if (values.length >= 2) setCard(2, values[1], ts);
+  if (values.length >= 3) setCard(3, values[2], ts);
+
+  // Store
+  scanData.hu  = values[0] || null;
+  scanData.mat = values[1] || null;
+  scanData.bat = values[2] || null;
+
+  if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+
+  var found = values.length;
+  toast('Found ' + found + ' barcode' + (found !== 1 ? 's' : '') + ' ✓', 'ok');
+
+  allDone = true;
+  setUI('done');
+}
+
+// ── Set card state ─────────────────────────────────────
+function setCard(i, value, ts) {
+  var card = document.getElementById('rc' + i);
+  var val  = document.getElementById('rv' + i);
+  var pill = document.getElementById('rp' + i);
+  var time = document.getElementById('rt' + i);
+  var pip  = document.getElementById('pip' + i);
+  var lbl  = document.getElementById('slbl' + i);
+
+  card.className  = 'rcard state-done flash';
+  setTimeout(function(){ card.classList.remove('flash'); }, 500);
+  val.textContent  = value;
+  val.className    = 'rcard-val';
+  pill.textContent = '✓ Read';
+  pill.className   = 'rpill rp-done';
+  time.textContent = ts;
+  pip.className    = 'step-pip done';
+  lbl.className    = 'step-lbl done';
+}
+
+// ── UI state machine ───────────────────────────────────
+function setUI(state) {
+  var btn   = document.getElementById('mainBtn');
+  var title = document.getElementById('captureTitle');
+  var hint  = document.getElementById('captureHint');
+  var label = document.getElementById('captureLabel');
+
+  if (state === 'idle') {
+    btn.textContent = 'Scan Label';
+    btn.className   = 'btn btn-main';
+    title.textContent = 'Tap to Photograph Label';
+    hint.textContent  = 'Point at the full label. All 3 barcodes read from one photo.';
+    label.style.opacity = '1';
+    label.style.pointerEvents = '';
+  } else if (state === 'scanning') {
+    btn.textContent = 'Scanning…';
+    btn.className   = 'btn btn-main';
+    label.style.opacity = '0.5';
+    label.style.pointerEvents = 'none';
+    title.textContent = 'Reading barcodes…';
+    hint.textContent  = 'Detecting all barcodes in your photo.';
+  } else if (state === 'done') {
+    btn.textContent = 'Save & Next';
+    btn.className   = 'btn btn-main ok';
+    label.style.opacity = '0.4';
+    label.style.pointerEvents = 'none';
+    title.textContent = '✓ Barcodes Read';
+    hint.textContent  = 'Tap Save & Next to log this item, or Reset to try again.';
+  } else if (state === 'manual') {
+    btn.textContent = 'Save & Next';
+    btn.className   = 'btn btn-main';
+    label.style.opacity = '1';
+    label.style.pointerEvents = '';
+  }
+}
+
+// ── Save & reset ───────────────────────────────────────
+function saveAndReset() {
+  var entry = {
     bin:  currentBin,
-    hu:   document.getElementById('f-hu').value.trim()   || '—',
-    name: document.getElementById('f-name').value.trim() || '—',
-    mat:  document.getElementById('f-mat').value.trim()  || '—',
-    qty:  document.getElementById('f-qty').value.trim()  || '—',
-    exp:  document.getElementById('f-exp').value.trim()  || '—',
-    bat:  document.getElementById('f-bat').value.trim()  || '—',
+    hu:   (scanData.hu  || document.getElementById('rv1').textContent).replace('— awaiting photo','').trim() || '—',
+    mat:  (scanData.mat || document.getElementById('rv2').textContent).replace('— awaiting photo','').trim() || '—',
+    bat:  (scanData.bat || document.getElementById('rv3').textContent).replace('— awaiting photo','').trim() || '—',
     time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
     date: new Date().toLocaleDateString()
-  });
+  };
+  scanLog.unshift(entry);
+  sessCount++;
+  document.getElementById('sessN').textContent = sessCount;
   toast('Saved ✓', 'ok');
-  show('sCam');
-  startPreview();
+  resetAll();
 }
 
-// ══════════════════════════════════════════════
-// LOG
-// ══════════════════════════════════════════════
+function skipAndSave() {
+  // Save whatever we have so far
+  saveAndReset();
+}
+
+function resetAll() {
+  allDone  = false;
+  scanData = { hu:null, mat:null, bat:null };
+
+  [1,2,3].forEach(function(i) {
+    document.getElementById('rc'+i).className = 'rcard state-waiting';
+    document.getElementById('rv'+i).textContent = '— awaiting photo';
+    document.getElementById('rv'+i).className   = 'rcard-val ph';
+    document.getElementById('rp'+i).textContent = 'Waiting';
+    document.getElementById('rp'+i).className   = 'rpill rp-wait';
+    document.getElementById('rt'+i).textContent = '';
+    document.getElementById('pip'+i).className  = 'step-pip';
+    document.getElementById('slbl'+i).className = 'step-lbl';
+  });
+
+  setUI('idle');
+}
+
+// ── Log ────────────────────────────────────────────────
 function goToLog() {
   var body = document.getElementById('logBody');
   body.innerHTML = '';
@@ -693,14 +569,11 @@ function goToLog() {
       d.className = 'le';
       d.innerHTML =
         '<div class="le-r1"><div class="le-hu">' + e.hu + '</div><div class="le-tm">' + e.time + '</div></div>' +
-        '<div class="le-name">' + e.name + '</div>' +
         '<div class="le-grid">' +
-          '<div class="lef bf"><div class="lfl">Bin</div><div class="lfv">'     + e.bin  + '</div></div>' +
-          '<div class="lef"><div class="lfl">Material</div><div class="lfv">'   + e.mat  + '</div></div>' +
-          '<div class="lef"><div class="lfl">Quantity</div><div class="lfv">'   + e.qty  + '</div></div>' +
-          '<div class="lef"><div class="lfl">Expiry</div><div class="lfv">'     + e.exp  + '</div></div>' +
-          '<div class="lef"><div class="lfl">Batch</div><div class="lfv">'      + e.bat  + '</div></div>' +
-          '<div class="lef"><div class="lfl">Date</div><div class="lfv">'       + e.date + '</div></div>' +
+          '<div class="lef bf"><div class="lfl">Bin</div><div class="lfv">'      + e.bin  + '</div></div>' +
+          '<div class="lef"><div class="lfl">Material #</div><div class="lfv">'  + e.mat  + '</div></div>' +
+          '<div class="lef"><div class="lfl">Batch #</div><div class="lfv">'     + e.bat  + '</div></div>' +
+          '<div class="lef"><div class="lfl">Date</div><div class="lfv">'        + e.date + '</div></div>' +
         '</div>';
       body.appendChild(d);
     });
@@ -708,17 +581,18 @@ function goToLog() {
   show('sLog');
 }
 
-function doClearLog() {
-  scanLog = [];
+function doClear() {
+  scanLog = []; sessCount = 0;
+  document.getElementById('sessN').textContent = 0;
   document.getElementById('logBody').innerHTML = '<div class="log-empty"><div style="font-size:36px;opacity:0.4">📋</div><div>No scans yet.</div></div>';
   toast('Log cleared');
 }
 
 function doExport() {
   if (!scanLog.length) { toast('Nothing to export yet'); return; }
-  var csv = ['Bin,HU Number,Item Name,Material Number,Quantity,Expiry Date,Batch Number,Date,Time']
-    .concat(scanLog.map(function(e) {
-      return [e.bin, e.hu, '"' + e.name + '"', e.mat, e.qty, e.exp, e.bat, e.date, e.time].join(',');
+  var csv = ['Bin,HU Number,Material Number,Batch Number,Date,Time']
+    .concat(scanLog.map(function(e){
+      return [e.bin, e.hu, e.mat, e.bat, e.date, e.time].join(',');
     })).join('\n');
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));

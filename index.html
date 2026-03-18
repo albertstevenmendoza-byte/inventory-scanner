@@ -19,9 +19,7 @@
   --border-2:   rgba(255,255,255,0.12);
   --blue:       #3B82F6;
   --blue-dim:   rgba(59,130,246,0.12);
-  --blue-glow:  rgba(59,130,246,0.25);
   --teal:       #14B8A6;
-  --teal-dim:   rgba(20,184,166,0.12);
   --green:      #22C55E;
   --green-dim:  rgba(34,197,94,0.12);
   --amber:      #F59E0B;
@@ -39,11 +37,7 @@
   --radius-sm:  8px;
 }
 
-*, *::before, *::after {
-  margin: 0; padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
 html, body {
   height: 100%;
@@ -55,7 +49,6 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── App Shell ── */
 .app {
   display: flex;
   flex-direction: column;
@@ -64,422 +57,415 @@ html, body {
   margin: 0 auto;
 }
 
-/* ── Header ── */
-.header {
+/* ══════════════════════════════════════════════
+   BIN SETUP SCREEN — shown first, blocks scanner
+══════════════════════════════════════════════ */
+.bin-setup-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  gap: 0;
+  max-width: 430px;
+  margin: 0 auto;
+}
+
+.bin-setup-screen.hidden { display: none; }
+
+.bss-logo {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--blue), var(--teal));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.3), 0 8px 24px rgba(59,130,246,0.25);
+  margin-bottom: 20px;
+}
+
+.bss-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: -0.03em;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.bss-desc {
+  font-size: 13px;
+  color: var(--text-2);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 280px;
+  margin-bottom: 32px;
+}
+
+/* Scan bin button */
+.bss-scan-btn {
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: background 0.15s;
+}
+.bss-scan-btn:active { background: rgba(59,130,246,0.2); }
+
+.bss-scan-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: rgba(59,130,246,0.15);
+  border: 1px solid rgba(59,130,246,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.bss-scan-text {}
+.bss-scan-title { font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 3px; }
+.bss-scan-sub   { font-size: 11.5px; color: var(--text-2); }
+
+/* OR divider */
+.bss-or {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; margin-bottom: 14px;
+}
+.bss-or-line { flex:1; height:1px; background:var(--border-2); }
+.bss-or-text { font-family:var(--mono); font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.1em; }
+
+/* Manual input */
+.bss-input-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.bss-input {
+  width: 100%;
+  background: var(--navy-3);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--white);
+  text-align: center;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.bss-input::placeholder {
+  color: var(--text-3);
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.bss-input:focus { border-color: var(--blue); }
+
+.bss-confirm-btn {
+  width: 100%;
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 15px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.35);
+  transition: opacity 0.15s;
+}
+.bss-confirm-btn:active { opacity: 0.85; }
+
+/* Scanning for bin indicator */
+.bss-scanning-indicator {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--amber-dim);
+  border: 1px solid var(--amber-bdr);
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  font-size: 12px;
+  color: var(--amber);
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.bss-scanning-indicator.visible { display: flex; }
+.bss-pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--amber);
+  animation: pulseDot 1s infinite;
+  flex-shrink: 0;
+}
+@keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+/* Mini camera view for bin scanning */
+.bss-camera-wrap {
+  display: none;
+  width: 100%;
+  height: 140px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--amber-bdr);
+  background: #000;
+  position: relative;
+  margin-bottom: 14px;
+}
+.bss-camera-wrap.visible { display: block; }
+.bss-camera-wrap video { width:100%; height:100%; object-fit:cover; display:block; }
+.bss-camera-laser {
+  position: absolute; left:8%; right:8%; height:1.5px;
+  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  box-shadow: 0 0 6px var(--amber);
+  animation: laserSweep 1.8s ease-in-out infinite;
+}
+@keyframes laserSweep {
+  0%  { top:10%; opacity:0; }
+  8%  { opacity:1; }
+  92% { opacity:1; }
+  100%{ top:90%; opacity:0; }
+}
+.bss-cancel-scan {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+  text-align: center;
+  width: 100%;
+  cursor: pointer;
+  padding: 4px;
+  margin-bottom: 10px;
+  display: none;
+}
+.bss-cancel-scan.visible { display: block; }
+
+/* ── Header ── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
   padding: 14px 20px 12px;
   background: var(--navy-2);
   border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  position: relative;
-  z-index: 20;
+  flex-shrink: 0; position: relative; z-index: 20;
 }
-
-.header-left { display: flex; align-items: center; gap: 10px; }
-
+.header-left { display:flex; align-items:center; gap:10px; }
 .logo-mark {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; flex-shrink: 0;
+  width:34px; height:34px; border-radius:8px;
+  background: linear-gradient(135deg, var(--blue), var(--teal));
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0;
   box-shadow: 0 0 0 1px rgba(59,130,246,0.3), 0 4px 12px rgba(59,130,246,0.2);
 }
+.app-name { font-size:14px; font-weight:600; color:var(--white); letter-spacing:-0.01em; line-height:1.2; }
+.app-sub  { font-size:10px; font-weight:400; color:var(--text-3); letter-spacing:0.04em; text-transform:uppercase; font-family:var(--mono); margin-top:1px; }
+.header-right { display:flex; align-items:center; gap:8px; }
+.session-chip { font-family:var(--mono); font-size:11px; font-weight:500; color:var(--text-2); background:var(--navy-3); border:1px solid var(--border); padding:4px 10px; border-radius:20px; display:flex; align-items:center; gap:5px; }
+.session-chip .num { color:var(--blue); font-weight:600; }
+.icon-btn { width:34px; height:34px; border-radius:var(--radius-sm); background:var(--navy-3); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.icon-btn:active { background:var(--navy-4); border-color:var(--border-2); }
 
-.app-name { font-size: 14px; font-weight: 600; color: var(--white); letter-spacing: -0.01em; line-height: 1.2; }
-.app-sub  { font-size: 10px; font-weight: 400; color: var(--text-3); letter-spacing: 0.04em; text-transform: uppercase; font-family: var(--mono); margin-top: 1px; }
-
-.header-right { display: flex; align-items: center; gap: 8px; }
-
-.session-chip {
-  font-family: var(--mono); font-size: 11px; font-weight: 500;
-  color: var(--text-2); background: var(--navy-3);
-  border: 1px solid var(--border); padding: 4px 10px;
-  border-radius: 20px; display: flex; align-items: center; gap: 5px;
-}
-.session-chip .num { color: var(--blue); font-weight: 600; }
-
-.icon-btn {
-  width: 34px; height: 34px; border-radius: var(--radius-sm);
-  background: var(--navy-3); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 15px;
-  transition: border-color 0.15s, background 0.15s;
-}
-.icon-btn:active { background: var(--navy-4); border-color: var(--border-2); }
-
-/* ══════════════════════════════════════
-   BIN BANNER — always visible below header
-══════════════════════════════════════ */
+/* ── Bin Banner ── */
 .bin-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 9px 16px;
   background: var(--amber-dim);
   border-bottom: 1px solid var(--amber-bdr);
-  flex-shrink: 0;
-  gap: 10px;
-  cursor: pointer;
+  flex-shrink: 0; gap: 10px; cursor: pointer;
   transition: background 0.2s;
 }
 .bin-banner:active { background: rgba(245,158,11,0.22); }
-
-.bin-banner.no-bin {
-  background: var(--red-dim);
-  border-bottom-color: rgba(239,68,68,0.3);
-}
-
-.bin-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-
-.bin-icon {
-  width: 28px; height: 28px; border-radius: 6px;
-  background: rgba(245,158,11,0.15);
-  border: 1px solid var(--amber-bdr);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; flex-shrink: 0;
-}
-.bin-banner.no-bin .bin-icon {
-  background: rgba(239,68,68,0.12);
-  border-color: rgba(239,68,68,0.3);
-}
-
-.bin-meta {}
-.bin-sublabel {
-  font-family: var(--mono);
-  font-size: 9px;
-  font-weight: 500;
-  color: var(--amber);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  opacity: 0.8;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-.bin-banner.no-bin .bin-sublabel { color: var(--red); }
-
-.bin-value {
-  font-family: var(--mono);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--white);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bin-banner.no-bin .bin-value { color: var(--red); font-size: 12px; font-weight: 400; }
-
-.bin-change {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--amber);
-  opacity: 0.7;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.bin-banner.no-bin .bin-change { color: var(--red); opacity: 0.8; }
+.bin-left { display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
+.bin-icon-sm { font-size:14px; flex-shrink:0; }
+.bin-sublabel { font-family:var(--mono); font-size:9px; font-weight:500; color:var(--amber); text-transform:uppercase; letter-spacing:0.1em; opacity:0.8; line-height:1; margin-bottom:2px; }
+.bin-value { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--white); letter-spacing:0.04em; }
+.bin-change { font-family:var(--mono); font-size:10px; color:var(--amber); opacity:0.7; white-space:nowrap; flex-shrink:0; }
 
 /* ── Viewfinder ── */
-.viewfinder {
-  position: relative;
-  background: #000;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-#video {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  display: block;
-}
-
-.vf-mask {
-  position: absolute; inset: 0;
-  background:
-    linear-gradient(to bottom,
-      rgba(11,17,32,0.6) 0%, transparent 25%,
-      transparent 75%, rgba(11,17,32,0.6) 100%);
-  pointer-events: none; z-index: 5;
-}
-
-.scan-target {
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 72%; height: 60%;
-  pointer-events: none; z-index: 10;
-}
-
-.corner { position: absolute; width: 24px; height: 24px; }
-.corner::before, .corner::after { content: ''; position: absolute; background: #fff; border-radius: 1px; }
-.corner-tl { top: 0; left: 0; }
-.corner-tl::before { top: 0; left: 0; width: 100%; height: 2.5px; }
-.corner-tl::after  { top: 0; left: 0; width: 2.5px; height: 100%; }
-.corner-tr { top: 0; right: 0; }
-.corner-tr::before { top: 0; right: 0; width: 100%; height: 2.5px; }
-.corner-tr::after  { top: 0; right: 0; width: 2.5px; height: 100%; }
-.corner-bl { bottom: 0; left: 0; }
-.corner-bl::before { bottom: 0; left: 0; width: 100%; height: 2.5px; }
-.corner-bl::after  { bottom: 0; left: 0; width: 2.5px; height: 100%; }
-.corner-br { bottom: 0; right: 0; }
-.corner-br::before { bottom: 0; right: 0; width: 100%; height: 2.5px; }
-.corner-br::after  { bottom: 0; right: 0; width: 2.5px; height: 100%; }
-
-.laser {
-  position: absolute; left: 4%; right: 4%; height: 1.5px;
-  background: linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.6) 15%, var(--blue) 50%, rgba(59,130,246,0.6) 85%, transparent 100%);
-  box-shadow: 0 0 6px 1px rgba(59,130,246,0.5);
-  animation: laserSweep 2s ease-in-out infinite; border-radius: 1px;
-}
-@keyframes laserSweep {
-  0%   { top: 8%; opacity: 0; }
-  6%   { opacity: 1; }
-  94%  { opacity: 1; }
-  100% { top: 92%; opacity: 0; }
-}
-
-.cam-status {
-  position: absolute; top: 8px; left: 10px; z-index: 20;
-  display: flex; align-items: center; gap: 5px;
-  background: rgba(11,17,32,0.75);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 4px 9px 4px 7px; border-radius: 20px;
-}
-.live-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--green); box-shadow: 0 0 6px var(--green);
-  animation: livePulse 2s infinite;
-}
-@keyframes livePulse {
-  0%,100% { opacity:1; transform:scale(1); }
-  50%     { opacity:0.6; transform:scale(0.85); }
-}
-.cam-label { font-family: var(--mono); font-size: 9px; font-weight: 500; color: rgba(255,255,255,0.6); letter-spacing: 0.1em; text-transform: uppercase; }
-
-/* Perm overlay */
-.perm-overlay {
-  position: absolute; inset: 0; background: var(--navy);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 12px; z-index: 30; padding: 24px; text-align: center;
-}
-.perm-overlay.hidden { display: none; }
-.perm-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.25); display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 4px; }
-.perm-title { font-size: 15px; font-weight: 600; color: var(--white); letter-spacing: -0.01em; }
-.perm-desc  { font-size: 12px; color: var(--text-2); line-height: 1.6; max-width: 240px; }
-.perm-btn   { margin-top: 4px; background: var(--blue); color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 10px 28px; border-radius: 20px; border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(59,130,246,0.35); }
-.perm-btn:active { opacity: 0.85; }
+.viewfinder { position:relative; background:#000; flex-shrink:0; overflow:hidden; }
+#video { width:100%; height:190px; object-fit:cover; display:block; }
+.vf-mask { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(11,17,32,0.6) 0%, transparent 25%, transparent 75%, rgba(11,17,32,0.6) 100%); pointer-events:none; z-index:5; }
+.scan-target { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:72%; height:60%; pointer-events:none; z-index:10; }
+.corner { position:absolute; width:24px; height:24px; }
+.corner::before, .corner::after { content:''; position:absolute; background:#fff; border-radius:1px; }
+.corner-tl{top:0;left:0;} .corner-tl::before{top:0;left:0;width:100%;height:2.5px;} .corner-tl::after{top:0;left:0;width:2.5px;height:100%;}
+.corner-tr{top:0;right:0;} .corner-tr::before{top:0;right:0;width:100%;height:2.5px;} .corner-tr::after{top:0;right:0;width:2.5px;height:100%;}
+.corner-bl{bottom:0;left:0;} .corner-bl::before{bottom:0;left:0;width:100%;height:2.5px;} .corner-bl::after{bottom:0;left:0;width:2.5px;height:100%;}
+.corner-br{bottom:0;right:0;} .corner-br::before{bottom:0;right:0;width:100%;height:2.5px;} .corner-br::after{bottom:0;right:0;width:2.5px;height:100%;}
+.laser { position:absolute; left:4%;right:4%; height:1.5px; background:linear-gradient(90deg,transparent,rgba(59,130,246,0.6) 15%,var(--blue) 50%,rgba(59,130,246,0.6) 85%,transparent); box-shadow:0 0 6px 1px rgba(59,130,246,0.5); animation:laserSweep 2s ease-in-out infinite; border-radius:1px; }
+.cam-status { position:absolute; top:8px; left:10px; z-index:20; display:flex; align-items:center; gap:5px; background:rgba(11,17,32,0.75); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.08); padding:4px 9px 4px 7px; border-radius:20px; }
+.live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:pulseDot 2s infinite; }
+.cam-label { font-family:var(--mono); font-size:9px; font-weight:500; color:rgba(255,255,255,0.6); letter-spacing:0.1em; text-transform:uppercase; }
+.perm-overlay { position:absolute; inset:0; background:var(--navy); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; z-index:30; padding:24px; text-align:center; }
+.perm-overlay.hidden { display:none; }
+.perm-icon  { width:48px;height:48px;border-radius:14px;background:var(--blue-dim);border:1px solid rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;font-size:24px; }
+.perm-title { font-size:14px;font-weight:600;color:var(--white); }
+.perm-desc  { font-size:11px;color:var(--text-2);line-height:1.6;max-width:220px; }
+.perm-btn   { background:var(--blue);color:#fff;font-family:var(--sans);font-size:13px;font-weight:600;padding:10px 24px;border-radius:20px;border:none;cursor:pointer;box-shadow:0 4px 14px rgba(59,130,246,0.35); }
 
 /* ── Step Tracker ── */
-.step-track {
-  display: flex; align-items: center;
-  padding: 11px 20px;
-  background: var(--navy-2);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0; gap: 0;
-}
-.step-item { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; position: relative; }
-.step-item:not(:last-child)::after { content: ''; position: absolute; top: 13px; left: calc(50% + 13px); right: calc(-50% + 13px); height: 1px; background: var(--border-2); transition: background 0.4s; }
-.step-item.done:not(:last-child)::after { background: var(--blue); }
-.step-circle { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--border-2); background: var(--navy-3); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text-3); transition: all 0.3s; flex-shrink: 0; z-index: 1; }
-.step-item.active  .step-circle { border-color: var(--blue); background: var(--blue-dim); color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-.step-item.done    .step-circle { border-color: var(--blue); background: var(--blue); color: #fff; font-size: 11px; }
-.step-item.skipped .step-circle { border-color: var(--text-3); color: var(--text-3); }
-.step-name { font-size: 9px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; font-family: var(--mono); transition: color 0.3s; }
-.step-item.active .step-name { color: var(--blue); }
-.step-item.done   .step-name { color: var(--text-2); }
+.step-track { display:flex;align-items:center;padding:11px 20px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0;gap:0; }
+.step-item { display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;position:relative; }
+.step-item:not(:last-child)::after { content:'';position:absolute;top:13px;left:calc(50% + 13px);right:calc(-50% + 13px);height:1px;background:var(--border-2);transition:background 0.4s; }
+.step-item.done:not(:last-child)::after { background:var(--blue); }
+.step-circle { width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border-2);background:var(--navy-3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3);transition:all 0.3s;flex-shrink:0;z-index:1; }
+.step-item.active  .step-circle { border-color:var(--blue);background:var(--blue-dim);color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
+.step-item.done    .step-circle { border-color:var(--blue);background:var(--blue);color:#fff;font-size:11px; }
+.step-item.skipped .step-circle { border-color:var(--text-3);color:var(--text-3); }
+.step-name { font-size:9px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;font-family:var(--mono);transition:color 0.3s; }
+.step-item.active .step-name { color:var(--blue); }
+.step-item.done   .step-name { color:var(--text-2); }
 
 /* ── Content ── */
-.content { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.content::-webkit-scrollbar { display: none; }
+.content { flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none; }
+.content::-webkit-scrollbar { display:none; }
 
 /* ── Prompt Card ── */
-.prompt-card { background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius); padding: 13px 15px; display: flex; align-items: center; gap: 12px; transition: background 0.3s, border-color 0.3s; }
-.prompt-icon-wrap { width: 40px; height: 40px; border-radius: 10px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.2); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-.prompt-title { font-size: 13px; font-weight: 600; color: var(--white); margin-bottom: 3px; letter-spacing: -0.01em; }
-.prompt-desc  { font-size: 11.5px; color: var(--text-2); line-height: 1.5; }
+.prompt-card { background:var(--blue-dim);border:1px solid rgba(59,130,246,0.2);border-radius:var(--radius);padding:13px 15px;display:flex;align-items:center;gap:12px;transition:background 0.3s,border-color 0.3s; }
+.prompt-icon-wrap { width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
+.prompt-title { font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px;letter-spacing:-0.01em; }
+.prompt-desc  { font-size:11.5px;color:var(--text-2);line-height:1.5; }
 
 /* ── Scan Cards ── */
-.scan-card { background: var(--navy-2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color 0.25s; }
-.scan-card.is-active  { border-color: rgba(59,130,246,0.35); box-shadow: 0 0 0 3px rgba(59,130,246,0.06); }
-.scan-card.is-done    { border-color: rgba(34,197,94,0.3); }
-.scan-card.is-skipped { border-color: var(--border); opacity: 0.55; }
-
-.card-top { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); }
-.card-label { display: flex; align-items: center; gap: 7px; }
-.card-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; transition: background 0.3s; }
-.scan-card.is-active .card-dot { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
-.scan-card.is-done   .card-dot { background: var(--green); }
-.card-name { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--mono); }
-
-.card-pill { font-size: 10px; font-weight: 600; font-family: var(--mono); padding: 3px 9px; border-radius: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
-.pill-waiting  { background: var(--navy-3); color: var(--text-3); border: 1px solid var(--border); }
-.pill-scanning { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
-.pill-done     { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
-.pill-skipped  { background: var(--navy-3); color: var(--text-3); border: 1px solid var(--border); }
-
-.card-body { padding: 12px 14px; min-height: 54px; display: flex; flex-direction: column; justify-content: center; }
-.card-value { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--white); letter-spacing: -0.02em; line-height: 1.2; word-break: break-all; }
-.card-value.placeholder { font-size: 13px; font-weight: 400; color: var(--text-3); font-family: var(--sans); letter-spacing: 0; }
-.card-timestamp { margin-top: 4px; font-family: var(--mono); font-size: 10px; color: var(--text-3); }
-
-@keyframes scanFlash {
-  0%   { background: rgba(34,197,94,0.18); }
-  100% { background: var(--navy-2); }
-}
-.flash-green { animation: scanFlash 0.6s ease forwards; }
+.scan-card { background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color 0.25s; }
+.scan-card.is-active  { border-color:rgba(59,130,246,0.35);box-shadow:0 0 0 3px rgba(59,130,246,0.06); }
+.scan-card.is-done    { border-color:rgba(34,197,94,0.3); }
+.scan-card.is-skipped { border-color:var(--border);opacity:0.55; }
+.card-top { display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border); }
+.card-label { display:flex;align-items:center;gap:7px; }
+.card-dot { width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0;transition:background 0.3s; }
+.scan-card.is-active .card-dot { background:var(--blue);box-shadow:0 0 6px var(--blue); }
+.scan-card.is-done   .card-dot { background:var(--green); }
+.card-name { font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono); }
+.card-pill { font-size:10px;font-weight:600;font-family:var(--mono);padding:3px 9px;border-radius:20px;letter-spacing:0.04em;text-transform:uppercase; }
+.pill-waiting  { background:var(--navy-3);color:var(--text-3);border:1px solid var(--border); }
+.pill-scanning { background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,0.25); }
+.pill-done     { background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.25); }
+.pill-skipped  { background:var(--navy-3);color:var(--text-3);border:1px solid var(--border); }
+.card-body { padding:12px 14px;min-height:54px;display:flex;flex-direction:column;justify-content:center; }
+.card-value { font-family:var(--mono);font-size:22px;font-weight:600;color:var(--white);letter-spacing:-0.02em;line-height:1.2;word-break:break-all; }
+.card-value.placeholder { font-size:13px;font-weight:400;color:var(--text-3);font-family:var(--sans);letter-spacing:0; }
+.card-timestamp { margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--text-3); }
+@keyframes scanFlash { 0%{background:rgba(34,197,94,0.18);} 100%{background:var(--navy-2);} }
+.flash-green { animation:scanFlash 0.6s ease forwards; }
 
 /* ── Action Bar ── */
-.action-bar { display: flex; gap: 8px; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom)); background: var(--navy-2); border-top: 1px solid var(--border); flex-shrink: 0; }
-.btn { font-family: var(--sans); font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); border: none; cursor: pointer; padding: 12px 10px; transition: opacity 0.15s, transform 0.1s; letter-spacing: -0.01em; text-align: center; line-height: 1; }
-.btn:active { opacity: 0.8; transform: scale(0.97); }
-.btn-main   { flex: 2; background: var(--blue); color: #fff; box-shadow: 0 2px 12px rgba(59,130,246,0.3); }
-.btn-main.success { background: var(--green); box-shadow: 0 2px 12px rgba(34,197,94,0.3); }
-.btn-skip   { flex: 1; background: var(--navy-3); color: var(--text-2); border: 1px solid var(--border); }
-.btn-reset  { flex: 1; background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
-
-/* ══════════════════════════════════════
-   BIN MODAL
-══════════════════════════════════════ */
-.modal-backdrop {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex; align-items: flex-end;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.25s;
-}
-.modal-backdrop.open { opacity: 1; pointer-events: all; }
-
-.modal-sheet {
-  background: var(--navy-2);
-  border-top: 1px solid var(--border-2);
-  border-radius: 20px 20px 0 0;
-  width: 100%; max-width: 430px;
-  margin: 0 auto;
-  padding: 20px 20px 32px;
-  transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
-}
-.modal-backdrop.open .modal-sheet { transform: translateY(0); }
-
-.modal-handle {
-  width: 36px; height: 4px; border-radius: 2px;
-  background: var(--border-2); margin: 0 auto 20px;
-}
-
-.modal-title {
-  font-size: 16px; font-weight: 600; color: var(--white);
-  letter-spacing: -0.02em; margin-bottom: 6px;
-}
-
-.modal-desc {
-  font-size: 12px; color: var(--text-2); line-height: 1.6; margin-bottom: 18px;
-}
-
-/* Scan bin option */
-.modal-scan-btn {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.25);
-  border-radius: var(--radius); padding: 13px 15px;
-  cursor: pointer; margin-bottom: 12px;
-  transition: background 0.15s;
-}
-.modal-scan-btn:active { background: rgba(59,130,246,0.2); }
-
-.msb-icon { font-size: 20px; }
-.msb-text {}
-.msb-title { font-size: 13px; font-weight: 600; color: var(--white); margin-bottom: 2px; }
-.msb-sub   { font-size: 11px; color: var(--text-2); }
-
-/* OR divider */
-.or-divider {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 14px;
-}
-.or-line { flex: 1; height: 1px; background: var(--border); }
-.or-text  { font-family: var(--mono); font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; }
-
-/* Manual input */
-.modal-input-row { display: flex; gap: 8px; }
-.modal-input {
-  flex: 1; background: var(--navy-3); border: 1px solid var(--border-2);
-  border-radius: var(--radius-sm); padding: 12px 14px;
-  font-family: var(--mono); font-size: 15px; font-weight: 600;
-  color: var(--white); outline: none;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  transition: border-color 0.15s;
-}
-.modal-input::placeholder { color: var(--text-3); font-weight: 400; text-transform: none; font-size: 13px; letter-spacing: 0; }
-.modal-input:focus { border-color: var(--blue); }
-
-.modal-confirm-btn {
-  background: var(--blue); color: #fff;
-  font-family: var(--sans); font-size: 13px; font-weight: 600;
-  padding: 12px 18px; border-radius: var(--radius-sm);
-  border: none; cursor: pointer; flex-shrink: 0;
-  box-shadow: 0 2px 10px rgba(59,130,246,0.3);
-}
-.modal-confirm-btn:active { opacity: 0.85; }
-
-/* Scanning for bin label */
-.bin-scan-active {
-  display: none;
-  align-items: center; justify-content: center; gap: 10px;
-  background: var(--amber-dim); border: 1px solid var(--amber-bdr);
-  border-radius: var(--radius); padding: 12px;
-  font-size: 12px; color: var(--amber);
-  font-weight: 500; margin-top: 12px;
-}
-.bin-scan-active.visible { display: flex; }
-.bsa-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); animation: livePulse 1s infinite; }
+.action-bar { display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--navy-2);border-top:1px solid var(--border);flex-shrink:0; }
+.btn { font-family:var(--sans);font-size:13px;font-weight:600;border-radius:var(--radius-sm);border:none;cursor:pointer;padding:12px 10px;transition:opacity 0.15s,transform 0.1s;letter-spacing:-0.01em;text-align:center;line-height:1; }
+.btn:active { opacity:0.8;transform:scale(0.97); }
+.btn-main   { flex:2;background:var(--blue);color:#fff;box-shadow:0 2px 12px rgba(59,130,246,0.3); }
+.btn-main.success { background:var(--green);box-shadow:0 2px 12px rgba(34,197,94,0.3); }
+.btn-skip   { flex:1;background:var(--navy-3);color:var(--text-2);border:1px solid var(--border); }
+.btn-reset  { flex:1;background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.2); }
 
 /* ── Log View ── */
-.log-view { display: none; flex-direction: column; height: 100dvh; max-width: 430px; margin: 0 auto; background: var(--navy); }
-.log-view.visible { display: flex; }
-.log-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--navy-2); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.log-title  { font-size: 15px; font-weight: 600; color: var(--white); letter-spacing: -0.01em; }
-.log-actions { display: flex; gap: 8px; }
-.log-body { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.log-body::-webkit-scrollbar { display: none; }
-
-.log-entry { background: var(--navy-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; animation: entryIn 0.2s ease; }
-@keyframes entryIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-
-.entry-row-1 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.entry-hu   { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--white); letter-spacing: -0.02em; }
-.entry-time { font-family: var(--mono); font-size: 10px; color: var(--text-3); background: var(--navy-3); padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border); }
-
-.entry-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
-.entry-row-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-
-.entry-field { background: var(--navy-3); border-radius: 6px; padding: 7px 9px; border: 1px solid var(--border); }
-.entry-field.bin-field { border-color: var(--amber-bdr); background: var(--amber-dim); }
-.ef-label { font-family: var(--mono); font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
-.entry-field.bin-field .ef-label { color: var(--amber); opacity: 0.8; }
-.ef-value { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text); word-break: break-all; }
-.entry-field.bin-field .ef-value { color: var(--amber); }
-
-.log-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-3); font-size: 13px; padding: 40px; text-align: center; }
-.log-empty-icon { font-size: 32px; opacity: 0.5; }
+.log-view { display:none;flex-direction:column;height:100dvh;max-width:430px;margin:0 auto;background:var(--navy); }
+.log-view.visible { display:flex; }
+.log-header { display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--navy-2);border-bottom:1px solid var(--border);flex-shrink:0; }
+.log-title  { font-size:15px;font-weight:600;color:var(--white);letter-spacing:-0.01em; }
+.log-actions { display:flex;gap:8px; }
+.log-body { flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none; }
+.log-body::-webkit-scrollbar { display:none; }
+.log-entry { background:var(--navy-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;animation:entryIn 0.2s ease; }
+@keyframes entryIn { from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);} }
+.entry-row-1 { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+.entry-hu    { font-family:var(--mono);font-size:15px;font-weight:600;color:var(--white);letter-spacing:-0.02em; }
+.entry-time  { font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--navy-3);padding:3px 8px;border-radius:20px;border:1px solid var(--border); }
+.entry-grid  { display:grid;grid-template-columns:1fr 1fr;gap:6px; }
+.entry-field { background:var(--navy-3);border-radius:6px;padding:7px 9px;border:1px solid var(--border); }
+.entry-field.bin-field { border-color:var(--amber-bdr);background:var(--amber-dim); }
+.ef-label { font-family:var(--mono);font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px; }
+.entry-field.bin-field .ef-label { color:var(--amber);opacity:0.8; }
+.ef-value { font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);word-break:break-all; }
+.entry-field.bin-field .ef-value { color:var(--amber); }
+.log-empty { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text-3);font-size:13px;padding:40px;text-align:center; }
+.log-empty-icon { font-size:32px;opacity:0.5; }
 
 /* ── Toast ── */
-.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(12px); background: var(--navy-3); border: 1px solid var(--border-2); color: var(--text); font-family: var(--sans); font-size: 12.5px; font-weight: 500; padding: 9px 18px; border-radius: 20px; opacity: 0; pointer-events: none; transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.toast-success { border-color: rgba(34,197,94,0.35); }
-.toast.toast-amber   { border-color: var(--amber-bdr); }
+.toast { position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--navy-3);border:1px solid var(--border-2);color:var(--text);font-family:var(--sans);font-size:12.5px;font-weight:500;padding:9px 18px;border-radius:20px;opacity:0;pointer-events:none;transition:all 0.22s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+.toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
+.toast.toast-success { border-color:rgba(34,197,94,0.35); }
+.toast.toast-amber   { border-color:var(--amber-bdr); }
 </style>
 </head>
 <body>
 
-<!-- ════ SCANNER VIEW ════ -->
-<div class="app" id="scannerView">
+<!-- ════════════════════════════════════════════
+     BIN SETUP SCREEN — shown first on every open
+════════════════════════════════════════════ -->
+<div class="bin-setup-screen" id="binSetupScreen">
 
-  <!-- Header -->
+  <div class="bss-logo">⬡</div>
+  <div class="bss-title">Which bin are you scanning?</div>
+  <div class="bss-desc">Set the bin location before you start. It will stay active across all scans until you change it.</div>
+
+  <!-- Mini camera for bin barcode -->
+  <div class="bss-camera-wrap" id="bssCameraWrap">
+    <video id="bssVideo" autoplay muted playsinline webkit-playsinline></video>
+    <div class="bss-camera-laser"></div>
+  </div>
+
+  <!-- Scanning indicator -->
+  <div class="bss-scanning-indicator" id="bssScanningIndicator">
+    <div class="bss-pulse-dot"></div>
+    <span>Scanning — point at the rack label…</span>
+  </div>
+
+  <!-- Cancel scan -->
+  <div class="bss-cancel-scan" id="bssCancelScan" onclick="cancelBinScan()">✕ Cancel scan</div>
+
+  <!-- Scan bin barcode button -->
+  <div class="bss-scan-btn" id="bssScanBtn" onclick="startBinCameraScan()">
+    <div class="bss-scan-icon">📷</div>
+    <div class="bss-scan-text">
+      <div class="bss-scan-title">Scan Bin Barcode</div>
+      <div class="bss-scan-sub">Point at the rack label (e.g. WE31A, WE31B)</div>
+    </div>
+  </div>
+
+  <div class="bss-or">
+    <div class="bss-or-line"></div>
+    <div class="bss-or-text">or type it manually</div>
+    <div class="bss-or-line"></div>
+  </div>
+
+  <div class="bss-input-wrap">
+    <input
+      class="bss-input"
+      id="bssInput"
+      type="text"
+      placeholder="e.g. WE31A"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="characters"
+      spellcheck="false"
+      onkeydown="if(event.key==='Enter') confirmBin()"
+    >
+    <button class="bss-confirm-btn" onclick="confirmBin()">Start Scanning →</button>
+  </div>
+
+</div>
+
+<!-- ════ SCANNER VIEW ════ -->
+<div class="app" id="scannerView" style="display:none">
+
   <div class="header">
     <div class="header-left">
       <div class="logo-mark">⬡</div>
@@ -491,33 +477,30 @@ html, body {
     <div class="header-right">
       <div class="session-chip">Session <span class="num" id="sessionCount">0</span></div>
       <div class="icon-btn" onclick="showLog()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       </div>
     </div>
   </div>
 
-  <!-- Bin Banner -->
-  <div class="bin-banner no-bin" id="binBanner" onclick="openBinModal()">
+  <!-- Bin Banner — always visible, tap to change -->
+  <div class="bin-banner" id="binBanner" onclick="goBackToBinSetup()">
     <div class="bin-left">
-      <div class="bin-icon">📍</div>
-      <div class="bin-meta">
-        <div class="bin-sublabel">Current Bin</div>
-        <div class="bin-value" id="binDisplay">Tap to set bin location</div>
+      <div class="bin-icon-sm">📍</div>
+      <div>
+        <div class="bin-sublabel">Active Bin</div>
+        <div class="bin-value" id="binDisplay">—</div>
       </div>
     </div>
-    <div class="bin-change" id="binChangeLabel">Set →</div>
+    <div class="bin-change">Change →</div>
   </div>
 
-  <!-- Viewfinder -->
   <div class="viewfinder">
     <video id="video" autoplay muted playsinline webkit-playsinline></video>
     <canvas id="canvas" style="display:none"></canvas>
     <div class="vf-mask"></div>
     <div class="scan-target">
-      <div class="corner corner-tl"></div>
-      <div class="corner corner-tr"></div>
-      <div class="corner corner-bl"></div>
-      <div class="corner corner-br"></div>
+      <div class="corner corner-tl"></div><div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div><div class="corner corner-br"></div>
       <div class="laser"></div>
     </div>
     <div class="cam-status">
@@ -527,21 +510,18 @@ html, body {
     <div class="perm-overlay" id="permOverlay">
       <div class="perm-icon">📷</div>
       <div class="perm-title">Enable Camera</div>
-      <div class="perm-desc">Tap below to allow camera access — required to scan barcodes.</div>
-      <button class="perm-btn" onclick="startScanner()">Start Scanner</button>
+      <div class="perm-desc">Tap below to allow camera access to start scanning.</div>
+      <button class="perm-btn" onclick="startItemScanner()">Start Scanner</button>
     </div>
   </div>
 
-  <!-- Step Tracker -->
   <div class="step-track">
     <div class="step-item active" id="step1"><div class="step-circle" id="sc1">1</div><div class="step-name">HU #</div></div>
     <div class="step-item"        id="step2"><div class="step-circle" id="sc2">2</div><div class="step-name">Material</div></div>
     <div class="step-item"        id="step3"><div class="step-circle" id="sc3">3</div><div class="step-name">Batch</div></div>
   </div>
 
-  <!-- Content -->
   <div class="content" id="content">
-
     <div class="prompt-card" id="promptCard">
       <div class="prompt-icon-wrap" id="promptIcon">📦</div>
       <div>
@@ -549,97 +529,26 @@ html, body {
         <div class="prompt-desc"  id="promptDesc">Point the camera at the top barcode on the label.</div>
       </div>
     </div>
-
     <div class="scan-card is-active" id="card1">
-      <div class="card-top">
-        <div class="card-label"><div class="card-dot"></div><div class="card-name">HU Number</div></div>
-        <div class="card-pill pill-scanning" id="pill1">Scanning</div>
-      </div>
-      <div class="card-body">
-        <div class="card-value placeholder" id="val1">Waiting for scan…</div>
-        <div class="card-timestamp" id="ts1"></div>
-      </div>
+      <div class="card-top"><div class="card-label"><div class="card-dot"></div><div class="card-name">HU Number</div></div><div class="card-pill pill-scanning" id="pill1">Scanning</div></div>
+      <div class="card-body"><div class="card-value placeholder" id="val1">Waiting for scan…</div><div class="card-timestamp" id="ts1"></div></div>
     </div>
-
     <div class="scan-card" id="card2">
-      <div class="card-top">
-        <div class="card-label"><div class="card-dot"></div><div class="card-name">Material Number</div></div>
-        <div class="card-pill pill-waiting" id="pill2">Waiting</div>
-      </div>
-      <div class="card-body">
-        <div class="card-value placeholder" id="val2">Waiting for scan…</div>
-        <div class="card-timestamp" id="ts2"></div>
-      </div>
+      <div class="card-top"><div class="card-label"><div class="card-dot"></div><div class="card-name">Material Number</div></div><div class="card-pill pill-waiting" id="pill2">Waiting</div></div>
+      <div class="card-body"><div class="card-value placeholder" id="val2">Waiting for scan…</div><div class="card-timestamp" id="ts2"></div></div>
     </div>
-
     <div class="scan-card" id="card3">
-      <div class="card-top">
-        <div class="card-label"><div class="card-dot"></div><div class="card-name">Batch / Invoice #</div></div>
-        <div class="card-pill pill-waiting" id="pill3">Waiting</div>
-      </div>
-      <div class="card-body">
-        <div class="card-value placeholder" id="val3">Waiting for scan…</div>
-        <div class="card-timestamp" id="ts3"></div>
-      </div>
+      <div class="card-top"><div class="card-label"><div class="card-dot"></div><div class="card-name">Batch / Invoice #</div></div><div class="card-pill pill-waiting" id="pill3">Waiting</div></div>
+      <div class="card-body"><div class="card-value placeholder" id="val3">Waiting for scan…</div><div class="card-timestamp" id="ts3"></div></div>
     </div>
-
   </div>
 
-  <!-- Action Bar -->
   <div class="action-bar">
     <button class="btn btn-skip"  id="skipBtn" onclick="skipStep()">Skip</button>
     <button class="btn btn-main"  id="mainBtn" onclick="handleMain()">Scanning…</button>
     <button class="btn btn-reset"             onclick="resetAll()">Reset</button>
   </div>
 
-</div>
-
-<!-- ════ BIN MODAL ════ -->
-<div class="modal-backdrop" id="binModal" onclick="handleModalBackdropClick(event)">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Set Bin Location</div>
-    <div class="modal-desc">The bin will stay locked across all scans until you change it here.</div>
-
-    <!-- Scan option -->
-    <div class="modal-scan-btn" id="modalScanBtn" onclick="startBinScan()">
-      <div class="msb-icon">📷</div>
-      <div class="msb-text">
-        <div class="msb-title">Scan Bin Barcode</div>
-        <div class="msb-sub">Point at the rack label (e.g. WE31A)</div>
-      </div>
-    </div>
-
-    <!-- Scanning indicator -->
-    <div class="bin-scan-active" id="binScanActive">
-      <div class="bsa-dot"></div>
-      <span>Scanning for bin barcode… point at rack label</span>
-    </div>
-
-    <!-- OR divider -->
-    <div class="or-divider">
-      <div class="or-line"></div>
-      <div class="or-text">or type it</div>
-      <div class="or-line"></div>
-    </div>
-
-    <!-- Manual input -->
-    <div class="modal-input-row">
-      <input
-        class="modal-input"
-        id="binInput"
-        type="text"
-        placeholder="e.g. WE31A"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="characters"
-        spellcheck="false"
-        onkeydown="if(event.key==='Enter') confirmBinManual()"
-      >
-      <button class="modal-confirm-btn" onclick="confirmBinManual()">Confirm</button>
-    </div>
-
-  </div>
 </div>
 
 <!-- ════ LOG VIEW ════ -->
@@ -659,10 +568,7 @@ html, body {
     </div>
   </div>
   <div class="log-body" id="logBody">
-    <div class="log-empty">
-      <div class="log-empty-icon">📋</div>
-      <div>No scans logged yet.<br>Complete a scan to see it here.</div>
-    </div>
+    <div class="log-empty"><div class="log-empty-icon">📋</div><div>No scans logged yet.</div></div>
   </div>
   <div class="action-bar">
     <button class="btn btn-main" style="flex:1" onclick="hideLog()">← Back to Scanner</button>
@@ -678,26 +584,117 @@ import { DecodeHintType, BarcodeFormat } from 'https://cdn.jsdelivr.net/npm/@zxi
 // ── State ──────────────────────────────────────────────────────────────────
 const STEPS = ['hu', 'material', 'batch'];
 const PROMPTS = [
-  { icon: '📦', title: 'Scan HU Number',       desc: 'Point the camera at the top barcode on the label.' },
-  { icon: '🏷',  title: 'Scan Material Number', desc: 'Now point at the middle barcode — the Material Number.' },
-  { icon: '🔢', title: 'Scan Batch Number',     desc: 'Aim at the bottom barcode. Tap Skip if not present.' },
+  { icon:'📦', title:'Scan HU Number',       desc:'Point the camera at the top barcode on the label.' },
+  { icon:'🏷',  title:'Scan Material Number', desc:'Now point at the middle barcode — the Material Number.' },
+  { icon:'🔢', title:'Scan Batch Number',     desc:'Aim at the bottom barcode. Tap Skip if not present.' },
 ];
 
 let step         = 0;
-let scanData     = { hu: null, material: null, batch: null };
+let scanData     = { hu:null, material:null, batch:null };
 let sessionLog   = [];
 let sessionCount = 0;
 let lastVal      = '';
 let lastTime     = 0;
 const COOLDOWN   = 2500;
+let currentBin   = null;
+let itemReader   = null;
+let binReader    = null;
+let binStream    = null;
 
-// ── Bin State ──────────────────────────────────────────────────────────────
-let currentBin      = null;   // locked bin value
-let binScanMode     = false;  // true = next scan goes to bin, not item
-let reader          = null;
+// ══════════════════════════════════════════
+// BIN SETUP SCREEN LOGIC
+// ══════════════════════════════════════════
 
-// ── Start Scanner ──────────────────────────────────────────────────────────
-window.startScanner = async function () {
+function buildHints() {
+  return new Map([
+    [DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
+      BarcodeFormat.EAN_13,  BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,   BarcodeFormat.UPC_E,
+      BarcodeFormat.CODABAR, BarcodeFormat.ITF,
+    ]],
+    [DecodeHintType.TRY_HARDER, true],
+  ]);
+}
+
+// Start camera just for bin scanning (small preview on setup screen)
+window.startBinCameraScan = async function () {
+  document.getElementById('bssScanBtn').style.display = 'none';
+  document.getElementById('bssCameraWrap').classList.add('visible');
+  document.getElementById('bssScanningIndicator').classList.add('visible');
+  document.getElementById('bssCancelScan').classList.add('visible');
+
+  try {
+    binStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+
+    const vid = document.getElementById('bssVideo');
+    vid.srcObject = binStream;
+    vid.setAttribute('playsinline', '');
+    vid.setAttribute('webkit-playsinline', '');
+    vid.muted = true;
+    await vid.play();
+
+    binReader = new BrowserMultiFormatReader(buildHints(), { delayBetweenScanAttempts: 200 });
+    binReader.decodeFromVideoElement(vid, (result) => {
+      if (result) {
+        const val = result.getText().trim().toUpperCase();
+        stopBinCamera();
+        document.getElementById('bssInput').value = val;
+        showToast(`📍 Detected: ${val} — tap confirm or edit`, 'amber');
+      }
+    });
+
+  } catch(err) {
+    cancelBinScan();
+    showToast('Camera access denied');
+  }
+};
+
+function stopBinCamera() {
+  if (binReader) { try { binReader.reset(); } catch(e) {} binReader = null; }
+  if (binStream) { binStream.getTracks().forEach(t => t.stop()); binStream = null; }
+  document.getElementById('bssCameraWrap').classList.remove('visible');
+  document.getElementById('bssScanningIndicator').classList.remove('visible');
+  document.getElementById('bssCancelScan').classList.remove('visible');
+  document.getElementById('bssScanBtn').style.display = '';
+}
+
+window.cancelBinScan = stopBinCamera;
+
+// Confirm bin from either scan or manual entry
+window.confirmBin = function () {
+  const raw = document.getElementById('bssInput').value.trim().toUpperCase();
+  if (!raw) { showToast('Please enter or scan a bin location'); return; }
+  stopBinCamera();
+  currentBin = raw;
+  document.getElementById('binDisplay').textContent = currentBin;
+
+  // Show scanner view, hide setup screen
+  document.getElementById('binSetupScreen').classList.add('hidden');
+  document.getElementById('scannerView').style.display = 'flex';
+
+  // Start the item scanner
+  startItemScanner();
+};
+
+// Tap bin banner → go back to bin setup screen
+window.goBackToBinSetup = function () {
+  // Pause item scanner
+  if (itemReader) { try { itemReader.reset(); } catch(e) {} itemReader = null; }
+  document.getElementById('scannerView').style.display = 'none';
+  document.getElementById('bssInput').value = currentBin || '';
+  document.getElementById('binSetupScreen').classList.remove('hidden');
+  resetAll();
+};
+
+// ══════════════════════════════════════════
+// ITEM SCANNER
+// ══════════════════════════════════════════
+
+window.startItemScanner = async function () {
   document.getElementById('permOverlay').classList.add('hidden');
   document.getElementById('camLabel').textContent = 'Starting…';
 
@@ -718,18 +715,8 @@ window.startScanner = async function () {
     document.getElementById('liveDot').style.background = 'var(--green)';
     document.getElementById('liveDot').style.boxShadow  = '0 0 6px var(--green)';
 
-    const hints = new Map([
-      [DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
-        BarcodeFormat.EAN_13,  BarcodeFormat.EAN_8,
-        BarcodeFormat.UPC_A,   BarcodeFormat.UPC_E,
-        BarcodeFormat.CODABAR, BarcodeFormat.ITF,
-      ]],
-      [DecodeHintType.TRY_HARDER, true],
-    ]);
-
-    reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 200 });
-    reader.decodeFromVideoElement(video, (result) => {
+    itemReader = new BrowserMultiFormatReader(buildHints(), { delayBetweenScanAttempts: 200 });
+    itemReader.decodeFromVideoElement(video, (result) => {
       if (result) onDetected(result.getText());
     });
 
@@ -739,39 +726,26 @@ window.startScanner = async function () {
     document.getElementById('permOverlay').classList.remove('hidden');
     document.querySelector('.perm-icon').textContent  = '🚫';
     document.querySelector('.perm-title').textContent = 'Camera Blocked';
-    document.querySelector('.perm-desc').textContent  = 'Go to Settings → Safari → Camera → Allow. Then close and reopen the app.';
+    document.querySelector('.perm-desc').textContent  = 'Go to Settings → Safari → Camera → Allow, then reopen.';
     document.querySelector('.perm-btn').style.display = 'none';
   }
 };
 
-// ── Barcode Detected ───────────────────────────────────────────────────────
 function onDetected(value) {
   if (!value) return;
   value = value.trim();
   const now = Date.now();
   if (value === lastVal && now - lastTime < COOLDOWN) return;
+  if (step >= 3) return;
   lastVal  = value;
   lastTime = now;
-
   if (navigator.vibrate) navigator.vibrate(60);
-
-  // Bin scan mode — this barcode is the bin
-  if (binScanMode) {
-    setBin(value);
-    stopBinScan();
-    closeBinModal();
-    return;
-  }
-
-  // Normal item scan
-  if (step >= 3) return;
   recordScan(value);
 }
 
-// ── Record Item Scan ───────────────────────────────────────────────────────
 function recordScan(value) {
   const i  = step + 1;
-  const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const ts = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
   scanData[STEPS[step]] = value;
 
   const card = document.getElementById(`card${i}`);
@@ -791,7 +765,6 @@ function recordScan(value) {
   scrollBottom();
 }
 
-// ── Skip ───────────────────────────────────────────────────────────────────
 window.skipStep = function () {
   if (step >= 3) return;
   const i = step + 1;
@@ -808,30 +781,28 @@ window.skipStep = function () {
   scrollBottom();
 };
 
-// ── Complete ───────────────────────────────────────────────────────────────
 function completeAll() {
-  document.getElementById('promptIcon').textContent          = '✅';
-  document.getElementById('promptTitle').textContent         = 'All Barcodes Captured';
-  document.getElementById('promptDesc').textContent          = 'Tap Save & Next to log this item.';
-  document.getElementById('promptCard').style.background     = 'var(--green-dim)';
-  document.getElementById('promptCard').style.borderColor    = 'rgba(34,197,94,0.25)';
+  document.getElementById('promptIcon').textContent         = '✅';
+  document.getElementById('promptTitle').textContent        = 'All Barcodes Captured';
+  document.getElementById('promptDesc').textContent         = 'Tap Save & Next to log this item.';
+  document.getElementById('promptCard').style.background    = 'var(--green-dim)';
+  document.getElementById('promptCard').style.borderColor   = 'rgba(34,197,94,0.25)';
   const btn = document.getElementById('mainBtn');
   btn.textContent = 'Save & Next';
   btn.classList.add('success');
   document.getElementById('skipBtn').style.visibility = 'hidden';
-  if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
+  if (navigator.vibrate) navigator.vibrate([50,30,100]);
   showToast('✓ All barcodes captured', 'success');
 }
 
-// ── Save ───────────────────────────────────────────────────────────────────
 window.handleMain = function () {
   if (step < 3) return;
   sessionLog.unshift({
-    bin:      currentBin    || '—',
-    hu:       scanData.hu   || '—',
-    material: scanData.material || '—',
-    batch:    scanData.batch    || '—',
-    time:     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    bin:      currentBin          || '—',
+    hu:       scanData.hu         || '—',
+    material: scanData.material   || '—',
+    batch:    scanData.batch      || '—',
+    time:     new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }),
     date:     new Date().toLocaleDateString(),
   });
   sessionCount++;
@@ -840,10 +811,9 @@ window.handleMain = function () {
   resetAll();
 };
 
-// ── Reset ──────────────────────────────────────────────────────────────────
 window.resetAll = function () {
   step     = 0;
-  scanData = { hu: null, material: null, batch: null };
+  scanData = { hu:null, material:null, batch:null };
   lastVal  = '';
   for (let i = 1; i <= 3; i++) {
     document.getElementById(`val${i}`).textContent  = 'Waiting for scan…';
@@ -865,89 +835,26 @@ window.resetAll = function () {
   document.getElementById('content').scrollTop = 0;
 };
 
-// ══════════════════════════════════════════
-// BIN LOGIC
-// ══════════════════════════════════════════
-
-function setBin(value) {
-  currentBin = value.toUpperCase();
-  const banner  = document.getElementById('binBanner');
-  const display = document.getElementById('binDisplay');
-  const lbl     = document.getElementById('binChangeLabel');
-  display.textContent = currentBin;
-  banner.classList.remove('no-bin');
-  lbl.textContent = 'Change →';
-  showToast(`📍 Bin set to ${currentBin}`, 'amber');
-}
-
-window.openBinModal = function () {
-  document.getElementById('binInput').value = currentBin || '';
-  document.getElementById('binModal').classList.add('open');
-  // Pre-fill input if bin already set
-  setTimeout(() => document.getElementById('binInput').focus(), 350);
-};
-
-window.closeBinModal = function () {
-  stopBinScan();
-  document.getElementById('binModal').classList.remove('open');
-};
-
-window.handleModalBackdropClick = function (e) {
-  if (e.target === document.getElementById('binModal')) closeBinModal();
-};
-
-// Start scanning specifically for a bin barcode
-window.startBinScan = function () {
-  binScanMode = true;
-  document.getElementById('binScanActive').classList.add('visible');
-  document.getElementById('modalScanBtn').style.opacity = '0.4';
-  document.getElementById('modalScanBtn').style.pointerEvents = 'none';
-  // Keep modal open — next detected barcode will be treated as bin
-};
-
-function stopBinScan() {
-  binScanMode = false;
-  document.getElementById('binScanActive').classList.remove('visible');
-  document.getElementById('modalScanBtn').style.opacity = '';
-  document.getElementById('modalScanBtn').style.pointerEvents = '';
-}
-
-window.confirmBinManual = function () {
-  const val = document.getElementById('binInput').value.trim();
-  if (!val) { showToast('Enter a bin location first'); return; }
-  setBin(val);
-  closeBinModal();
-};
-
-// ── Helpers ────────────────────────────────────────────────────────────────
 function setPrompt(i) {
   const p = PROMPTS[i];
   document.getElementById('promptIcon').textContent  = p.icon;
   document.getElementById('promptTitle').textContent = p.title;
   document.getElementById('promptDesc').textContent  = p.desc;
 }
-
 function setCardActive(i) {
   document.getElementById(`card${i}`).className   = 'scan-card is-active';
   document.getElementById(`pill${i}`).className   = 'card-pill pill-scanning';
   document.getElementById(`pill${i}`).textContent = 'Scanning';
 }
-
-function setStepActive(i) {
-  document.getElementById(`step${i}`).className = 'step-item active';
-}
-
-function scrollBottom() {
-  const c = document.getElementById('content');
-  setTimeout(() => c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' }), 80);
-}
+function setStepActive(i) { document.getElementById(`step${i}`).className = 'step-item active'; }
+function scrollBottom() { const c = document.getElementById('content'); setTimeout(() => c.scrollTo({ top:c.scrollHeight, behavior:'smooth' }), 80); }
 
 // ── Log ────────────────────────────────────────────────────────────────────
 window.showLog = function () {
   const body = document.getElementById('logBody');
   body.innerHTML = '';
   if (!sessionLog.length) {
-    body.innerHTML = `<div class="log-empty"><div class="log-empty-icon">📋</div><div>No scans logged yet.<br>Complete a scan to see it here.</div></div>`;
+    body.innerHTML = `<div class="log-empty"><div class="log-empty-icon">📋</div><div>No scans logged yet.</div></div>`;
   } else {
     sessionLog.forEach(e => {
       const d = document.createElement('div');
@@ -957,25 +864,13 @@ window.showLog = function () {
           <div class="entry-hu">${e.hu}</div>
           <div class="entry-time">${e.time}</div>
         </div>
-        <div class="entry-row-2">
-          <div class="entry-field bin-field">
-            <div class="ef-label">Bin</div>
-            <div class="ef-value">${e.bin}</div>
-          </div>
-          <div class="entry-field">
-            <div class="ef-label">Material</div>
-            <div class="ef-value">${e.material}</div>
-          </div>
+        <div class="entry-grid" style="margin-bottom:6px">
+          <div class="entry-field bin-field"><div class="ef-label">Bin</div><div class="ef-value">${e.bin}</div></div>
+          <div class="entry-field"><div class="ef-label">Material</div><div class="ef-value">${e.material}</div></div>
         </div>
-        <div class="entry-row-3">
-          <div class="entry-field">
-            <div class="ef-label">Batch</div>
-            <div class="ef-value">${e.batch}</div>
-          </div>
-          <div class="entry-field">
-            <div class="ef-label">Date</div>
-            <div class="ef-value">${e.date}</div>
-          </div>
+        <div class="entry-grid">
+          <div class="entry-field"><div class="ef-label">Batch</div><div class="ef-value">${e.batch}</div></div>
+          <div class="entry-field"><div class="ef-label">Date</div><div class="ef-value">${e.date}</div></div>
         </div>`;
       body.appendChild(d);
     });
@@ -1003,13 +898,12 @@ window.exportCSV = function () {
     ...sessionLog.map(e => `${e.bin},${e.hu},${e.material},${e.batch},${e.date},${e.time}`)
   ].join('\n');
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = `novus_scan_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
+  a.download = `novus_scan_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   showToast('Exported as CSV ✓', 'success');
 };
 
-// ── Toast ──────────────────────────────────────────────────────────────────
 function showToast(msg, type = '') {
   const t = document.getElementById('toast');
   t.textContent = msg;

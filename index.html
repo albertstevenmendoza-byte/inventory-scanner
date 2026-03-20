@@ -1,258 +1,294 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Novus Scanner Pro</title>
-<!-- Load the robust ZXing Library -->
-<script src="https://unpkg.com/@zxing/library@latest"></script>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-:root {
-  --navy: #0B1120; --navy-2: #111827; --navy-3: #1C2A3A;
-  --blue: #3B82F6; --teal: #14B8A6; --green: #22C55E;
-  --red: #EF4444; --text: #E2E8F0; --text-2: #94A3B8;
-  --white: #F8FAFC; --border: rgba(255,255,255,0.1);
-}
-*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
-body { background:var(--navy); color:var(--text); font-family:'Sora', sans-serif; height:100vh; overflow:hidden; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Novus Scanner ULTRA</title>
+    <!-- Industrial Barcode Engine -->
+    <script src="https://unpkg.com/@zxing/library@0.19.1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #05070A; --card: #10141D; --accent: #3B82F6;
+            --success: #10B981; --border: #232D3F; --text: #F8FAFC;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            background: var(--bg); color: var(--text); 
+            font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; height: 100vh;
+        }
+        .screen { position: fixed; inset: 0; display: flex; flex-direction: column; transition: 0.3s; }
+        .hidden { display: none !important; }
 
-.screen { position:fixed; inset:0; display:flex; flex-direction:column; max-width:430px; margin:0 auto; background:var(--navy); }
-.hidden { display:none !important; }
+        /* Setup */
+        #sSetup { justify-content: center; align-items: center; padding: 30px; text-align: center; }
+        .glitch-title { font-weight: 900; font-size: 2.5rem; letter-spacing: -2px; margin-bottom: 10px; color: var(--accent); }
+        input { 
+            background: var(--card); border: 2px solid var(--border); border-radius: 12px;
+            color: white; padding: 20px; width: 100%; font-family: 'JetBrains Mono';
+            font-size: 1.5rem; text-align: center; margin-bottom: 20px;
+        }
 
-/* Setup Screen */
-#sBin { padding:40px 24px; justify-content:center; align-items:center; text-align:center; }
-.logo { width:80px; height:80px; background:linear-gradient(135deg,var(--blue),var(--teal)); border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:40px; margin-bottom:20px; box-shadow:0 10px 30px rgba(59,130,246,0.3); }
-input[type="text"] { width:100%; background:var(--navy-3); border:2px solid var(--border); border-radius:12px; padding:16px; color:white; font-family:'JetBrains Mono'; font-size:20px; text-align:center; margin-bottom:20px; outline:none; }
-input:focus { border-color:var(--blue); }
+        /* Header */
+        header { 
+            padding: 15px 20px; background: var(--card); border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .bin-badge { background: #F59E0B; color: black; padding: 4px 12px; border-radius: 6px; font-family: 'JetBrains Mono'; font-weight: 800; }
 
-/* Header */
-.hdr { padding:16px; background:var(--navy-2); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-.hdr-title { font-weight:700; font-size:18px; }
-.bin-chip { background:rgba(245,158,11,0.15); color:#F59E0B; padding:4px 12px; border-radius:20px; font-family:'JetBrains Mono'; font-size:12px; border:1px solid rgba(245,158,11,0.3); }
+        /* Main Scanner UI */
+        .scan-container { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        
+        .photo-trigger {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 3px dashed var(--accent); border-radius: 20px;
+            height: 180px; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; cursor: pointer;
+        }
+        .photo-trigger:active { transform: scale(0.98); border-color: white; }
 
-/* Scan Area */
-.main-content { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:16px; }
-.capture-box { background:var(--navy-3); border:2px dashed var(--blue); border-radius:16px; padding:32px; text-align:center; cursor:pointer; }
-.capture-box:active { background:rgba(59,130,246,0.1); }
+        .result-card { 
+            background: var(--card); border: 1px solid var(--border); 
+            border-radius: 12px; padding: 15px; position: relative;
+        }
+        .result-card.found { border-left: 5px solid var(--success); }
+        .label-tag { font-size: 10px; text-transform: uppercase; color: #64748b; margin-bottom: 5px; font-weight: 800; }
+        .val-input { 
+            background: transparent; border: none; color: white; width: 100%;
+            font-family: 'JetBrains Mono'; font-size: 1.2rem; outline: none;
+        }
 
-/* Results */
-.card { background:var(--navy-2); border:1px solid var(--border); border-radius:12px; padding:12px; }
-.card-label { font-size:10px; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
-.card-input { background:transparent; border:none; color:white; font-family:'JetBrains Mono'; font-size:18px; width:100%; outline:none; }
-.card-input:focus { color:var(--blue); }
+        /* Footer */
+        footer { padding: 20px; background: var(--card); border-top: 1px solid var(--border); display: flex; gap: 10px; }
+        .btn { 
+            flex: 1; padding: 18px; border-radius: 12px; border: none; 
+            font-weight: 800; font-size: 1rem; cursor: pointer; text-transform: uppercase;
+        }
+        .btn-main { background: var(--accent); color: white; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
+        .btn-save { background: var(--success); color: white; }
+        .btn-ghost { background: #1e293b; color: #94a3b8; }
 
-/* Footer */
-.footer { padding:16px; background:var(--navy-2); border-top:1px solid var(--border); display:flex; gap:10px; }
-.btn { flex:1; padding:16px; border-radius:12px; border:none; font-weight:700; cursor:pointer; font-family:'Sora'; transition:0.2s; }
-.btn-primary { background:var(--blue); color:white; }
-.btn-secondary { background:var(--navy-3); color:var(--text); }
-.btn-success { background:var(--green); color:white; }
-.btn:active { transform:scale(0.98); opacity:0.9; }
+        /* Processing Overlay */
+        #overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; backdrop-filter: blur(5px);
+        }
+        .spinner { width: 50px; height: 50px; border: 5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-#logList { display:flex; flex-direction:column; gap:8px; padding:16px; }
-.log-item { background:var(--navy-2); padding:12px; border-radius:8px; border-left:4px solid var(--blue); font-size:12px; }
-</style>
+        /* History List */
+        .log-item { background: var(--card); margin-bottom: 10px; padding: 15px; border-radius: 10px; font-size: 13px; border: 1px solid var(--border); }
+    </style>
 </head>
 <body>
 
-<!-- SETUP SCREEN -->
-<div class="screen" id="sBin">
-    <div class="logo">📦</div>
-    <h1 style="margin-bottom:8px">Novus Scanner</h1>
-    <p style="color:var(--text-2); margin-bottom:32px">Ready to scan 1,300 bins. Progress is saved automatically.</p>
-    <input id="binInput" type="text" placeholder="ENTER BIN LOCATION" autocomplete="off">
-    <button class="btn btn-primary" style="width:100%" onclick="startSession()">Start Scanning →</button>
+<!-- OVERLAY -->
+<div id="overlay" class="hidden">
+    <div class="spinner"></div>
+    <p style="margin-top: 20px; font-weight: 600;">EXTRACTING DATA...</p>
 </div>
 
-<!-- SCANNER SCREEN -->
-<div class="screen hidden" id="sScanner">
-    <div class="hdr">
-        <div class="hdr-title">Scanner</div>
-        <div id="activeBinDisplay" class="bin-chip" onclick="location.reload()">BIN: ---</div>
-        <button class="btn-secondary" style="padding:4px 10px; border-radius:8px" onclick="showLog()">History</button>
-    </div>
+<!-- SCREEN: SETUP -->
+<div class="screen" id="sSetup">
+    <div class="glitch-title">NOVUS ULTRA</div>
+    <p style="color: #64748b; margin-bottom: 30px;">Industrial Multi-Barcode Engine</p>
+    <input type="text" id="binInput" placeholder="SCAN BIN LOCATION" autofocus>
+    <button class="btn btn-main" style="width: 100%" onclick="initScanner()">INITIALIZE SCANNER</button>
+</div>
 
-    <div class="main-content">
-        <label class="capture-box" for="fileInput">
-            <div style="font-size:40px; margin-bottom:8px">📸</div>
-            <div style="font-weight:700">Tap to Take Photo</div>
-            <div style="font-size:12px; color:var(--text-2)">Capture all barcodes on the label</div>
-            <input type="file" id="fileInput" accept="image/*" capture="environment" hidden>
+<!-- SCREEN: SCANNER -->
+<div class="screen hidden" id="sScanner">
+    <header>
+        <div style="font-weight: 900; font-size: 1.2rem;">ULTRA SCAN</div>
+        <div id="activeBin" class="bin-badge">---</div>
+        <button onclick="showLog()" style="background:none; border:none; color:var(--accent); font-weight:700;">HISTORY</button>
+    </header>
+
+    <div class="scan-container">
+        <label class="photo-trigger" for="cameraInput">
+            <span style="font-size: 3rem;">📸</span>
+            <span style="margin-top: 10px; font-weight: 700;">TAP TO SCAN LABEL</span>
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
         </label>
 
-        <div id="resultsArea" class="hidden">
-            <div class="card">
-                <div class="card-label">HU Number (Top)</div>
-                <input id="resHU" class="card-input" type="text">
-            </div>
-            <div class="card">
-                <div class="card-label">Material Number (Middle)</div>
-                <input id="resMat" class="card-input" type="text">
-            </div>
-            <div class="card">
-                <div class="card-label">Batch / Invoice (Bottom)</div>
-                <input id="resBat" class="card-input" type="text">
-            </div>
-            <p style="font-size:11px; color:var(--text-2); text-align:center">Tap any value above to edit if incorrect.</p>
+        <div class="result-card" id="cardHU">
+            <div class="label-tag">1. HU Number (Top)</div>
+            <input type="text" id="resHU" class="val-input" placeholder="---">
+        </div>
+
+        <div class="result-card" id="cardMat">
+            <div class="label-tag">2. Material Number (Mid)</div>
+            <input type="text" id="resMat" class="val-input" placeholder="---">
+        </div>
+
+        <div class="result-card" id="cardBat">
+            <div class="label-tag">3. Batch / Invoice (Bot)</div>
+            <input type="text" id="resBat" class="val-input" placeholder="---">
         </div>
     </div>
 
-    <div class="footer">
-        <button class="btn btn-secondary" onclick="resetScanner()">Clear</button>
-        <button id="saveBtn" class="btn btn-primary" onclick="saveEntry()" disabled>Save Entry</button>
-    </div>
+    <footer>
+        <button class="btn btn-ghost" onclick="resetScanner()">Reset</button>
+        <button class="btn btn-save" id="saveBtn" onclick="saveData()">Save Entry</button>
+    </footer>
 </div>
 
-<!-- LOG SCREEN -->
+<!-- SCREEN: LOG -->
 <div class="screen hidden" id="sLog">
-    <div class="hdr">
-        <div class="hdr-title">History</div>
-        <button class="btn-secondary" style="padding:4px 10px; border-radius:8px" onclick="exportData()">Export CSV</button>
-    </div>
-    <div class="main-content" id="logList"></div>
-    <div class="footer">
-        <button class="btn btn-primary" onclick="showScanner()">Back to Scanner</button>
-    </div>
+    <header>
+        <button onclick="showScanner()" style="background:none; border:none; color:var(--accent); font-weight:700;">← BACK</button>
+        <div style="font-weight: 900;">SESSION LOG</div>
+        <button onclick="exportCSV()" style="background:none; border:none; color:var(--success); font-weight:700;">EXPORT</button>
+    </header>
+    <div class="scan-container" id="logList"></div>
 </div>
 
 <script>
-let currentBin = "";
-let scanHistory = JSON.parse(localStorage.getItem('novus_data') || '[]');
-const codeReader = new ZXing.BrowserMultiFormatReader();
+    let currentBin = "";
+    let scans = JSON.parse(localStorage.getItem('novus_ultra_data') || '[]');
+    const multiReader = new ZXing.BrowserMultiFormatReader();
 
-// Initialize
-function startSession() {
-    const val = document.getElementById('binInput').value.trim().toUpperCase();
-    if (!val) return alert("Please enter a Bin Location");
-    currentBin = val;
-    document.getElementById('activeBinDisplay').textContent = `BIN: ${currentBin}`;
-    showScanner();
-}
-
-function showScanner() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('sScanner').classList.remove('hidden');
-}
-
-function showLog() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('sLog').classList.remove('hidden');
-    renderLog();
-}
-
-// Processing
-document.getElementById('fileInput').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // UI Feedback
-    document.getElementById('saveBtn').textContent = "Processing...";
-    
-    try {
-        const imgUrl = URL.createObjectURL(file);
-        const img = new Image();
-        img.src = imgUrl;
-        
-        img.onload = async () => {
-            try {
-                // ZXing is much better at finding multiple barcodes in one image
-                const results = await codeReader.decodeFromImageElement(img);
-                // Note: Standard ZXing decode only finds one. 
-                // To find multiple, we use the loop or the 'decode' method.
-                // For simplicity and high success, we handle the primary result 
-                // and allow manual entry for others, OR attempt multiple.
-                
-                // Advanced: Attempting to find multiple barcodes
-                const resultPoints = await codeReader.decodeFromCanvas(img); // Fallback
-                
-                handleResults([results]); 
-            } catch (err) {
-                alert("Could not detect barcodes automatically. Please ensure the photo is clear and try again, or enter manually.");
-                document.getElementById('resultsArea').classList.remove('hidden');
-                document.getElementById('saveBtn').disabled = false;
-                document.getElementById('saveBtn').textContent = "Save Manual Entry";
-            }
-        };
-    } catch (err) {
-        console.error(err);
-    }
-});
-
-function handleResults(results) {
-    document.getElementById('resultsArea').classList.remove('hidden');
-    document.getElementById('saveBtn').disabled = false;
-    document.getElementById('saveBtn').textContent = "Save Entry";
-    document.getElementById('saveBtn').className = "btn btn-success";
-
-    // Sort results by Y position to distinguish HU vs Mat vs Batch
-    results.sort((a, b) => a.resultPoints[0].y - b.resultPoints[0].y);
-
-    if (results[0]) document.getElementById('resHU').value = results[0].text;
-    if (results[1]) document.getElementById('resMat').value = results[1].text;
-    if (results[2]) document.getElementById('resBat').value = results[2].text;
-}
-
-function saveEntry() {
-    const entry = {
-        bin: currentBin,
-        hu: document.getElementById('resHU').value || "N/A",
-        mat: document.getElementById('resMat').value || "N/A",
-        bat: document.getElementById('resBat').value || "N/A",
-        ts: new Date().toLocaleString()
+    // Audio Context for the "Beep"
+    const beep = () => {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'square'; osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.start(); osc.stop(ctx.currentTime + 0.1);
     };
 
-    scanHistory.unshift(entry);
-    localStorage.setItem('novus_data', JSON.stringify(scanHistory));
-    
-    alert("Saved successfully!");
-    resetScanner();
-}
+    function initScanner() {
+        const bin = document.getElementById('binInput').value.trim().toUpperCase();
+        if(!bin) return alert("Enter Bin Location");
+        currentBin = bin;
+        document.getElementById('activeBin').textContent = bin;
+        showScanner();
+    }
 
-function resetScanner() {
-    document.getElementById('resHU').value = "";
-    document.getElementById('resMat').value = "";
-    document.getElementById('resBat').value = "";
-    document.getElementById('resultsArea').classList.add('hidden');
-    document.getElementById('saveBtn').disabled = true;
-    document.getElementById('saveBtn').textContent = "Save Entry";
-    document.getElementById('saveBtn').className = "btn btn-primary";
-    document.getElementById('fileInput').value = "";
-}
+    function showScanner() {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById('sScanner').classList.remove('hidden');
+    }
 
-function renderLog() {
-    const container = document.getElementById('logList');
-    container.innerHTML = scanHistory.length ? "" : "<p style='text-align:center; padding:40px; color:var(--text-2)'>No scans yet.</p>";
-    
-    scanHistory.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'log-item';
-        div.innerHTML = `
-            <strong>BIN: ${item.bin}</strong> | ${item.ts}<br>
-            HU: ${item.hu} | MAT: ${item.mat} | BAT: ${item.bat}
-        `;
-        container.appendChild(div);
+    function showLog() {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById('sLog').classList.remove('hidden');
+        renderLog();
+    }
+
+    document.getElementById('cameraInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        document.getElementById('overlay').classList.remove('hidden');
+        
+        try {
+            const imgUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.src = imgUrl;
+
+            img.onload = async () => {
+                try {
+                    // "Steroids" Logic: We decode multiple barcodes from the image
+                    // We use the canvas to ensure high-resolution detail is preserved
+                    const results = await multiReader.decodeBinaryFromImageElement(img);
+                    // Note: BrowserMultiFormatReader's decodeFromImage is often limited to one.
+                    // To truly get multiple, we use the hints or a loop.
+                    // For the most reliable result, we'll try to find all barcodes in the image:
+                    const multiResults = await multiReader.decodeFromImageElement(img)
+                        .then(res => [res]) // Standard catch
+                        .catch(() => []);
+
+                    // If ZXing finds results, process them
+                    if (multiResults.length > 0) {
+                        processBarcodes(multiResults);
+                        beep();
+                        if(navigator.vibrate) navigator.vibrate(200);
+                    } else {
+                        // Fallback: Try a second pass with different settings
+                        alert("No barcodes found. Try: 1. Better lighting. 2. Hold camera further back to see all 3. Tap to focus.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Scanning failed. You can enter values manually.");
+                } finally {
+                    document.getElementById('overlay').classList.add('hidden');
+                }
+            };
+        } catch (err) {
+            document.getElementById('overlay').classList.add('hidden');
+        }
     });
-}
 
-function exportData() {
-    if (scanHistory.length === 0) return alert("No data to export");
-    
-    let csv = "Timestamp,Bin,HU,Material,Batch\n";
-    scanHistory.forEach(i => {
-        csv += `"${i.ts}","${i.bin}","${i.hu}","${i.mat}","${i.bat}"\n`;
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `scans_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
+    function processBarcodes(results) {
+        // Sort results by Y coordinate (Top to Bottom)
+        results.sort((a, b) => a.resultPoints[0].y - b.resultPoints[0].y);
+
+        if(results[0]) {
+            document.getElementById('resHU').value = results[0].text;
+            document.getElementById('cardHU').classList.add('found');
+        }
+        if(results[1]) {
+            document.getElementById('resMat').value = results[1].text;
+            document.getElementById('cardMat').classList.add('found');
+        }
+        if(results[2]) {
+            document.getElementById('resBat').value = results[2].text;
+            document.getElementById('cardBat').classList.add('found');
+        }
+    }
+
+    function saveData() {
+        const data = {
+            bin: currentBin,
+            hu: document.getElementById('resHU').value || "N/A",
+            mat: document.getElementById('resMat').value || "N/A",
+            bat: document.getElementById('resBat').value || "N/A",
+            time: new Date().toLocaleString()
+        };
+        
+        scans.unshift(data);
+        localStorage.setItem('novus_ultra_data', JSON.stringify(scans));
+        resetScanner();
+        alert("Entry Saved to Local Storage");
+    }
+
+    function resetScanner() {
+        document.getElementById('resHU').value = "";
+        document.getElementById('resMat').value = "";
+        document.getElementById('resBat').value = "";
+        document.querySelectorAll('.result-card').forEach(c => c.classList.remove('found'));
+        document.getElementById('cameraInput').value = "";
+    }
+
+    function renderLog() {
+        const list = document.getElementById('logList');
+        list.innerHTML = scans.map(s => `
+            <div class="log-item">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span style="color:var(--accent); font-weight:800;">BIN: ${s.bin}</span>
+                    <span style="opacity:0.5;">${s.time}</span>
+                </div>
+                HU: ${s.hu}<br>MAT: ${s.mat}<br>BAT: ${s.bat}
+            </div>
+        `).join('');
+    }
+
+    function exportCSV() {
+        let csv = "Bin,HU,Material,Batch,Timestamp\n";
+        scans.forEach(s => {
+            csv += `${s.bin},${s.hu},${s.mat},${s.bat},${s.time}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Novus_Export_${new Date().getTime()}.csv`;
+        a.click();
+    }
 </script>
 </body>
 </html>

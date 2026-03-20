@@ -320,7 +320,7 @@
             <label class="photo-trigger" for="cameraInput">
                 <span style="font-size: 3rem;">[ ]</span>
                 <span style="margin-top: 10px; font-weight: 700;">TAP TO SCAN LABEL</span>
-                <span class="hint">Best results when the full label is visible and sharply focused.</span>
+                <span class="hint">Targets HU, Material, and Batch barcodes. Quantity is ignored.</span>
                 <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
             </label>
 
@@ -335,7 +335,7 @@
             </div>
 
             <div class="result-card" id="cardBat">
-                <div class="label-tag">3. Batch / Invoice (Bot)</div>
+                <div class="label-tag">3. Batch Number (Bottom)</div>
                 <input type="text" id="resBat" class="val-input" placeholder="---">
             </div>
         </div>
@@ -358,6 +358,47 @@
     <script>
         const STORAGE_KEY = "novus_ultra_data";
         const BIN_KEY = "novus_ultra_active_bin";
+        const LABEL_SCAN_ZONES = [
+            {
+                key: "hu",
+                fieldId: "resHU",
+                cardId: "cardHU",
+                label: "HU",
+                yStart: 0.10,
+                yEnd: 0.31,
+                variants: [
+                    { xStart: 0.40, xEnd: 0.98 },
+                    { xStart: 0.30, xEnd: 0.98 },
+                    { xStart: 0.00, xEnd: 1.00 }
+                ]
+            },
+            {
+                key: "mat",
+                fieldId: "resMat",
+                cardId: "cardMat",
+                label: "Material",
+                yStart: 0.43,
+                yEnd: 0.63,
+                variants: [
+                    { xStart: 0.48, xEnd: 0.96 },
+                    { xStart: 0.34, xEnd: 0.98 },
+                    { xStart: 0.00, xEnd: 1.00 }
+                ]
+            },
+            {
+                key: "bat",
+                fieldId: "resBat",
+                cardId: "cardBat",
+                label: "Batch",
+                yStart: 0.76,
+                yEnd: 0.93,
+                variants: [
+                    { xStart: 0.50, xEnd: 0.92 },
+                    { xStart: 0.36, xEnd: 0.96 },
+                    { xStart: 0.00, xEnd: 1.00 }
+                ]
+            }
+        ];
 
         let currentBin = "";
         let scans = loadScans();
@@ -505,13 +546,43 @@
             setStatus("Captured " + ordered.length + " barcode value" + (ordered.length === 1 ? "" : "s") + ".", "success");
         }
 
+        function applyDetectedValues(values) {
+            const foundLabels = [];
+
+            LABEL_SCAN_ZONES.forEach((zone) => {
+                const value = values[zone.key] || "";
+                applyFieldValue(zone.fieldId, zone.cardId, value);
+                if (value) {
+                    foundLabels.push(zone.label);
+                }
+            });
+
+            if (!foundLabels.length) {
+                setStatus("No barcode values were extracted. Manual entry is still available.", "error");
+                return;
+            }
+
+            setStatus("Captured " + foundLabels.join(", ") + ".", "success");
+        }
+
         async function scanSelectedImage(file) {
             const imgUrl = URL.createObjectURL(file);
 
             try {
                 const img = await loadImage(imgUrl);
-                const results = await decodeLabelRegions(img);
+                const zoneValues = await decodeTargetLabel(img);
 
+                if (Object.values(zoneValues).some(Boolean)) {
+                    applyDetectedValues(zoneValues);
+
+                    beep();
+                    if (navigator.vibrate) {
+                        navigator.vibrate(200);
+                    }
+                    return;
+                }
+
+                const results = await decodeLabelRegions(img);
                 processBarcodes(results);
 
                 if (results.length) {
@@ -526,6 +597,33 @@
             } finally {
                 URL.revokeObjectURL(imgUrl);
             }
+        }
+
+        async function decodeTargetLabel(img) {
+            const values = { hu: "", mat: "", bat: "" };
+
+            for (const zone of LABEL_SCAN_ZONES) {
+                for (const variant of zone.variants) {
+                    try {
+                        const result = await decodeImageRegion(
+                            img,
+                            zone.yStart,
+                            zone.yEnd,
+                            variant.xStart,
+                            variant.xEnd
+                        );
+
+                        if (result && result.text) {
+                            values[zone.key] = result.text.trim();
+                            break;
+                        }
+                    } catch (error) {
+                        console.warn("Zone decode failed for", zone.label, error);
+                    }
+                }
+            }
+
+            return values;
         }
 
         async function decodeLabelRegions(img) {
@@ -555,24 +653,26 @@
             return decoded;
         }
 
-        async function decodeImageRegion(img, startRatio, endRatio) {
+        async function decodeImageRegion(img, startRatio, endRatio, xStartRatio = 0, xEndRatio = 1) {
             const canvas = document.createElement("canvas");
             const context = canvas.getContext("2d");
             const sourceY = Math.max(0, Math.floor(img.height * startRatio));
             const sourceHeight = Math.max(1, Math.floor(img.height * (endRatio - startRatio)));
+            const sourceX = Math.max(0, Math.floor(img.width * xStartRatio));
+            const sourceWidth = Math.max(1, Math.floor(img.width * (xEndRatio - xStartRatio)));
 
-            canvas.width = img.width;
+            canvas.width = sourceWidth;
             canvas.height = sourceHeight;
 
             context.drawImage(
                 img,
-                0,
+                sourceX,
                 sourceY,
-                img.width,
+                sourceWidth,
                 sourceHeight,
                 0,
                 0,
-                img.width,
+                sourceWidth,
                 sourceHeight
             );
 

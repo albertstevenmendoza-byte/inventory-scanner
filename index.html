@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Novus Scanner ULTRA v1</title>
+    <title>Novus Scanner ULTRA</title>
     <script src="https://unpkg.com/@zxing/library@0.19.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -320,7 +321,7 @@
             <label class="photo-trigger" for="cameraInput">
                 <span style="font-size: 3rem;">[ ]</span>
                 <span style="margin-top: 10px; font-weight: 700;">TAP TO SCAN LABEL</span>
-                <span class="hint">Targets HU, Material, and Batch barcodes. Quantity is ignored.</span>
+                <span class="hint">Reads the printed HU, Material, and Batch values from this label style. Quantity is ignored.</span>
                 <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
             </label>
 
@@ -355,7 +356,8 @@
         <div class="scan-container" id="logList"></div>
     </div>
 
-    <script>
+    <script src="./app.js"></script>
+    <script type="text/plain" id="legacy-script">
         const STORAGE_KEY = "novus_ultra_data";
         const BIN_KEY = "novus_ultra_active_bin";
         const LABEL_SCAN_ZONES = [

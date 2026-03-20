@@ -4,291 +4,716 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Novus Scanner ULTRA</title>
-    <!-- Industrial Barcode Engine -->
     <script src="https://unpkg.com/@zxing/library@0.19.1"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #05070A; --card: #10141D; --accent: #3B82F6;
-            --success: #10B981; --border: #232D3F; --text: #F8FAFC;
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            background: var(--bg); color: var(--text); 
-            font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; height: 100vh;
-        }
-        .screen { position: fixed; inset: 0; display: flex; flex-direction: column; transition: 0.3s; }
-        .hidden { display: none !important; }
-
-        /* Setup */
-        #sSetup { justify-content: center; align-items: center; padding: 30px; text-align: center; }
-        .glitch-title { font-weight: 900; font-size: 2.5rem; letter-spacing: -2px; margin-bottom: 10px; color: var(--accent); }
-        input { 
-            background: var(--card); border: 2px solid var(--border); border-radius: 12px;
-            color: white; padding: 20px; width: 100%; font-family: 'JetBrains Mono';
-            font-size: 1.5rem; text-align: center; margin-bottom: 20px;
+            --bg: #05070a;
+            --card: #10141d;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --border: #232d3f;
+            --text: #f8fafc;
+            --muted: #64748b;
+            --warning: #f59e0b;
         }
 
-        /* Header */
-        header { 
-            padding: 15px 20px; background: var(--card); border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        .bin-badge { background: #F59E0B; color: black; padding: 4px 12px; border-radius: 6px; font-family: 'JetBrains Mono'; font-weight: 800; }
 
-        /* Main Scanner UI */
-        .scan-container { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
-        
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top, rgba(59, 130, 246, 0.18), transparent 35%),
+                linear-gradient(180deg, #06090f 0%, var(--bg) 100%);
+            color: var(--text);
+            font-family: "Inter", sans-serif;
+        }
+
+        .screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            transition: 0.3s;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #sSetup {
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .glitch-title {
+            margin-bottom: 10px;
+            color: var(--accent);
+            font-size: 2.5rem;
+            font-weight: 900;
+            letter-spacing: -2px;
+        }
+
+        .setup-shell {
+            width: min(100%, 520px);
+            padding: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            background: rgba(16, 20, 29, 0.94);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+        }
+
+        input {
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 1.5rem;
+            font-family: "JetBrains Mono", monospace;
+            text-align: center;
+        }
+
+        input::placeholder {
+            color: #475569;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(16, 20, 29, 0.96);
+            backdrop-filter: blur(8px);
+        }
+
+        .bin-badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            background: var(--warning);
+            color: #000;
+            font-weight: 800;
+            font-family: "JetBrains Mono", monospace;
+        }
+
+        .scan-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
         .photo-trigger {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 180px;
+            border: 3px dashed var(--accent);
+            border-radius: 20px;
             background: linear-gradient(145deg, #1e293b, #0f172a);
-            border: 3px dashed var(--accent); border-radius: 20px;
-            height: 180px; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; cursor: pointer;
-        }
-        .photo-trigger:active { transform: scale(0.98); border-color: white; }
-
-        .result-card { 
-            background: var(--card); border: 1px solid var(--border); 
-            border-radius: 12px; padding: 15px; position: relative;
-        }
-        .result-card.found { border-left: 5px solid var(--success); }
-        .label-tag { font-size: 10px; text-transform: uppercase; color: #64748b; margin-bottom: 5px; font-weight: 800; }
-        .val-input { 
-            background: transparent; border: none; color: white; width: 100%;
-            font-family: 'JetBrains Mono'; font-size: 1.2rem; outline: none;
+            cursor: pointer;
+            text-align: center;
         }
 
-        /* Footer */
-        footer { padding: 20px; background: var(--card); border-top: 1px solid var(--border); display: flex; gap: 10px; }
-        .btn { 
-            flex: 1; padding: 18px; border-radius: 12px; border: none; 
-            font-weight: 800; font-size: 1rem; cursor: pointer; text-transform: uppercase;
+        .photo-trigger:active {
+            transform: scale(0.98);
+            border-color: #fff;
         }
-        .btn-main { background: var(--accent); color: white; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
-        .btn-save { background: var(--success); color: white; }
-        .btn-ghost { background: #1e293b; color: #94a3b8; }
 
-        /* Processing Overlay */
+        .hint {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .result-card {
+            position: relative;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--card);
+        }
+
+        .result-card.found {
+            border-left: 5px solid var(--success);
+        }
+
+        .label-tag {
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .val-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            outline: none;
+            font-size: 1.2rem;
+            font-family: "JetBrains Mono", monospace;
+            text-align: left;
+            margin: 0;
+            padding: 0;
+        }
+
+        footer {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background: rgba(16, 20, 29, 0.96);
+            backdrop-filter: blur(8px);
+        }
+
+        .btn {
+            flex: 1;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .btn-main {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-save {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .btn-ghost {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+
+        .link-btn {
+            border: none;
+            background: none;
+            color: var(--accent);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
         #overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 100; backdrop-filter: blur(5px);
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
         }
-        .spinner { width: 50px; height: 50px; border: 5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* History List */
-        .log-item { background: var(--card); margin-bottom: 10px; padding: 15px; border-radius: 10px; font-size: 13px; border: 1px solid var(--border); }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status-banner {
+            min-height: 20px;
+            margin: 0 20px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .status-banner.error {
+            color: #fca5a5;
+        }
+
+        .status-banner.success {
+            color: #6ee7b7;
+        }
+
+        .log-item {
+            margin-bottom: 10px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--card);
+            font-size: 13px;
+        }
+
+        .empty-log {
+            padding: 24px;
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        @media (max-width: 640px) {
+            .glitch-title {
+                font-size: 2rem;
+            }
+
+            footer {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
+    <div id="overlay" class="hidden">
+        <div class="spinner"></div>
+        <p style="margin-top: 20px; font-weight: 600;">EXTRACTING DATA...</p>
+    </div>
 
-<!-- OVERLAY -->
-<div id="overlay" class="hidden">
-    <div class="spinner"></div>
-    <p style="margin-top: 20px; font-weight: 600;">EXTRACTING DATA...</p>
-</div>
-
-<!-- SCREEN: SETUP -->
-<div class="screen" id="sSetup">
-    <div class="glitch-title">NOVUS ULTRA</div>
-    <p style="color: #64748b; margin-bottom: 30px;">Industrial Multi-Barcode Engine</p>
-    <input type="text" id="binInput" placeholder="SCAN BIN LOCATION" autofocus>
-    <button class="btn btn-main" style="width: 100%" onclick="initScanner()">INITIALIZE SCANNER</button>
-</div>
-
-<!-- SCREEN: SCANNER -->
-<div class="screen hidden" id="sScanner">
-    <header>
-        <div style="font-weight: 900; font-size: 1.2rem;">ULTRA SCAN</div>
-        <div id="activeBin" class="bin-badge">---</div>
-        <button onclick="showLog()" style="background:none; border:none; color:var(--accent); font-weight:700;">HISTORY</button>
-    </header>
-
-    <div class="scan-container">
-        <label class="photo-trigger" for="cameraInput">
-            <span style="font-size: 3rem;">📸</span>
-            <span style="margin-top: 10px; font-weight: 700;">TAP TO SCAN LABEL</span>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
-        </label>
-
-        <div class="result-card" id="cardHU">
-            <div class="label-tag">1. HU Number (Top)</div>
-            <input type="text" id="resHU" class="val-input" placeholder="---">
-        </div>
-
-        <div class="result-card" id="cardMat">
-            <div class="label-tag">2. Material Number (Mid)</div>
-            <input type="text" id="resMat" class="val-input" placeholder="---">
-        </div>
-
-        <div class="result-card" id="cardBat">
-            <div class="label-tag">3. Batch / Invoice (Bot)</div>
-            <input type="text" id="resBat" class="val-input" placeholder="---">
+    <div class="screen" id="sSetup">
+        <div class="setup-shell">
+            <div class="glitch-title">NOVUS ULTRA</div>
+            <p style="color: var(--muted); margin-bottom: 30px;">Industrial Multi-Barcode Engine</p>
+            <input type="text" id="binInput" placeholder="SCAN BIN LOCATION" autofocus>
+            <button class="btn btn-main" style="width: 100%;" onclick="initScanner()">Initialize Scanner</button>
+            <p class="hint">Current session data stays on this device until you export it.</p>
         </div>
     </div>
 
-    <footer>
-        <button class="btn btn-ghost" onclick="resetScanner()">Reset</button>
-        <button class="btn btn-save" id="saveBtn" onclick="saveData()">Save Entry</button>
-    </footer>
-</div>
+    <div class="screen hidden" id="sScanner">
+        <header>
+            <div style="font-weight: 900; font-size: 1.2rem;">ULTRA SCAN</div>
+            <div id="activeBin" class="bin-badge">---</div>
+            <button class="link-btn" onclick="showLog()">HISTORY</button>
+        </header>
 
-<!-- SCREEN: LOG -->
-<div class="screen hidden" id="sLog">
-    <header>
-        <button onclick="showScanner()" style="background:none; border:none; color:var(--accent); font-weight:700;">← BACK</button>
-        <div style="font-weight: 900;">SESSION LOG</div>
-        <button onclick="exportCSV()" style="background:none; border:none; color:var(--success); font-weight:700;">EXPORT</button>
-    </header>
-    <div class="scan-container" id="logList"></div>
-</div>
+        <p id="scanStatus" class="status-banner"></p>
 
-<script>
-    let currentBin = "";
-    let scans = JSON.parse(localStorage.getItem('novus_ultra_data') || '[]');
-    const multiReader = new ZXing.BrowserMultiFormatReader();
+        <div class="scan-container">
+            <label class="photo-trigger" for="cameraInput">
+                <span style="font-size: 3rem;">[ ]</span>
+                <span style="margin-top: 10px; font-weight: 700;">TAP TO SCAN LABEL</span>
+                <span class="hint">Best results when the full label is visible and sharply focused.</span>
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+            </label>
 
-    // Audio Context for the "Beep"
-    const beep = () => {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'square'; osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        osc.start(); osc.stop(ctx.currentTime + 0.1);
-    };
-
-    function initScanner() {
-        const bin = document.getElementById('binInput').value.trim().toUpperCase();
-        if(!bin) return alert("Enter Bin Location");
-        currentBin = bin;
-        document.getElementById('activeBin').textContent = bin;
-        showScanner();
-    }
-
-    function showScanner() {
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById('sScanner').classList.remove('hidden');
-    }
-
-    function showLog() {
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById('sLog').classList.remove('hidden');
-        renderLog();
-    }
-
-    document.getElementById('cameraInput').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        document.getElementById('overlay').classList.remove('hidden');
-        
-        try {
-            const imgUrl = URL.createObjectURL(file);
-            const img = new Image();
-            img.src = imgUrl;
-
-            img.onload = async () => {
-                try {
-                    // "Steroids" Logic: We decode multiple barcodes from the image
-                    // We use the canvas to ensure high-resolution detail is preserved
-                    const results = await multiReader.decodeBinaryFromImageElement(img);
-                    // Note: BrowserMultiFormatReader's decodeFromImage is often limited to one.
-                    // To truly get multiple, we use the hints or a loop.
-                    // For the most reliable result, we'll try to find all barcodes in the image:
-                    const multiResults = await multiReader.decodeFromImageElement(img)
-                        .then(res => [res]) // Standard catch
-                        .catch(() => []);
-
-                    // If ZXing finds results, process them
-                    if (multiResults.length > 0) {
-                        processBarcodes(multiResults);
-                        beep();
-                        if(navigator.vibrate) navigator.vibrate(200);
-                    } else {
-                        // Fallback: Try a second pass with different settings
-                        alert("No barcodes found. Try: 1. Better lighting. 2. Hold camera further back to see all 3. Tap to focus.");
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert("Scanning failed. You can enter values manually.");
-                } finally {
-                    document.getElementById('overlay').classList.add('hidden');
-                }
-            };
-        } catch (err) {
-            document.getElementById('overlay').classList.add('hidden');
-        }
-    });
-
-    function processBarcodes(results) {
-        // Sort results by Y coordinate (Top to Bottom)
-        results.sort((a, b) => a.resultPoints[0].y - b.resultPoints[0].y);
-
-        if(results[0]) {
-            document.getElementById('resHU').value = results[0].text;
-            document.getElementById('cardHU').classList.add('found');
-        }
-        if(results[1]) {
-            document.getElementById('resMat').value = results[1].text;
-            document.getElementById('cardMat').classList.add('found');
-        }
-        if(results[2]) {
-            document.getElementById('resBat').value = results[2].text;
-            document.getElementById('cardBat').classList.add('found');
-        }
-    }
-
-    function saveData() {
-        const data = {
-            bin: currentBin,
-            hu: document.getElementById('resHU').value || "N/A",
-            mat: document.getElementById('resMat').value || "N/A",
-            bat: document.getElementById('resBat').value || "N/A",
-            time: new Date().toLocaleString()
-        };
-        
-        scans.unshift(data);
-        localStorage.setItem('novus_ultra_data', JSON.stringify(scans));
-        resetScanner();
-        alert("Entry Saved to Local Storage");
-    }
-
-    function resetScanner() {
-        document.getElementById('resHU').value = "";
-        document.getElementById('resMat').value = "";
-        document.getElementById('resBat').value = "";
-        document.querySelectorAll('.result-card').forEach(c => c.classList.remove('found'));
-        document.getElementById('cameraInput').value = "";
-    }
-
-    function renderLog() {
-        const list = document.getElementById('logList');
-        list.innerHTML = scans.map(s => `
-            <div class="log-item">
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <span style="color:var(--accent); font-weight:800;">BIN: ${s.bin}</span>
-                    <span style="opacity:0.5;">${s.time}</span>
-                </div>
-                HU: ${s.hu}<br>MAT: ${s.mat}<br>BAT: ${s.bat}
+            <div class="result-card" id="cardHU">
+                <div class="label-tag">1. HU Number (Top)</div>
+                <input type="text" id="resHU" class="val-input" placeholder="---">
             </div>
-        `).join('');
-    }
 
-    function exportCSV() {
-        let csv = "Bin,HU,Material,Batch,Timestamp\n";
-        scans.forEach(s => {
-            csv += `${s.bin},${s.hu},${s.mat},${s.bat},${s.time}\n`;
+            <div class="result-card" id="cardMat">
+                <div class="label-tag">2. Material Number (Mid)</div>
+                <input type="text" id="resMat" class="val-input" placeholder="---">
+            </div>
+
+            <div class="result-card" id="cardBat">
+                <div class="label-tag">3. Batch / Invoice (Bot)</div>
+                <input type="text" id="resBat" class="val-input" placeholder="---">
+            </div>
+        </div>
+
+        <footer>
+            <button class="btn btn-ghost" onclick="resetScanner()">Reset</button>
+            <button class="btn btn-save" id="saveBtn" onclick="saveData()">Save Entry</button>
+        </footer>
+    </div>
+
+    <div class="screen hidden" id="sLog">
+        <header>
+            <button class="link-btn" onclick="showScanner()">BACK</button>
+            <div style="font-weight: 900;">SESSION LOG</div>
+            <button class="link-btn" style="color: var(--success);" onclick="exportCSV()">EXPORT</button>
+        </header>
+        <div class="scan-container" id="logList"></div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = "novus_ultra_data";
+        const BIN_KEY = "novus_ultra_active_bin";
+
+        let currentBin = "";
+        let scans = loadScans();
+        const multiReader = new ZXing.BrowserMultiFormatReader();
+
+        function loadScans() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+            } catch (error) {
+                console.error("Failed to load saved scans", error);
+                return [];
+            }
+        }
+
+        function persistScans() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(scans));
+        }
+
+        function setStatus(message, tone) {
+            const banner = document.getElementById("scanStatus");
+            banner.textContent = message || "";
+            banner.className = "status-banner" + (tone ? " " + tone : "");
+        }
+
+        function beep() {
+            try {
+                const AudioCtor = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtor) {
+                    return;
+                }
+
+                const ctx = new AudioCtor();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "square";
+                osc.frequency.value = 880;
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.1);
+                osc.onended = () => ctx.close();
+            } catch (error) {
+                console.warn("Beep unavailable", error);
+            }
+        }
+
+        function initScanner() {
+            const bin = document.getElementById("binInput").value.trim().toUpperCase();
+            if (!bin) {
+                alert("Enter Bin Location");
+                return;
+            }
+
+            currentBin = bin;
+            localStorage.setItem(BIN_KEY, currentBin);
+            document.getElementById("activeBin").textContent = bin;
+            showScanner();
+            setStatus("Scanner ready for bin " + currentBin + ".", "success");
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll(".screen").forEach((screen) => screen.classList.add("hidden"));
+            document.getElementById(screenId).classList.remove("hidden");
+        }
+
+        function showScanner() {
+            showScreen("sScanner");
+        }
+
+        function showLog() {
+            showScreen("sLog");
+            renderLog();
+        }
+
+        function getPointY(result) {
+            if (!result || !result.resultPoints || !result.resultPoints.length) {
+                return Number.MAX_SAFE_INTEGER;
+            }
+
+            const validPoints = result.resultPoints.filter((point) => typeof point.y === "number");
+            if (!validPoints.length) {
+                return Number.MAX_SAFE_INTEGER;
+            }
+
+            return validPoints.reduce((sum, point) => sum + point.y, 0) / validPoints.length;
+        }
+
+        function dedupeResults(results) {
+            const seen = new Set();
+            return results.filter((result) => {
+                if (!result || !result.text) {
+                    return false;
+                }
+
+                const key = result.text.trim();
+                if (!key || seen.has(key)) {
+                    return false;
+                }
+
+                seen.add(key);
+                return true;
+            });
+        }
+
+        function splitFallbackValue(text) {
+            return text
+                .split(/\r?\n|[,;|]+/)
+                .map((part) => part.trim())
+                .filter(Boolean);
+        }
+
+        function applyFieldValue(fieldId, cardId, value) {
+            const field = document.getElementById(fieldId);
+            const card = document.getElementById(cardId);
+            field.value = value || "";
+            card.classList.toggle("found", Boolean(value));
+        }
+
+        function processBarcodes(results) {
+            const ordered = dedupeResults(results).sort((a, b) => getPointY(a) - getPointY(b));
+
+            applyFieldValue("resHU", "cardHU", ordered[0] ? ordered[0].text : "");
+            applyFieldValue("resMat", "cardMat", ordered[1] ? ordered[1].text : "");
+            applyFieldValue("resBat", "cardBat", ordered[2] ? ordered[2].text : "");
+
+            if (!ordered.length) {
+                setStatus("No barcode values were extracted. Manual entry is still available.", "error");
+                return;
+            }
+
+            if (ordered.length === 1) {
+                const fallbackParts = splitFallbackValue(ordered[0].text);
+                if (fallbackParts.length > 1) {
+                    applyFieldValue("resHU", "cardHU", fallbackParts[0] || "");
+                    applyFieldValue("resMat", "cardMat", fallbackParts[1] || "");
+                    applyFieldValue("resBat", "cardBat", fallbackParts[2] || "");
+                    setStatus("One barcode detected. Split into multiple values using separators in the payload.", "success");
+                    return;
+                }
+            }
+
+            setStatus("Captured " + ordered.length + " barcode value" + (ordered.length === 1 ? "" : "s") + ".", "success");
+        }
+
+        async function scanSelectedImage(file) {
+            const imgUrl = URL.createObjectURL(file);
+
+            try {
+                const img = await loadImage(imgUrl);
+                const results = await decodeLabelRegions(img);
+
+                processBarcodes(results);
+
+                if (results.length) {
+                    beep();
+                    if (navigator.vibrate) {
+                        navigator.vibrate(200);
+                    }
+                    return;
+                }
+
+                alert("No barcodes found. Try better lighting, include the full label, and keep the photo sharp.");
+            } finally {
+                URL.revokeObjectURL(imgUrl);
+            }
+        }
+
+        async function decodeLabelRegions(img) {
+            const regions = [
+                { start: 0, end: 1, label: "full" },
+                { start: 0, end: 0.42, label: "top" },
+                { start: 0.28, end: 0.72, label: "middle" },
+                { start: 0.58, end: 1, label: "bottom" }
+            ];
+
+            const decoded = [];
+
+            for (const region of regions) {
+                try {
+                    const result = await decodeImageRegion(img, region.start, region.end);
+                    if (result && result.text) {
+                        decoded.push({
+                            text: result.text,
+                            resultPoints: [{ y: Math.round(img.height * region.start) }]
+                        });
+                    }
+                } catch (error) {
+                    console.warn("Region decode failed for", region.label, error);
+                }
+            }
+
+            return decoded;
+        }
+
+        async function decodeImageRegion(img, startRatio, endRatio) {
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            const sourceY = Math.max(0, Math.floor(img.height * startRatio));
+            const sourceHeight = Math.max(1, Math.floor(img.height * (endRatio - startRatio)));
+
+            canvas.width = img.width;
+            canvas.height = sourceHeight;
+
+            context.drawImage(
+                img,
+                0,
+                sourceY,
+                img.width,
+                sourceHeight,
+                0,
+                0,
+                img.width,
+                sourceHeight
+            );
+
+            const croppedImage = await loadImage(canvas.toDataURL("image/png"));
+            return multiReader.decodeFromImageElement(croppedImage);
+        }
+
+        function loadImage(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = src;
+            });
+        }
+
+        document.getElementById("cameraInput").addEventListener("change", async (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            document.getElementById("overlay").classList.remove("hidden");
+            setStatus("Processing image...", "");
+
+            try {
+                await scanSelectedImage(file);
+            } catch (error) {
+                console.error(error);
+                setStatus("Scanning failed. You can still enter values manually.", "error");
+                alert("Scanning failed. You can enter values manually.");
+            } finally {
+                document.getElementById("overlay").classList.add("hidden");
+                document.getElementById("cameraInput").value = "";
+            }
         });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Novus_Export_${new Date().getTime()}.csv`;
-        a.click();
-    }
-</script>
+
+        function saveData() {
+            if (!currentBin) {
+                alert("Set a bin location before saving.");
+                showScreen("sSetup");
+                return;
+            }
+
+            const data = {
+                bin: currentBin,
+                hu: document.getElementById("resHU").value.trim() || "N/A",
+                mat: document.getElementById("resMat").value.trim() || "N/A",
+                bat: document.getElementById("resBat").value.trim() || "N/A",
+                time: new Date().toLocaleString()
+            };
+
+            scans.unshift(data);
+            persistScans();
+            resetScanner();
+            setStatus("Entry saved locally.", "success");
+            alert("Entry Saved to Local Storage");
+        }
+
+        function resetScanner() {
+            applyFieldValue("resHU", "cardHU", "");
+            applyFieldValue("resMat", "cardMat", "");
+            applyFieldValue("resBat", "cardBat", "");
+            setStatus("", "");
+            document.getElementById("cameraInput").value = "";
+        }
+
+        function renderLog() {
+            const list = document.getElementById("logList");
+
+            if (!scans.length) {
+                list.innerHTML = "<div class=\"empty-log\">No saved scans yet.</div>";
+                return;
+            }
+
+            list.innerHTML = scans.map((scan) => `
+                <div class="log-item">
+                    <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px;">
+                        <span style="color: var(--accent); font-weight: 800;">BIN: ${escapeHtml(scan.bin)}</span>
+                        <span style="opacity: 0.5;">${escapeHtml(scan.time)}</span>
+                    </div>
+                    HU: ${escapeHtml(scan.hu)}<br>
+                    MAT: ${escapeHtml(scan.mat)}<br>
+                    BAT: ${escapeHtml(scan.bat)}
+                </div>
+            `).join("");
+        }
+
+        function csvField(value) {
+            const safeValue = String(value ?? "");
+            return "\"" + safeValue.replace(/"/g, "\"\"") + "\"";
+        }
+
+        function exportCSV() {
+            if (!scans.length) {
+                alert("No scans available to export.");
+                return;
+            }
+
+            let csv = "Bin,HU,Material,Batch,Timestamp\n";
+            scans.forEach((scan) => {
+                csv += [
+                    csvField(scan.bin),
+                    csvField(scan.hu),
+                    csvField(scan.mat),
+                    csvField(scan.bat),
+                    csvField(scan.time)
+                ].join(",") + "\n";
+            });
+
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.download = "Novus_Export_" + Date.now() + ".csv";
+            link.click();
+
+            window.URL.revokeObjectURL(url);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        (function restoreSession() {
+            currentBin = localStorage.getItem(BIN_KEY) || "";
+            if (currentBin) {
+                document.getElementById("binInput").value = currentBin;
+                document.getElementById("activeBin").textContent = currentBin;
+                showScanner();
+                setStatus("Restored previous bin session.", "success");
+            } else {
+                showScreen("sSetup");
+            }
+        }());
+    </script>
 </body>
 </html>

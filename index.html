@@ -2,820 +2,324 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Novus Scanner ULTRA</title>
-    <script src="https://unpkg.com/@zxing/library@0.19.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAP Auditor | Novus Foods Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        :root {
-            --bg: #05070a;
-            --card: #10141d;
-            --accent: #3b82f6;
-            --success: #10b981;
-            --border: #232d3f;
-            --text: #f8fafc;
-            --muted: #64748b;
-            --warning: #f59e0b;
-        }
-
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-            background:
-                radial-gradient(circle at top, rgba(59, 130, 246, 0.18), transparent 35%),
-                linear-gradient(180deg, #06090f 0%, var(--bg) 100%);
-            color: var(--text);
-            font-family: "Inter", sans-serif;
-        }
-
-        .screen {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            transition: 0.3s;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        #sSetup {
-            justify-content: center;
-            align-items: center;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .glitch-title {
-            margin-bottom: 10px;
-            color: var(--accent);
-            font-size: 2.5rem;
-            font-weight: 900;
-            letter-spacing: -2px;
-        }
-
-        .setup-shell {
-            width: min(100%, 520px);
-            padding: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            background: rgba(16, 20, 29, 0.94);
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-        }
-
-        input {
-            width: 100%;
-            margin-bottom: 20px;
-            padding: 20px;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            background: var(--card);
-            color: var(--text);
-            font-size: 1.5rem;
-            font-family: "JetBrains Mono", monospace;
-            text-align: center;
-        }
-
-        input::placeholder {
-            color: #475569;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 15px 20px;
-            border-bottom: 1px solid var(--border);
-            background: rgba(16, 20, 29, 0.96);
-            backdrop-filter: blur(8px);
-        }
-
-        .bin-badge {
-            padding: 4px 12px;
-            border-radius: 6px;
-            background: var(--warning);
-            color: #000;
-            font-weight: 800;
-            font-family: "JetBrains Mono", monospace;
-        }
-
-        .scan-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        .photo-trigger {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 180px;
-            border: 3px dashed var(--accent);
-            border-radius: 20px;
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            cursor: pointer;
-            text-align: center;
-        }
-
-        .photo-trigger:active {
-            transform: scale(0.98);
-            border-color: #fff;
-        }
-
-        .hint {
-            margin-top: 8px;
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        .result-card {
-            position: relative;
-            padding: 15px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: var(--card);
-        }
-
-        .result-card.found {
-            border-left: 5px solid var(--success);
-        }
-
-        .label-tag {
-            margin-bottom: 5px;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-
-        .val-input {
-            width: 100%;
-            border: none;
-            background: transparent;
-            color: var(--text);
-            outline: none;
-            font-size: 1.2rem;
-            font-family: "JetBrains Mono", monospace;
-            text-align: left;
-            margin: 0;
-            padding: 0;
-        }
-
-        footer {
-            display: flex;
-            gap: 10px;
-            padding: 20px;
-            border-top: 1px solid var(--border);
-            background: rgba(16, 20, 29, 0.96);
-            backdrop-filter: blur(8px);
-        }
-
-        .btn {
-            flex: 1;
-            padding: 18px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-
-        .btn-main {
-            background: var(--accent);
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-save {
-            background: var(--success);
-            color: #fff;
-        }
-
-        .btn-ghost {
-            background: #1e293b;
-            color: #94a3b8;
-        }
-
-        .link-btn {
-            border: none;
-            background: none;
-            color: var(--accent);
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        #overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(5px);
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid var(--border);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .status-banner {
-            min-height: 20px;
-            margin: 0 20px;
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        .status-banner.error {
-            color: #fca5a5;
-        }
-
-        .status-banner.success {
-            color: #6ee7b7;
-        }
-
-        .log-item {
-            margin-bottom: 10px;
-            padding: 15px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            background: var(--card);
-            font-size: 13px;
-        }
-
-        .empty-log {
-            padding: 24px;
-            border: 1px dashed var(--border);
-            border-radius: 12px;
-            color: var(--muted);
-            text-align: center;
-        }
-
-        @media (max-width: 640px) {
-            .glitch-title {
-                font-size: 2rem;
-            }
-
-            footer {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-            }
-        }
+        .row-verified { background-color: #f0fdf4 !important; border-left: 6px solid #22c55e; }
+        .row-missing { background-color: #fef2f2 !important; border-left: 6px solid #ef4444; opacity: 0.8; }
+        .row-extra { background-color: #fff7ed !important; border-left: 6px solid #f97316; }
+        .row-error { border: 2px solid #ef4444 !important; animation: shake 0.2s ease-in-out 0s 2; }
+        .nav-tab-active { background-color: #3b82f6; color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .report-filter-active { border-bottom: 3px solid #3b82f6; color: #1e40af; font-weight: 800; }
+        input:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4); }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(5px); } 50% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+        @media print { .no-print { display: none; } }
     </style>
 </head>
-<body>
-    <div id="overlay" class="hidden">
-        <div class="spinner"></div>
-        <p style="margin-top: 20px; font-weight: 600;">EXTRACTING DATA...</p>
-    </div>
+<body class="bg-slate-100 font-sans text-slate-900 flex flex-col h-screen overflow-hidden text-sm">
 
-    <div class="screen" id="sSetup">
-        <div class="setup-shell">
-            <div class="glitch-title">NOVUS ULTRA</div>
-            <p style="color: var(--muted); margin-bottom: 30px;">Industrial Multi-Barcode Engine</p>
-            <input type="text" id="binInput" placeholder="SCAN BIN LOCATION" autofocus>
-            <button class="btn btn-main" style="width: 100%;" onclick="initScanner()">Initialize Scanner</button>
-            <p class="hint">Current session data stays on this device until you export it.</p>
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-4 shadow-xl shrink-0 no-print">
+        <div class="max-w-[1800px] mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-600 p-2 rounded-lg shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </div>
+                <h1 class="text-xl font-black uppercase tracking-tighter">SAP Auditor</h1>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <input type="file" id="sap-upload" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
+                <label for="sap-upload" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold cursor-pointer transition-all text-xs shadow-lg uppercase whitespace-nowrap">Load SAP Data</label>
+                <button onclick="clearAllData()" class="bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-lg hover:bg-red-700 hover:text-white transition-all font-bold uppercase text-[10px]">Reset Session</button>
+            </div>
         </div>
-    </div>
+    </header>
 
-    <div class="screen hidden" id="sScanner">
-        <header>
-            <div style="font-weight: 900; font-size: 1.2rem;">ULTRA SCAN</div>
-            <div id="activeBin" class="bin-badge">---</div>
-            <button class="link-btn" onclick="showLog()">HISTORY</button>
-        </header>
+    <!-- Navigation -->
+    <nav class="bg-white border-b flex justify-center p-1 no-print shrink-0">
+        <div class="flex bg-slate-100 p-1 rounded-xl w-full max-w-md shadow-inner">
+            <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-2 rounded-lg font-bold text-xs transition-all nav-tab-active uppercase">Audit Mode</button>
+            <button id="nav-report" onclick="switchView('report')" class="flex-1 py-2 rounded-lg font-bold text-xs transition-all text-slate-400 hover:text-white uppercase">Discrepancy Report</button>
+        </div>
+    </nav>
 
-        <p id="scanStatus" class="status-banner"></p>
-
-        <div class="scan-container">
-            <label class="photo-trigger" for="cameraInput">
-                <span style="font-size: 3rem;">[ ]</span>
-                <span style="margin-top: 10px; font-weight: 700;">TAP TO SCAN LABEL</span>
-                <span class="hint">Reads the printed HU, Material, and Batch values from this label style. Quantity is ignored.</span>
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
-            </label>
-
-            <div class="result-card" id="cardHU">
-                <div class="label-tag">1. HU Number (Top)</div>
-                <input type="text" id="resHU" class="val-input" placeholder="---">
+    <!-- AUDIT VIEW -->
+    <main id="view-audit" class="flex-1 max-w-[1800px] mx-auto w-full flex flex-col gap-4 p-4 overflow-hidden">
+        <div class="bg-white p-5 rounded-2xl shadow-lg border border-slate-200 flex items-end gap-6 shrink-0">
+            <div class="flex-1 max-w-sm">
+                <label class="block text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">Active Storage Bin</label>
+                <input type="text" id="bin-input" placeholder="Scan or Type Bin..." class="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-2xl font-black text-blue-700 uppercase focus:border-blue-500 outline-none transition-all">
             </div>
-
-            <div class="result-card" id="cardMat">
-                <div class="label-tag">2. Material Number (Mid)</div>
-                <input type="text" id="resMat" class="val-input" placeholder="---">
-            </div>
-
-            <div class="result-card" id="cardBat">
-                <div class="label-tag">3. Batch Number (Bottom)</div>
-                <input type="text" id="resBat" class="val-input" placeholder="---">
+            <div class="flex gap-4">
+                <div class="text-center bg-slate-50 px-6 py-2 rounded-xl border"><p class="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Expected</p><p id="stat-expected" class="text-xl font-black">0</p></div>
+                <div class="text-center bg-blue-50 px-6 py-2 rounded-xl border border-blue-100"><p class="text-[10px] text-blue-400 font-bold uppercase tracking-tight">Bins Done</p><p id="stat-bins-done" class="text-xl font-black text-blue-600">0</p></div>
             </div>
         </div>
 
-        <footer>
-            <button class="btn btn-ghost" onclick="resetScanner()">Reset</button>
-            <button class="btn btn-save" id="saveBtn" onclick="saveData()">Save Entry</button>
-        </footer>
-    </div>
+        <div class="flex-1 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col relative">
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 sticky top-0 z-10 border-b">
+                        <tr class="text-[10px] uppercase font-black text-slate-500 tracking-widest">
+                            <th class="p-4 w-12 text-center">Found</th><th class="p-4 w-12 text-center">Missing</th><th class="p-4">HU</th><th class="p-4">Product</th><th class="p-4 w-28">Batch</th><th class="p-4 w-16 text-center">UoM</th><th class="p-4 w-24 text-center">SAP Qty</th><th class="p-4 w-32 text-center bg-blue-50/50">Count Qty</th><th class="p-4 w-12 text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-body" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
 
-    <div class="screen hidden" id="sLog">
-        <header>
-            <button class="link-btn" onclick="showScanner()">BACK</button>
-            <div style="font-weight: 900;">SESSION LOG</div>
-            <button class="link-btn" style="color: var(--success);" onclick="exportCSV()">EXPORT</button>
-        </header>
-        <div class="scan-container" id="logList"></div>
-    </div>
+            <div class="p-4 bg-slate-900 border-t">
+                <div class="flex flex-wrap md:flex-nowrap gap-3">
+                    <input type="text" id="add-hu" placeholder="Extra HU Number" class="flex-1 p-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold focus:border-blue-500 outline-none" oninput="autoLookupExtra(this)">
+                    <input type="text" id="add-prod" placeholder="Product ID" class="flex-1 p-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold focus:border-blue-500 outline-none">
+                    <input type="text" id="add-batch" placeholder="Batch" class="w-28 p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:border-blue-500 outline-none">
+                    <input type="text" id="add-uom" placeholder="UoM" class="w-20 p-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold text-center focus:border-blue-500 outline-none">
+                    <input type="number" id="add-qty" placeholder="Qty" class="w-24 p-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-black text-center focus:border-blue-500 outline-none">
+                    <button onclick="submitExtra()" class="bg-orange-600 hover:bg-orange-500 text-white px-8 rounded-lg font-bold transition-all shadow-lg whitespace-nowrap uppercase text-xs">Add to Bin</button>
+                </div>
+            </div>
+            
+            <div class="p-4 bg-white border-t flex justify-end items-center gap-6">
+                <p id="validation-msg" class="text-xs font-bold text-red-600 uppercase hidden">⚠️ Complete all counts before finalizing</p>
+                <button onclick="finalizeBin()" class="bg-green-600 hover:bg-green-500 text-white px-10 py-3 rounded-xl font-bold shadow-lg transition-all uppercase tracking-widest text-sm">Finalize Bin Audit</button>
+            </div>
+        </div>
+    </main>
 
-    <script src="./app.js"></script>
-    <script type="text/plain" id="legacy-script">
-        const STORAGE_KEY = "novus_ultra_data";
-        const BIN_KEY = "novus_ultra_active_bin";
-        const LABEL_SCAN_ZONES = [
-            {
-                key: "hu",
-                fieldId: "resHU",
-                cardId: "cardHU",
-                label: "HU",
-                yStart: 0.10,
-                yEnd: 0.31,
-                variants: [
-                    { xStart: 0.40, xEnd: 0.98 },
-                    { xStart: 0.30, xEnd: 0.98 },
-                    { xStart: 0.00, xEnd: 1.00 }
-                ]
-            },
-            {
-                key: "mat",
-                fieldId: "resMat",
-                cardId: "cardMat",
-                label: "Material",
-                yStart: 0.43,
-                yEnd: 0.63,
-                variants: [
-                    { xStart: 0.48, xEnd: 0.96 },
-                    { xStart: 0.34, xEnd: 0.98 },
-                    { xStart: 0.00, xEnd: 1.00 }
-                ]
-            },
-            {
-                key: "bat",
-                fieldId: "resBat",
-                cardId: "cardBat",
-                label: "Batch",
-                yStart: 0.76,
-                yEnd: 0.93,
-                variants: [
-                    { xStart: 0.50, xEnd: 0.92 },
-                    { xStart: 0.36, xEnd: 0.96 },
-                    { xStart: 0.00, xEnd: 1.00 }
-                ]
+    <!-- REPORT VIEW -->
+    <main id="view-report" class="hidden flex-1 max-w-[1800px] mx-auto w-full flex flex-col p-4 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 flex-1 flex flex-col overflow-hidden">
+            <div class="flex bg-white border-b no-print shrink-0" id="report-filters">
+                <button onclick="filterReport('move')" class="p-4 text-xs font-bold uppercase tracking-widest report-filter-active" id="f-move">Movements</button>
+                <button onclick="filterReport('adj')" class="p-4 text-xs font-bold uppercase tracking-widest" id="f-adj">Adjustments</button>
+                <button onclick="filterReport('inactive')" class="p-4 text-xs font-bold uppercase tracking-widest" id="f-inactive">Inactive HUs</button>
+                <button onclick="filterReport('missing')" class="p-4 text-xs font-bold uppercase tracking-widest" id="f-missing">Missing Items</button>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-100 text-[10px] font-black uppercase text-slate-500 border-b sticky top-0">
+                        <tr><th class="p-4 text-xs">HU</th><th class="p-4 text-xs">Product</th><th class="p-4 text-xs text-blue-600">SAP Bin</th><th class="p-4 text-xs text-orange-600">Found In</th><th class="p-4 text-xs text-center">SAP Qty</th><th class="p-4 text-xs text-center">Count</th></tr>
+                    </thead>
+                    <tbody id="report-body" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+            
+            <!-- EMAIL SECTION -->
+            <div class="p-4 bg-slate-50 border-t flex flex-wrap items-center justify-between gap-4 no-print">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="email-user" placeholder="username" class="p-2 border rounded bg-white font-bold text-blue-700 outline-none w-40">
+                    <span class="font-bold text-slate-500">@novusfoods.com</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="sendEmailReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                        Email Report
+                    </button>
+                    <button onclick="window.print()" class="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-md">Print PDF</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- DATA STATE ---
+        let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
+        let auditLog = JSON.parse(localStorage.getItem('auditLog')) || []; 
+        let currentBinItems = JSON.parse(localStorage.getItem('currentBinItems')) || [];
+        let currentActiveBin = localStorage.getItem('currentActiveBin') || "";
+        let binsAudited = new Set(JSON.parse(localStorage.getItem('binsAudited')) || []);
+        let currentFilter = 'move';
+
+        function saveSession() {
+            localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
+            localStorage.setItem('auditLog', JSON.stringify(auditLog));
+            localStorage.setItem('currentBinItems', JSON.stringify(currentBinItems));
+            localStorage.setItem('currentActiveBin', currentActiveBin);
+            localStorage.setItem('binsAudited', JSON.stringify(Array.from(binsAudited)));
+        }
+
+        window.onload = () => {
+            if (sapMasterData.length > 0) {
+                document.getElementById('data-status').innerText = `ONLINE: ${sapMasterData.length} RECORDS`;
+                document.getElementById('data-status').className = "text-[10px] text-green-500 font-black uppercase px-2";
             }
-        ];
+            if (currentActiveBin) { document.getElementById('bin-input').value = currentActiveBin; renderAuditTable(); }
+            document.getElementById('stat-bins-done').innerText = binsAudited.size;
+        };
 
-        let currentBin = "";
-        let scans = loadScans();
-        const multiReader = new ZXing.BrowserMultiFormatReader();
+        function clearAllData() { if(confirm("Clear all progress?")){ localStorage.clear(); location.reload(); } }
 
-        function loadScans() {
-            try {
-                return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-            } catch (error) {
-                console.error("Failed to load saved scans", error);
-                return [];
-            }
+        // --- EMAIL LOGIC ---
+        function sendEmailReport() {
+            const user = document.getElementById('email-user').value.trim();
+            if (!user) return alert("Please enter your Novus Foods username.");
+            
+            const combined = [...auditLog, ...currentBinItems];
+            const foundHUs = new Set(combined.filter(i => i.verified).map(i => i.hu));
+            
+            const moves = combined.filter(i => i.sapBin && i.sapBin !== i.scannedBin && i.verified);
+            const adjs = combined.filter(i => i.sapBin === i.scannedBin && i.countQty !== i.sapQty && !i.isMissing && i.verified);
+            const ghost = combined.filter(i => i.sapBin === null);
+            const miss = combined.filter(i => (i.isMissing || (!i.verified && !i.isExtra)) && !foundHUs.has(i.hu));
+
+            let body = "SAP INVENTORY AUDIT DISCREPANCY REPORT\n";
+            body += "========================================\n\n";
+
+            const addSection = (title, data) => {
+                if (data.length === 0) return "";
+                let s = `[ ${title.toUpperCase()} ]\n`;
+                data.forEach(i => {
+                    s += `HU: ${i.hu} | Prod: ${i.product} | SAP Bin: ${i.sapBin || 'N/A'} | Found In: ${i.scannedBin} | SAP Qty: ${i.sapQty} | Count: ${i.countQty}\n`;
+                });
+                return s + "\n";
+            };
+
+            body += addSection("Movements Needed", moves);
+            body += addSection("Quantity Adjustments", adjs);
+            body += addSection("Inactive / Loose HUs", ghost);
+            body += addSection("Missing Items", miss);
+
+            const mailtoUrl = `mailto:${user}@novusfoods.com?subject=Inventory Discrepancy Report - ${new Date().toLocaleDateString()}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoUrl;
         }
 
-        function persistScans() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(scans));
+        // --- AUDIT LOGIC ---
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const raw = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                sapMasterData = raw.map(row => ({
+                    sapBin: String(row['Storage Bin'] || row['Storage bin'] || "").trim().toUpperCase(),
+                    hu: String(row['Handling Unit'] || row['HU'] || "").trim(),
+                    product: String(row['Product'] || ""),
+                    desc: row['Product Short Description'] || "",
+                    batch: String(row['Batch'] || ""),
+                    uom: row['Base Unit of Measure'] || row['UoM'] || "EA",
+                    sapQty: parseFloat(row['Quantity']) || 0
+                }));
+                saveSession(); location.reload();
+            };
+            reader.readAsArrayBuffer(file);
         }
 
-        function setStatus(message, tone) {
-            const banner = document.getElementById("scanStatus");
-            banner.textContent = message || "";
-            banner.className = "status-banner" + (tone ? " " + tone : "");
-        }
-
-        function beep() {
-            try {
-                const AudioCtor = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtor) {
-                    return;
-                }
-
-                const ctx = new AudioCtor();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = "square";
-                osc.frequency.value = 880;
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.1);
-                osc.onended = () => ctx.close();
-            } catch (error) {
-                console.warn("Beep unavailable", error);
-            }
-        }
-
-        function initScanner() {
-            const bin = document.getElementById("binInput").value.trim().toUpperCase();
-            if (!bin) {
-                alert("Enter Bin Location");
-                return;
-            }
-
-            currentBin = bin;
-            localStorage.setItem(BIN_KEY, currentBin);
-            document.getElementById("activeBin").textContent = bin;
-            showScanner();
-            setStatus("Scanner ready for bin " + currentBin + ".", "success");
-        }
-
-        function showScreen(screenId) {
-            document.querySelectorAll(".screen").forEach((screen) => screen.classList.add("hidden"));
-            document.getElementById(screenId).classList.remove("hidden");
-        }
-
-        function showScanner() {
-            showScreen("sScanner");
-        }
-
-        function showLog() {
-            showScreen("sLog");
-            renderLog();
-        }
-
-        function getPointY(result) {
-            if (!result || !result.resultPoints || !result.resultPoints.length) {
-                return Number.MAX_SAFE_INTEGER;
-            }
-
-            const validPoints = result.resultPoints.filter((point) => typeof point.y === "number");
-            if (!validPoints.length) {
-                return Number.MAX_SAFE_INTEGER;
-            }
-
-            return validPoints.reduce((sum, point) => sum + point.y, 0) / validPoints.length;
-        }
-
-        function dedupeResults(results) {
-            const seen = new Set();
-            return results.filter((result) => {
-                if (!result || !result.text) {
-                    return false;
-                }
-
-                const key = result.text.trim();
-                if (!key || seen.has(key)) {
-                    return false;
-                }
-
-                seen.add(key);
-                return true;
-            });
-        }
-
-        function splitFallbackValue(text) {
-            return text
-                .split(/\r?\n|[,;|]+/)
-                .map((part) => part.trim())
-                .filter(Boolean);
-        }
-
-        function applyFieldValue(fieldId, cardId, value) {
-            const field = document.getElementById(fieldId);
-            const card = document.getElementById(cardId);
-            field.value = value || "";
-            card.classList.toggle("found", Boolean(value));
-        }
-
-        function processBarcodes(results) {
-            const ordered = dedupeResults(results).sort((a, b) => getPointY(a) - getPointY(b));
-
-            applyFieldValue("resHU", "cardHU", ordered[0] ? ordered[0].text : "");
-            applyFieldValue("resMat", "cardMat", ordered[1] ? ordered[1].text : "");
-            applyFieldValue("resBat", "cardBat", ordered[2] ? ordered[2].text : "");
-
-            if (!ordered.length) {
-                setStatus("No barcode values were extracted. Manual entry is still available.", "error");
-                return;
-            }
-
-            if (ordered.length === 1) {
-                const fallbackParts = splitFallbackValue(ordered[0].text);
-                if (fallbackParts.length > 1) {
-                    applyFieldValue("resHU", "cardHU", fallbackParts[0] || "");
-                    applyFieldValue("resMat", "cardMat", fallbackParts[1] || "");
-                    applyFieldValue("resBat", "cardBat", fallbackParts[2] || "");
-                    setStatus("One barcode detected. Split into multiple values using separators in the payload.", "success");
-                    return;
-                }
-            }
-
-            setStatus("Captured " + ordered.length + " barcode value" + (ordered.length === 1 ? "" : "s") + ".", "success");
-        }
-
-        function applyDetectedValues(values) {
-            const foundLabels = [];
-
-            LABEL_SCAN_ZONES.forEach((zone) => {
-                const value = values[zone.key] || "";
-                applyFieldValue(zone.fieldId, zone.cardId, value);
-                if (value) {
-                    foundLabels.push(zone.label);
-                }
-            });
-
-            if (!foundLabels.length) {
-                setStatus("No barcode values were extracted. Manual entry is still available.", "error");
-                return;
-            }
-
-            setStatus("Captured " + foundLabels.join(", ") + ".", "success");
-        }
-
-        async function scanSelectedImage(file) {
-            const imgUrl = URL.createObjectURL(file);
-
-            try {
-                const img = await loadImage(imgUrl);
-                const zoneValues = await decodeTargetLabel(img);
-
-                if (Object.values(zoneValues).some(Boolean)) {
-                    applyDetectedValues(zoneValues);
-
-                    beep();
-                    if (navigator.vibrate) {
-                        navigator.vibrate(200);
-                    }
-                    return;
-                }
-
-                const results = await decodeLabelRegions(img);
-                processBarcodes(results);
-
-                if (results.length) {
-                    beep();
-                    if (navigator.vibrate) {
-                        navigator.vibrate(200);
-                    }
-                    return;
-                }
-
-                alert("No barcodes found. Try better lighting, include the full label, and keep the photo sharp.");
-            } finally {
-                URL.revokeObjectURL(imgUrl);
-            }
-        }
-
-        async function decodeTargetLabel(img) {
-            const values = { hu: "", mat: "", bat: "" };
-
-            for (const zone of LABEL_SCAN_ZONES) {
-                for (const variant of zone.variants) {
-                    try {
-                        const result = await decodeImageRegion(
-                            img,
-                            zone.yStart,
-                            zone.yEnd,
-                            variant.xStart,
-                            variant.xEnd
-                        );
-
-                        if (result && result.text) {
-                            values[zone.key] = result.text.trim();
-                            break;
-                        }
-                    } catch (error) {
-                        console.warn("Zone decode failed for", zone.label, error);
-                    }
-                }
-            }
-
-            return values;
-        }
-
-        async function decodeLabelRegions(img) {
-            const regions = [
-                { start: 0, end: 1, label: "full" },
-                { start: 0, end: 0.42, label: "top" },
-                { start: 0.28, end: 0.72, label: "middle" },
-                { start: 0.58, end: 1, label: "bottom" }
-            ];
-
-            const decoded = [];
-
-            for (const region of regions) {
-                try {
-                    const result = await decodeImageRegion(img, region.start, region.end);
-                    if (result && result.text) {
-                        decoded.push({
-                            text: result.text,
-                            resultPoints: [{ y: Math.round(img.height * region.start) }]
-                        });
-                    }
-                } catch (error) {
-                    console.warn("Region decode failed for", region.label, error);
-                }
-            }
-
-            return decoded;
-        }
-
-        async function decodeImageRegion(img, startRatio, endRatio, xStartRatio = 0, xEndRatio = 1) {
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            const sourceY = Math.max(0, Math.floor(img.height * startRatio));
-            const sourceHeight = Math.max(1, Math.floor(img.height * (endRatio - startRatio)));
-            const sourceX = Math.max(0, Math.floor(img.width * xStartRatio));
-            const sourceWidth = Math.max(1, Math.floor(img.width * (xEndRatio - xStartRatio)));
-
-            canvas.width = sourceWidth;
-            canvas.height = sourceHeight;
-
-            context.drawImage(
-                img,
-                sourceX,
-                sourceY,
-                sourceWidth,
-                sourceHeight,
-                0,
-                0,
-                sourceWidth,
-                sourceHeight
-            );
-
-            const croppedImage = await loadImage(canvas.toDataURL("image/png"));
-            return multiReader.decodeFromImageElement(croppedImage);
-        }
-
-        function loadImage(src) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = reject;
-                img.src = src;
-            });
-        }
-
-        document.getElementById("cameraInput").addEventListener("change", async (event) => {
-            const file = event.target.files && event.target.files[0];
-            if (!file) {
-                return;
-            }
-
-            document.getElementById("overlay").classList.remove("hidden");
-            setStatus("Processing image...", "");
-
-            try {
-                await scanSelectedImage(file);
-            } catch (error) {
-                console.error(error);
-                setStatus("Scanning failed. You can still enter values manually.", "error");
-                alert("Scanning failed. You can enter values manually.");
-            } finally {
-                document.getElementById("overlay").classList.add("hidden");
-                document.getElementById("cameraInput").value = "";
+        document.getElementById('bin-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const binVal = e.target.value.trim().toUpperCase();
+                if(!binVal) return;
+                currentActiveBin = binVal;
+                const expected = sapMasterData.filter(i => i.sapBin === binVal);
+                currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: binVal }));
+                saveSession(); renderAuditTable();
             }
         });
 
-        function saveData() {
-            if (!currentBin) {
-                alert("Set a bin location before saving.");
-                showScreen("sSetup");
-                return;
+        function renderAuditTable() {
+            const tbody = document.getElementById('audit-body');
+            tbody.innerHTML = "";
+            if (currentBinItems.length === 0 && currentActiveBin !== "") {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-12 text-center text-slate-400 italic font-medium bg-slate-50/50 text-xs uppercase tracking-widest">SAP Systematic record: Bin is empty. Add physical items below.</td>`;
             }
-
-            const data = {
-                bin: currentBin,
-                hu: document.getElementById("resHU").value.trim() || "N/A",
-                mat: document.getElementById("resMat").value.trim() || "N/A",
-                bat: document.getElementById("resBat").value.trim() || "N/A",
-                time: new Date().toLocaleString()
-            };
-
-            scans.unshift(data);
-            persistScans();
-            resetScanner();
-            setStatus("Entry saved locally.", "success");
-            alert("Entry Saved to Local Storage");
-        }
-
-        function resetScanner() {
-            applyFieldValue("resHU", "cardHU", "");
-            applyFieldValue("resMat", "cardMat", "");
-            applyFieldValue("resBat", "cardBat", "");
-            setStatus("", "");
-            document.getElementById("cameraInput").value = "";
-        }
-
-        function renderLog() {
-            const list = document.getElementById("logList");
-
-            if (!scans.length) {
-                list.innerHTML = "<div class=\"empty-log\">No saved scans yet.</div>";
-                return;
-            }
-
-            list.innerHTML = scans.map((scan) => `
-                <div class="log-item">
-                    <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px;">
-                        <span style="color: var(--accent); font-weight: 800;">BIN: ${escapeHtml(scan.bin)}</span>
-                        <span style="opacity: 0.5;">${escapeHtml(scan.time)}</span>
-                    </div>
-                    HU: ${escapeHtml(scan.hu)}<br>
-                    MAT: ${escapeHtml(scan.mat)}<br>
-                    BAT: ${escapeHtml(scan.bat)}
-                </div>
-            `).join("");
-        }
-
-        function csvField(value) {
-            const safeValue = String(value ?? "");
-            return "\"" + safeValue.replace(/"/g, "\"\"") + "\"";
-        }
-
-        function exportCSV() {
-            if (!scans.length) {
-                alert("No scans available to export.");
-                return;
-            }
-
-            let csv = "Bin,HU,Material,Batch,Timestamp\n";
-            scans.forEach((scan) => {
-                csv += [
-                    csvField(scan.bin),
-                    csvField(scan.hu),
-                    csvField(scan.mat),
-                    csvField(scan.bat),
-                    csvField(scan.time)
-                ].join(",") + "\n";
+            currentBinItems.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = item.verified ? 'row-verified' : (item.isMissing ? 'row-missing' : (item.isExtra ? 'row-extra' : ''));
+                tr.innerHTML = `
+                    <td class="p-4 text-center"><input type="checkbox" class="w-5 h-5 accent-green-600" ${item.verified ? 'checked' : ''} onchange="toggleFound(${index})"></td>
+                    <td class="p-4 text-center"><input type="checkbox" class="w-5 h-5 accent-red-600" ${item.isMissing ? 'checked' : ''} onchange="toggleMissing(${index})"></td>
+                    <td class="p-4 font-mono font-bold text-slate-600">${item.hu}</td>
+                    <td class="p-4 font-bold text-slate-800">${item.product}<div class="text-[9px] text-slate-400 uppercase font-normal">${item.desc}</div></td>
+                    <td class="p-4 text-xs font-medium text-slate-400 text-center">${item.batch || '---'}</td>
+                    <td class="p-4 text-center text-[10px] font-bold text-slate-500">${item.uom}</td>
+                    <td class="p-4 text-center font-bold text-slate-400">${item.isExtra ? '--' : item.sapQty}</td>
+                    <td class="p-4 bg-blue-50/30"><input type="number" id="qty-input-${index}" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" class="w-full p-2 border-2 border-blue-100 rounded-lg text-center font-black text-blue-700 outline-none shadow-sm" ${item.isMissing ? 'disabled' : ''}></td>
+                    <td class="p-4 text-center"><button onclick="removeRow(${index})" class="text-slate-300 hover:text-red-500 transition-colors">✕</button></td>
+                `;
+                tbody.appendChild(tr);
             });
-
-            const blob = new Blob([csv], { type: "text/csv" });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement("a");
-
-            link.href = url;
-            link.download = "Novus_Export_" + Date.now() + ".csv";
-            link.click();
-
-            window.URL.revokeObjectURL(url);
+            document.getElementById('stat-expected').innerText = currentBinItems.filter(i => !i.isExtra).length;
+            document.getElementById('validation-msg').classList.add('hidden');
         }
 
-        function escapeHtml(value) {
-            return String(value ?? "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#39;");
+        function submitExtra() {
+            const hu = document.getElementById('add-hu').value.trim();
+            const prod = document.getElementById('add-prod').value.trim();
+            const batch = document.getElementById('add-batch').value.trim();
+            const uom = document.getElementById('add-uom').value.trim() || "EA";
+            const qty = parseFloat(document.getElementById('add-qty').value) || 0;
+            if(!currentActiveBin || !hu || !prod || qty <= 0) return alert("HU, Product, and Quantity are required.");
+            const sapMatch = sapMasterData.find(i => i.hu === hu);
+            const description = (hu === "0") ? "Missing/non-visible HU" : (sapMatch ? sapMatch.desc : "GHOST HU");
+            currentBinItems.push({ hu, product: prod, batch, uom, sapQty: sapMatch?sapMatch.sapQty:0, sapBin: sapMatch?sapMatch.sapBin:null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: description });
+            ['add-hu', 'add-prod', 'add-batch', 'add-uom', 'add-qty'].forEach(id => document.getElementById(id).value = "");
+            saveSession(); renderAuditTable();
         }
 
-        (function restoreSession() {
-            currentBin = localStorage.getItem(BIN_KEY) || "";
-            if (currentBin) {
-                document.getElementById("binInput").value = currentBin;
-                document.getElementById("activeBin").textContent = currentBin;
-                showScanner();
-                setStatus("Restored previous bin session.", "success");
-            } else {
-                showScreen("sSetup");
+        function finalizeBin() {
+            if(!currentActiveBin) return;
+            let errors = false;
+            currentBinItems.forEach((item, index) => {
+                const inputEl = document.getElementById(`qty-input-${index}`);
+                if (item.verified && (item.countQty <= 0 || isNaN(item.countQty))) { inputEl.classList.add('row-error'); errors = true; }
+                if (!item.verified && !item.isMissing) { inputEl.closest('tr').classList.add('row-error'); errors = true; }
+            });
+            if (errors) { document.getElementById('validation-msg').classList.remove('hidden'); return; }
+            auditLog.push(...currentBinItems);
+            binsAudited.add(currentActiveBin);
+            currentBinItems = []; currentActiveBin = "";
+            document.getElementById('bin-input').value = ""; document.getElementById('bin-input').focus();
+            document.getElementById('stat-bins-done').innerText = binsAudited.size;
+            saveSession(); renderAuditTable();
+        }
+
+        function toggleFound(idx) { currentBinItems[idx].verified = !currentBinItems[idx].verified; if (currentBinItems[idx].verified) currentBinItems[idx].isMissing = false; saveSession(); renderAuditTable(); }
+        function toggleMissing(idx) { currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } saveSession(); renderAuditTable(); }
+        function updateCount(idx, val) { currentBinItems[idx].countQty = parseFloat(val) || 0; if(currentBinItems[idx].countQty > 0) { currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; } saveSession(); }
+        function removeRow(idx) { currentBinItems.splice(idx, 1); saveSession(); renderAuditTable(); }
+        function switchView(view) {
+            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
+            document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
+            document.getElementById('nav-audit').classList.toggle('nav-tab-active', view === 'audit');
+            document.getElementById('nav-report').classList.toggle('nav-tab-active', view === 'report');
+            if(view === 'report') filterReport(currentFilter);
+        }
+
+        function filterReport(type) {
+            currentFilter = type;
+            const tbody = document.getElementById('report-body');
+            tbody.innerHTML = "";
+            document.querySelectorAll('#report-filters button').forEach(b => b.classList.remove('report-filter-active'));
+            document.getElementById(`f-${type}`).classList.add('report-filter-active');
+            const combined = [...auditLog, ...currentBinItems];
+            const foundHUs = new Set(combined.filter(i => i.verified).map(i => i.hu));
+            let filtered = [];
+            if (type === 'move') filtered = combined.filter(i => i.sapBin && i.sapBin !== i.scannedBin && i.verified);
+            else if (type === 'adj') filtered = combined.filter(i => i.sapBin === i.scannedBin && i.countQty !== i.sapQty && !i.isMissing && i.verified);
+            else if (type === 'inactive') filtered = combined.filter(i => i.sapBin === null);
+            else if (type === 'missing') filtered = combined.filter(i => (i.isMissing || (!i.verified && !i.isExtra)) && !foundHUs.has(i.hu));
+            if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-12 text-center text-slate-300 italic uppercase font-bold">No records found</td></tr>`; return; }
+            filtered.forEach(i => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="p-4 font-mono text-xs font-bold">${i.hu}</td><td class="p-4 text-xs font-bold">${i.product}</td><td class="p-4 text-[10px] uppercase text-slate-500 font-medium">${i.desc}</td><td class="p-4 text-xs font-bold text-blue-600">${i.sapBin||'---'}</td><td class="p-4 text-xs font-bold text-orange-600">${i.scannedBin}</td><td class="p-4 text-xs text-center">${i.sapQty}</td><td class="p-4 text-xs text-center font-bold">${i.countQty}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function autoLookupExtra(input) {
+            const hu = input.value.trim();
+            if (hu.length >= 8) {
+                const match = sapMasterData.find(i => i.hu === hu);
+                if (match) {
+                    document.getElementById('add-prod').value = match.product;
+                    document.getElementById('add-batch').value = match.batch;
+                    document.getElementById('add-uom').value = match.uom;
+                    document.getElementById('add-qty').focus();
+                }
             }
-        }());
+        }
     </script>
 </body>
 </html>

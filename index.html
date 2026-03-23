@@ -315,7 +315,23 @@
                 const card = document.createElement('div');
                 card.id = `card-${index}`;
                 card.className = `p-4 rounded-2xl shadow-md border bg-white transition-all ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
-                card.innerHTML = `<div class="flex justify-between items-start mb-3"><div class="flex-1"><p class="text-[9px] font-black text-slate-400 uppercase mb-1">HU: ${item.hu}</p><h3 class="text-sm font-black text-slate-800">${item.product}</h3></div><div class="text-right"><p class="text-[8px] font-black text-slate-400 uppercase">SAP Qty</p><p class="text-lg font-black text-slate-700">${item.isExtra ? '--' : item.sapQty} <span class="text-[10px]">${item.uom}</span></p></div></div><div class="flex gap-2 items-center"><button onclick="toggleFound(${index})" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase border-2 ${item.verified ? 'bg-green-600 border-green-600 text-white' : 'border-slate-200 text-slate-400'}">Found</button><button onclick="toggleMissing(${index})" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-200 text-slate-400'}">Missing</button><div class="flex-[1.5]"><input type="number" id="qty-input-${index}" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="QTY" class="w-full p-3 bg-slate-100 rounded-xl text-center font-black text-blue-700 outline-none"></div></div>`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <span class="inline-block px-2 py-0.5 bg-slate-800 text-white font-mono text-xs rounded mb-2">HU: ${item.hu}</span>
+                            <h3 class="text-sm font-black text-slate-800 leading-tight">${item.product}</h3>
+                            <p class="text-[10px] text-blue-600 font-bold uppercase mt-0.5 leading-tight">${item.desc}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[8px] font-black text-slate-400 uppercase">SAP Qty</p>
+                            <p class="text-lg font-black text-slate-700">${item.isExtra ? '--' : item.sapQty} <span class="text-[10px]">${item.uom}</span></p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <button onclick="toggleFound(${index})" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase border-2 ${item.verified ? 'bg-green-600 border-green-600 text-white' : 'border-slate-200 text-slate-400'}">Found</button>
+                        <button onclick="toggleMissing(${index})" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-200 text-slate-400'}">Missing</button>
+                        <div class="flex-[1.5]"><input type="number" id="qty-input-${index}" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="QTY" class="w-full p-3 bg-slate-100 rounded-xl text-center font-black text-blue-700 outline-none"></div>
+                    </div>`;
                 container.appendChild(card);
             });
         }
@@ -334,7 +350,7 @@
                     sapBin: String(row['Storage Bin'] || row['Storage bin'] || "").trim().toUpperCase(),
                     hu: String(row['Handling Unit'] || row['HU'] || "").trim(),
                     product: String(row['Product'] || ""),
-                    desc: row['Product Short Description'] || "",
+                    desc: row['Product Short Description'] || row['Product short description'] || "",
                     batch: String(row['Batch'] || ""),
                     uom: row['Base Unit of Measure'] || row['UoM'] || "EA",
                     sapQty: parseFloat(row['Quantity']) || 0
@@ -394,7 +410,13 @@
                 } else {
                     subText = `<div class="flex justify-between mt-1"><div class="text-[9px]">SAP: ${i.sapQty}</div><div class="text-[9px] font-black">Count: ${i.countQty} ${i.uom}</div></div>`;
                 }
-                div.innerHTML = `<div class="flex justify-between"><span class="text-[9px] font-bold text-slate-400">HU: ${i.hu}</span></div><p class="font-black text-xs">${i.product}</p>${subText}`;
+                div.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-bold text-slate-900 bg-slate-100 px-1 rounded">HU: ${i.hu}</span>
+                    </div>
+                    <p class="font-black text-xs mt-1">${i.product}</p>
+                    <p class="text-[10px] text-blue-600 font-bold uppercase leading-tight">${i.desc || ''}</p>
+                    ${subText}`;
                 container.appendChild(div);
             });
         }
@@ -409,9 +431,9 @@
                 let s = `\n--- ${title.toUpperCase()} ---\n`;
                 data.forEach(i => {
                     if (title === "Movements") {
-                        s += `HU:${i.hu} | Prod:${i.product} | FOUND IN:${i.scannedBin} | MOVE TO:${i.sapBin}\n`;
+                        s += `HU:${i.hu} | Prod:${i.product} (${i.desc}) | FOUND IN:${i.scannedBin} | MOVE TO:${i.sapBin}\n`;
                     } else {
-                        s += `HU:${i.hu} | Prod:${i.product} | Loc:${i.scannedBin} | SAP:${i.sapQty} | Cnt:${i.countQty} ${i.uom}\n`;
+                        s += `HU:${i.hu} | Prod:${i.product} (${i.desc}) | Loc:${i.scannedBin} | SAP:${i.sapQty} | Cnt:${i.countQty} ${i.uom}\n`;
                     }
                 });
                 return s;

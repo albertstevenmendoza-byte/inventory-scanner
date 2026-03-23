@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAP Auditor | Novus Foods Edition</title>
+    <title>SAP Auditor | Novus Foods Email Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -33,7 +33,7 @@
             <div class="flex items-center gap-3">
                 <input type="file" id="sap-upload" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
                 <label for="sap-upload" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold cursor-pointer transition-all text-xs shadow-lg uppercase whitespace-nowrap">Load SAP Data</label>
-                <button onclick="clearAllData()" class="bg-slate-800 border border-slate-700 text-slate-400 px-4 py-2 rounded-lg hover:bg-red-700 hover:text-white transition-all font-bold uppercase text-[10px]">Reset Session</button>
+                <button onclick="clearAllData()" class="bg-slate-800 border border-slate-700 text-slate-400 px-3 py-2 rounded-lg hover:bg-red-700 hover:text-white transition-all font-bold uppercase text-[10px]">Reset Session</button>
             </div>
         </div>
     </header>
@@ -50,7 +50,7 @@
     <main id="view-audit" class="flex-1 max-w-[1800px] mx-auto w-full flex flex-col gap-4 p-4 overflow-hidden">
         <div class="bg-white p-5 rounded-2xl shadow-lg border border-slate-200 flex items-end gap-6 shrink-0">
             <div class="flex-1 max-w-sm">
-                <label class="block text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">Active Storage Bin</label>
+                <label class="block text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest leading-none">Target Storage Bin</label>
                 <input type="text" id="bin-input" placeholder="Scan or Type Bin..." class="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-2xl font-black text-blue-700 uppercase focus:border-blue-500 outline-none transition-all">
             </div>
             <div class="flex gap-4">
@@ -71,7 +71,7 @@
                 </table>
             </div>
 
-            <div class="p-4 bg-slate-900 border-t">
+            <div class="p-4 bg-slate-900 border-t shadow-[0_-10px_15px_rgba(0,0,0,0.1)]">
                 <div class="flex flex-wrap md:flex-nowrap gap-3">
                     <input type="text" id="add-hu" placeholder="Extra HU Number" class="flex-1 p-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold focus:border-blue-500 outline-none" oninput="autoLookupExtra(this)">
                     <input type="text" id="add-prod" placeholder="Product ID" class="flex-1 p-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold focus:border-blue-500 outline-none">
@@ -107,18 +107,19 @@
                 </table>
             </div>
             
-            <!-- EMAIL SECTION -->
+            <!-- EMAIL SECTION (Primary Action) -->
             <div class="p-4 bg-slate-50 border-t flex flex-wrap items-center justify-between gap-4 no-print">
                 <div class="flex items-center gap-2">
-                    <input type="text" id="email-user" placeholder="username" class="p-2 border rounded bg-white font-bold text-blue-700 outline-none w-40">
-                    <span class="font-bold text-slate-500">@novusfoods.com</span>
+                    <span class="text-xs font-black text-slate-400 uppercase">Send To:</span>
+                    <input type="text" id="email-user" placeholder="username" class="p-2 border rounded-lg bg-white font-bold text-blue-700 outline-none w-40 shadow-sm">
+                    <span class="font-bold text-slate-600">@novusfoods.com</span>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="sendEmailReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                        Email Report
+                <div class="flex gap-3">
+                    <!-- FIXED BUTTON: Calls sendEmailReport ONLY -->
+                    <button onclick="sendEmailReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded-xl font-black uppercase tracking-widest flex items-center gap-3 transition-all shadow-lg shadow-blue-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                        Email Discrepancy Report
                     </button>
-                    <button onclick="window.print()" class="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-md">Print PDF</button>
                 </div>
             </div>
         </div>
@@ -152,10 +153,14 @@
 
         function clearAllData() { if(confirm("Clear all progress?")){ localStorage.clear(); location.reload(); } }
 
-        // --- EMAIL LOGIC ---
+        // --- EMAIL LOGIC (No Print Dialog) ---
         function sendEmailReport() {
             const user = document.getElementById('email-user').value.trim();
-            if (!user) return alert("Please enter your Novus Foods username.");
+            if (!user) {
+                alert("Please enter your Novus Foods username to send the email.");
+                document.getElementById('email-user').focus();
+                return;
+            }
             
             const combined = [...auditLog, ...currentBinItems];
             const foundHUs = new Set(combined.filter(i => i.verified).map(i => i.hu));
@@ -165,28 +170,32 @@
             const ghost = combined.filter(i => i.sapBin === null);
             const miss = combined.filter(i => (i.isMissing || (!i.verified && !i.isExtra)) && !foundHUs.has(i.hu));
 
-            let body = "SAP INVENTORY AUDIT DISCREPANCY REPORT\n";
+            let body = "NOVUS FOODS - INVENTORY DISCREPANCY REPORT\n";
+            body += `Timestamp: ${new Date().toLocaleString()}\n`;
             body += "========================================\n\n";
 
             const addSection = (title, data) => {
                 if (data.length === 0) return "";
-                let s = `[ ${title.toUpperCase()} ]\n`;
+                let s = `--- ${title.toUpperCase()} ---\n`;
                 data.forEach(i => {
-                    s += `HU: ${i.hu} | Prod: ${i.product} | SAP Bin: ${i.sapBin || 'N/A'} | Found In: ${i.scannedBin} | SAP Qty: ${i.sapQty} | Count: ${i.countQty}\n`;
+                    s += `HU: ${i.hu} | Product: ${i.product} | SAP Bin: ${i.sapBin || 'EMPTY'} | Found In: ${i.scannedBin} | SAP Qty: ${i.sapQty} | Count: ${i.countQty} ${i.uom}\n`;
                 });
                 return s + "\n";
             };
 
-            body += addSection("Movements Needed", moves);
+            body += addSection("Movements Required", moves);
             body += addSection("Quantity Adjustments", adjs);
-            body += addSection("Inactive / Loose HUs", ghost);
-            body += addSection("Missing Items", miss);
+            body += addSection("Inactive / Loose Stock Found", ghost);
+            body += addSection("Missing Items (Not Found Anywhere)", miss);
 
-            const mailtoUrl = `mailto:${user}@novusfoods.com?subject=Inventory Discrepancy Report - ${new Date().toLocaleDateString()}&body=${encodeURIComponent(body)}`;
+            const subject = `Inventory Discrepancy Report - ${new Date().toLocaleDateString()}`;
+            const mailtoUrl = `mailto:${user}@novusfoods.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // This triggers the email client without opening a print window
             window.location.href = mailtoUrl;
         }
 
-        // --- AUDIT LOGIC ---
+        // --- CORE AUDIT LOGIC ---
         function handleFileUpload(event) {
             const file = event.target.files[0];
             const reader = new FileReader();
@@ -222,7 +231,7 @@
             const tbody = document.getElementById('audit-body');
             tbody.innerHTML = "";
             if (currentBinItems.length === 0 && currentActiveBin !== "") {
-                tbody.innerHTML = `<tr><td colspan="9" class="p-12 text-center text-slate-400 italic font-medium bg-slate-50/50 text-xs uppercase tracking-widest">SAP Systematic record: Bin is empty. Add physical items below.</td>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="p-12 text-center text-slate-400 italic font-medium bg-slate-50/50 text-xs uppercase tracking-widest">SAP record: Bin is empty. Add physical items below.</td>`;
             }
             currentBinItems.forEach((item, index) => {
                 const tr = document.createElement('tr');
@@ -303,7 +312,7 @@
             if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-12 text-center text-slate-300 italic uppercase font-bold">No records found</td></tr>`; return; }
             filtered.forEach(i => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="p-4 font-mono text-xs font-bold">${i.hu}</td><td class="p-4 text-xs font-bold">${i.product}</td><td class="p-4 text-[10px] uppercase text-slate-500 font-medium">${i.desc}</td><td class="p-4 text-xs font-bold text-blue-600">${i.sapBin||'---'}</td><td class="p-4 text-xs font-bold text-orange-600">${i.scannedBin}</td><td class="p-4 text-xs text-center">${i.sapQty}</td><td class="p-4 text-xs text-center font-bold">${i.countQty}</td>`;
+                tr.innerHTML = `<td class="p-4 font-mono text-xs font-bold">${i.hu}</td><td class="p-4 text-xs font-bold">${i.product}</td><td class="p-4 text-xs font-bold text-blue-600">${i.sapBin||'---'}</td><td class="p-4 text-xs font-bold text-orange-600">${i.scannedBin}</td><td class="p-4 text-xs text-center">${i.sapQty}</td><td class="p-4 text-xs text-center font-bold">${i.countQty}</td>`;
                 tbody.appendChild(tr);
             });
         }

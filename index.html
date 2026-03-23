@@ -30,7 +30,8 @@
                 <h1 class="text-lg font-black uppercase tracking-tighter">SAP Auditor</h1>
             </div>
             <div class="flex items-center gap-2">
-                <button onclick="clearAllData()" class="text-slate-400 p-2 text-[10px] uppercase font-bold">Reset App</button>
+                <!-- RESET BUTTON WITH CONFIRMATION -->
+                <button onclick="clearAllData()" class="text-slate-400 p-2 text-[10px] uppercase font-bold border border-slate-700 rounded-lg active:bg-red-600 active:text-white transition-colors">Reset App</button>
             </div>
         </div>
         <div id="data-status" class="text-[9px] text-center text-slate-500 font-bold uppercase mt-2 tracking-widest">System Offline</div>
@@ -66,9 +67,7 @@
             <div id="row-selection" class="hidden">
                 <h2 class="text-2xl font-black uppercase mb-2 text-slate-800">Select Start Row</h2>
                 <p class="text-slate-500 text-sm mb-6 font-bold uppercase">Data Loaded. Choose a row to begin.</p>
-                <div class="grid grid-cols-4 gap-3" id="row-grid">
-                    <!-- JS generated rows A-P -->
-                </div>
+                <div class="grid grid-cols-4 gap-3" id="row-grid"></div>
             </div>
         </div>
 
@@ -85,7 +84,7 @@
         </div>
 
         <!-- LIST AREA -->
-        <div id="audit-list" class="flex-1 overflow-y-auto p-3 space-y-3 pb-48"></div>
+        <div id="audit-list" class="flex-1 overflow-y-auto p-3 space-y-3 pb-56"></div>
 
         <!-- STICKY FOOTER -->
         <div class="fixed bottom-0 left-0 right-0 bg-slate-900 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] no-print z-50">
@@ -216,9 +215,16 @@
             selectBin(`W${rowLetter}00A`);
         }
 
-        function clearAllData() { if(confirm("This will erase all SAP data and your current audit progress. Reset?")){ localStorage.clear(); location.reload(); } }
+        // --- UPDATED RESET FUNCTION WITH PROMPT ---
+        function clearAllData() { 
+            const warning = "⚠️ WARNING: This will permanently delete all SAP data and your current audit progress.\n\nAre you sure you want to reset the app?";
+            if (confirm(warning)) { 
+                localStorage.clear(); 
+                location.reload(); 
+            } 
+        }
 
-        // --- COORDINATE LOGIC ---
+        // --- COORDINATE LOGIC (WxZZ$ + Wx100) ---
         function getNextPhysicalBin(current) {
             if (!current) return null;
             let row = current.charAt(1);

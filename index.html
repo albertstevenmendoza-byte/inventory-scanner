@@ -30,12 +30,10 @@
                 <h1 class="text-lg font-black uppercase tracking-tighter">SAP Auditor</h1>
             </div>
             <div class="flex items-center gap-2">
-                <input type="file" id="sap-upload" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
-                <label for="sap-upload" class="bg-blue-600 p-2 rounded-lg text-white font-bold text-[10px] uppercase shadow-lg">Load File</label>
-                <button onclick="clearAllData()" class="text-slate-400 p-2 text-[10px] uppercase font-bold">Reset</button>
+                <button onclick="clearAllData()" class="text-slate-400 p-2 text-[10px] uppercase font-bold">Reset App</button>
             </div>
         </div>
-        <div id="data-status" class="text-[9px] text-center text-slate-500 font-bold uppercase mt-2 tracking-widest">Offline</div>
+        <div id="data-status" class="text-[9px] text-center text-slate-500 font-bold uppercase mt-2 tracking-widest">System Offline</div>
     </header>
 
     <!-- Nav Tabs -->
@@ -45,23 +43,32 @@
     </nav>
 
     <!-- AUDIT VIEW -->
-    <main id="view-audit" class="flex-1 flex flex-col overflow-hidden">
+    <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
         
-        <!-- STARTUP OVERLAY -->
+        <!-- STARTUP OVERLAY (LOCKED UNTIL UPLOAD) -->
         <div id="setup-screen" class="absolute inset-0 bg-slate-100 z-40 flex flex-col p-6 overflow-y-auto">
-            <h2 class="text-2xl font-black uppercase mb-2 text-slate-800">Select Start Row</h2>
-            <p class="text-slate-500 text-sm mb-6 font-bold uppercase">Choose a row to begin cycle counting</p>
-            <div class="grid grid-cols-4 gap-3">
-                <script>
-                    const setupGrid = document.currentScript.parentElement;
-                    "ABCDEFGHIJKLMNOP".split("").forEach(row => {
-                        const btn = document.createElement('button');
-                        btn.className = "bg-white border-2 border-slate-200 p-4 rounded-2xl font-black text-xl text-blue-600 shadow-sm active:bg-blue-600 active:text-white";
-                        btn.innerText = row;
-                        btn.onclick = () => startAuditAtRow(row);
-                        setupGrid.appendChild(btn);
-                    });
-                </script>
+            
+            <!-- Step 1: Upload (Visible if no data) -->
+            <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
+                <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                </div>
+                <h2 class="text-2xl font-black uppercase text-slate-800 mb-2">Data Required</h2>
+                <p class="text-slate-500 text-sm mb-8 max-w-[240px]">Please upload the <b>SAP Physical Stock</b> export to begin the audit.</p>
+                
+                <input type="file" id="sap-upload-main" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
+                <label for="sap-upload-main" class="w-full max-w-xs bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl active:scale-95 transition-all cursor-pointer block">
+                    Select Excel File
+                </label>
+            </div>
+
+            <!-- Step 2: Row Selection (Visible after upload) -->
+            <div id="row-selection" class="hidden">
+                <h2 class="text-2xl font-black uppercase mb-2 text-slate-800">Select Start Row</h2>
+                <p class="text-slate-500 text-sm mb-6 font-bold uppercase">Data Loaded. Choose a row to begin.</p>
+                <div class="grid grid-cols-4 gap-3" id="row-grid">
+                    <!-- JS generated rows A-P -->
+                </div>
             </div>
         </div>
 
@@ -172,9 +179,9 @@
         }
 
         window.onload = () => {
+            initSetupGrid();
             if (sapMasterData.length > 0) {
-                document.getElementById('data-status').innerText = `ONLINE: ${sapMasterData.length} SKU`;
-                document.getElementById('data-status').className = "text-[9px] text-center text-green-500 font-bold uppercase mt-2 tracking-widest";
+                unlockAudit();
             }
             if (currentActiveBin) {
                 document.getElementById('setup-screen').classList.add('hidden');
@@ -185,12 +192,31 @@
             document.getElementById('stat-bins-done').innerText = binsAudited.size;
         };
 
+        function initSetupGrid() {
+            const grid = document.getElementById('row-grid');
+            grid.innerHTML = "";
+            "ABCDEFGHIJKLMNOP".split("").forEach(row => {
+                const btn = document.createElement('button');
+                btn.className = "bg-white border-2 border-slate-200 p-4 rounded-2xl font-black text-xl text-blue-600 shadow-sm active:bg-blue-600 active:text-white";
+                btn.innerText = row;
+                btn.onclick = () => startAuditAtRow(row);
+                grid.appendChild(btn);
+            });
+        }
+
+        function unlockAudit() {
+            document.getElementById('upload-prompt').classList.add('hidden');
+            document.getElementById('row-selection').classList.remove('hidden');
+            document.getElementById('data-status').innerText = `ONLINE: ${sapMasterData.length} SKU`;
+            document.getElementById('data-status').className = "text-[9px] text-center text-green-500 font-bold uppercase mt-2 tracking-widest";
+        }
+
         function startAuditAtRow(rowLetter) {
             document.getElementById('setup-screen').classList.add('hidden');
             selectBin(`W${rowLetter}00A`);
         }
 
-        function clearAllData() { if(confirm("Reset all?")){ localStorage.clear(); location.reload(); } }
+        function clearAllData() { if(confirm("This will erase all SAP data and your current audit progress. Reset?")){ localStorage.clear(); location.reload(); } }
 
         // --- COORDINATE LOGIC ---
         function getNextPhysicalBin(current) {
@@ -305,7 +331,6 @@
             modal.classList.remove('hidden');
         }
 
-        // --- ONE-TAP COUNTING LOGIC ---
         function quickConfirm(idx) {
             currentBinItems[idx].countQty = currentBinItems[idx].sapQty;
             currentBinItems[idx].verified = true;
@@ -343,27 +368,14 @@
                             <p class="text-lg font-black text-slate-700">${item.isExtra ? '--' : item.sapQty} <span class="text-[10px]">${item.uom}</span></p>
                         </div>
                     </div>
-                    
                     <div class="flex flex-col gap-3">
                         <div class="flex gap-2 items-center">
-                            <!-- ONE TAP CONFIRM -->
-                            ${!item.isExtra ? `
-                            <button onclick="quickConfirm(${index})" class="flex-[2] py-4 bg-green-600 text-white rounded-xl font-black text-xs uppercase shadow-md active:scale-95 transition-all">
-                                ALL ${item.sapQty}
-                            </button>` : ''}
-                            
-                            <!-- MISSING BUTTON -->
-                            <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-inner' : 'border-slate-200 text-slate-400 bg-white shadow-sm'}">
-                                Missing
-                            </button>
+                            ${!item.isExtra ? `<button onclick="quickConfirm(${index})" class="flex-[2] py-4 bg-green-600 text-white rounded-xl font-black text-xs uppercase shadow-md active:scale-95 transition-all">ALL ${item.sapQty}</button>` : ''}
+                            <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-inner' : 'border-slate-200 text-slate-400 bg-white shadow-sm'}">Missing</button>
                         </div>
-
-                        <!-- STEPPER AREA -->
                         <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl">
                             <button onclick="adjustQty(${index}, -1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-400 active:bg-slate-200">－</button>
-                            <input type="number" inputmode="decimal" id="qty-input-${index}" value="${item.countQty || ''}" 
-                                   oninput="updateCount(${index}, this.value)" placeholder="QTY" 
-                                   class="flex-1 bg-transparent text-center font-black text-xl text-blue-700 outline-none border-none">
+                            <input type="number" inputmode="decimal" id="qty-input-${index}" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="QTY" class="flex-1 bg-transparent text-center font-black text-xl text-blue-700 outline-none border-none">
                             <button onclick="adjustQty(${index}, 1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-200">＋</button>
                         </div>
                     </div>`;
@@ -373,10 +385,7 @@
 
         function toggleMissing(idx) { 
             currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; 
-            if (currentBinItems[idx].isMissing) { 
-                currentBinItems[idx].verified = false; 
-                currentBinItems[idx].countQty = 0; 
-            } 
+            if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } 
             saveSession(); renderAuditList(); 
         }
 
@@ -402,7 +411,8 @@
                     uom: row['Base Unit of Measure'] || row['UoM'] || "EA",
                     sapQty: parseFloat(row['Quantity']) || 0
                 }));
-                saveSession(); location.reload();
+                saveSession();
+                unlockAudit();
             };
             reader.readAsArrayBuffer(file);
         }

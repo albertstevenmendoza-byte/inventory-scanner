@@ -192,7 +192,7 @@
 
         function clearAllData() { if(confirm("Reset all?")){ localStorage.clear(); location.reload(); } }
 
-        // --- COORDINATE LOGIC (WxZZ$ + Wx100) ---
+        // --- COORDINATE LOGIC ---
         function getNextPhysicalBin(current) {
             if (!current) return null;
             let row = current.charAt(1);
@@ -305,6 +305,22 @@
             modal.classList.remove('hidden');
         }
 
+        // --- ONE-TAP COUNTING LOGIC ---
+        function quickConfirm(idx) {
+            currentBinItems[idx].countQty = currentBinItems[idx].sapQty;
+            currentBinItems[idx].verified = true;
+            currentBinItems[idx].isMissing = false;
+            saveSession(); renderAuditList();
+        }
+
+        function adjustQty(idx, delta) {
+            let current = currentBinItems[idx].countQty || 0;
+            currentBinItems[idx].countQty = Math.max(0, current + delta);
+            currentBinItems[idx].verified = (currentBinItems[idx].countQty > 0);
+            if (currentBinItems[idx].verified) currentBinItems[idx].isMissing = false;
+            saveSession(); renderAuditList();
+        }
+
         function renderAuditList() {
             const container = document.getElementById('audit-list');
             container.innerHTML = "";
@@ -327,18 +343,49 @@
                             <p class="text-lg font-black text-slate-700">${item.isExtra ? '--' : item.sapQty} <span class="text-[10px]">${item.uom}</span></p>
                         </div>
                     </div>
-                    <div class="flex gap-2 items-center">
-                        <button onclick="toggleFound(${index})" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase border-2 ${item.verified ? 'bg-green-600 border-green-600 text-white' : 'border-slate-200 text-slate-400'}">Found</button>
-                        <button onclick="toggleMissing(${index})" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-200 text-slate-400'}">Missing</button>
-                        <div class="flex-[1.5]"><input type="number" id="qty-input-${index}" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="QTY" class="w-full p-3 bg-slate-100 rounded-xl text-center font-black text-blue-700 outline-none"></div>
+                    
+                    <div class="flex flex-col gap-3">
+                        <div class="flex gap-2 items-center">
+                            <!-- ONE TAP CONFIRM -->
+                            ${!item.isExtra ? `
+                            <button onclick="quickConfirm(${index})" class="flex-[2] py-4 bg-green-600 text-white rounded-xl font-black text-xs uppercase shadow-md active:scale-95 transition-all">
+                                ALL ${item.sapQty}
+                            </button>` : ''}
+                            
+                            <!-- MISSING BUTTON -->
+                            <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-inner' : 'border-slate-200 text-slate-400 bg-white shadow-sm'}">
+                                Missing
+                            </button>
+                        </div>
+
+                        <!-- STEPPER AREA -->
+                        <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl">
+                            <button onclick="adjustQty(${index}, -1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-400 active:bg-slate-200">－</button>
+                            <input type="number" inputmode="decimal" id="qty-input-${index}" value="${item.countQty || ''}" 
+                                   oninput="updateCount(${index}, this.value)" placeholder="QTY" 
+                                   class="flex-1 bg-transparent text-center font-black text-xl text-blue-700 outline-none border-none">
+                            <button onclick="adjustQty(${index}, 1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-200">＋</button>
+                        </div>
                     </div>`;
                 container.appendChild(card);
             });
         }
 
-        function toggleFound(idx) { currentBinItems[idx].verified = !currentBinItems[idx].verified; if (currentBinItems[idx].verified) currentBinItems[idx].isMissing = false; saveSession(); renderAuditList(); }
-        function toggleMissing(idx) { currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } saveSession(); renderAuditList(); }
-        function updateCount(idx, val) { currentBinItems[idx].countQty = parseFloat(val) || 0; if(currentBinItems[idx].countQty > 0) { currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; } saveSession(); }
+        function toggleMissing(idx) { 
+            currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; 
+            if (currentBinItems[idx].isMissing) { 
+                currentBinItems[idx].verified = false; 
+                currentBinItems[idx].countQty = 0; 
+            } 
+            saveSession(); renderAuditList(); 
+        }
+
+        function updateCount(idx, val) { 
+            currentBinItems[idx].countQty = parseFloat(val) || 0; 
+            currentBinItems[idx].verified = (currentBinItems[idx].countQty > 0);
+            if(currentBinItems[idx].countQty > 0) currentBinItems[idx].isMissing = false; 
+            saveSession();
+        }
 
         function handleFileUpload(event) {
             const file = event.target.files[0];

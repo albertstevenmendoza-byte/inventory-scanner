@@ -30,7 +30,6 @@
                 <h1 class="text-lg font-black uppercase tracking-tighter">SAP Auditor</h1>
             </div>
             <div class="flex items-center gap-2">
-                <!-- RESET BUTTON WITH CONFIRMATION -->
                 <button onclick="clearAllData()" class="text-slate-400 p-2 text-[10px] uppercase font-bold border border-slate-700 rounded-lg active:bg-red-600 active:text-white transition-colors">Reset App</button>
             </div>
         </div>
@@ -46,27 +45,24 @@
     <!-- AUDIT VIEW -->
     <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
         
-        <!-- STARTUP OVERLAY (LOCKED UNTIL UPLOAD) -->
+        <!-- STARTUP OVERLAY -->
         <div id="setup-screen" class="absolute inset-0 bg-slate-100 z-40 flex flex-col p-6 overflow-y-auto">
             
-            <!-- Step 1: Upload (Visible if no data) -->
+            <!-- Step 1: Upload -->
             <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
                 <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
                     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 </div>
                 <h2 class="text-2xl font-black uppercase text-slate-800 mb-2">Data Required</h2>
-                <p class="text-slate-500 text-sm mb-8 max-w-[240px]">Please upload the <b>SAP Physical Stock</b> export to begin the audit.</p>
-                
+                <p class="text-slate-500 text-sm mb-8 max-w-[240px]">Upload the <b>SAP Physical Stock</b> export to begin.</p>
                 <input type="file" id="sap-upload-main" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
-                <label for="sap-upload-main" class="w-full max-w-xs bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl active:scale-95 transition-all cursor-pointer block">
-                    Select Excel File
-                </label>
+                <label for="sap-upload-main" class="w-full max-w-xs bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl active:scale-95 transition-all cursor-pointer block">Select Excel File</label>
             </div>
 
-            <!-- Step 2: Row Selection (Visible after upload) -->
+            <!-- Step 2: Row Selection -->
             <div id="row-selection" class="hidden">
-                <h2 class="text-2xl font-black uppercase mb-2 text-slate-800">Select Start Row</h2>
-                <p class="text-slate-500 text-sm mb-6 font-bold uppercase">Data Loaded. Choose a row to begin.</p>
+                <h2 class="text-2xl font-black uppercase mb-2 text-slate-800">Select Row</h2>
+                <p class="text-slate-500 text-sm mb-6 font-bold uppercase">Choose a row to begin auditing.</p>
                 <div class="grid grid-cols-4 gap-3" id="row-grid"></div>
             </div>
         </div>
@@ -89,36 +85,37 @@
         <!-- STICKY FOOTER -->
         <div class="fixed bottom-0 left-0 right-0 bg-slate-900 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] no-print z-50">
             <div class="flex gap-2 mb-3">
-                <button onclick="toggleAddForm()" class="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-lg">
-                    + Found Item
-                </button>
-                <button onclick="finalizeBin()" class="flex-1 bg-slate-700 text-slate-300 py-3 rounded-xl font-black uppercase text-[10px] border border-slate-600">
-                    Mark Bin Empty
-                </button>
+                <button onclick="toggleAddForm()" class="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-lg">+ Found Item</button>
+                <button onclick="finalizeBin()" class="flex-1 bg-slate-700 text-slate-300 py-3 rounded-xl font-black uppercase text-[10px] border border-slate-600">Mark Bin Empty</button>
             </div>
             <div class="flex items-center justify-between gap-4">
                 <div class="text-white">
                     <p class="text-[8px] uppercase text-slate-400 font-bold">Bins Done</p>
                     <p id="stat-bins-done" class="text-xl font-black leading-none">0</p>
                 </div>
-                <button onclick="finalizeBin()" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-black uppercase text-sm shadow-xl active:scale-95 transition-all">
-                    Finalize & Next Bin
-                </button>
+                <button onclick="finalizeBin()" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-black uppercase text-sm shadow-xl active:scale-95 transition-all">Finalize & Next Bin</button>
             </div>
         </div>
     </main>
 
-    <!-- ROW FINISHED MODAL -->
+    <!-- ROW FINISHED MODAL (UPDATED) -->
     <div id="row-end-modal" class="hidden fixed inset-0 bg-slate-900/95 z-[70] p-6 flex items-center justify-center">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm text-center">
-            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
             <h2 class="text-2xl font-black uppercase mb-2">Row Complete!</h2>
-            <p id="row-end-text" class="text-slate-500 font-bold mb-8"></p>
+            <p id="row-end-text" class="text-slate-500 font-bold mb-6 text-sm"></p>
+            
             <div class="space-y-3">
-                <button id="btn-next-row" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Continue to Next Row</button>
-                <button onclick="switchView('report'); document.getElementById('row-end-modal').classList.add('hidden')" class="w-full bg-slate-100 text-slate-600 py-4 rounded-2xl font-black uppercase">Finish & View Report</button>
+                <!-- Option 1: Next Sequential Row -->
+                <button id="btn-next-row" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg">Continue to Next Row</button>
+                
+                <!-- Option 2: Go back to Grid -->
+                <button onclick="openRowSelector()" class="w-full bg-white border-2 border-blue-600 text-blue-600 py-4 rounded-2xl font-black uppercase text-xs">Navigate to Different Row</button>
+                
+                <!-- Option 3: End Quest -->
+                <button onclick="switchView('report'); document.getElementById('row-end-modal').classList.add('hidden')" class="w-full bg-slate-100 text-slate-600 py-4 rounded-2xl font-black uppercase text-xs">Finish & View Report</button>
             </div>
         </div>
     </div>
@@ -146,13 +143,9 @@
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4">
             <h2 class="text-xl font-black uppercase text-slate-800">Add Physical Item</h2>
             <div class="space-y-3">
-                <input type="text" id="add-hu" placeholder="HU Number (0 if missing)" class="w-full p-4 bg-slate-100 rounded-xl font-bold border-2 border-transparent focus:border-blue-500 outline-none" oninput="autoLookupExtra(this)">
-                <input type="text" id="add-prod" placeholder="Product ID" class="w-full p-4 bg-slate-100 rounded-xl font-bold border-2 border-transparent focus:border-blue-500 outline-none">
-                <div class="flex gap-2">
-                    <input type="text" id="add-batch" placeholder="Batch" class="flex-1 p-4 bg-slate-100 rounded-xl font-bold border-2 border-transparent focus:border-blue-500 outline-none">
-                    <input type="text" id="add-uom" placeholder="UoM" class="w-20 p-4 bg-slate-100 rounded-xl font-bold text-center border-2 border-transparent focus:border-blue-500 outline-none">
-                </div>
-                <input type="number" id="add-qty" placeholder="Physical Count" class="w-full p-5 bg-blue-50 rounded-xl font-black text-center text-2xl text-blue-700 border-2 border-blue-200 outline-none">
+                <input type="text" id="add-hu" placeholder="HU Number" class="w-full p-4 bg-slate-100 rounded-xl font-bold outline-none" oninput="autoLookupExtra(this)">
+                <input type="text" id="add-prod" placeholder="Product ID" class="w-full p-4 bg-slate-100 rounded-xl font-bold outline-none">
+                <input type="number" id="add-qty" placeholder="Physical Count" class="w-full p-5 bg-blue-50 rounded-xl font-black text-center text-2xl text-blue-700 outline-none">
             </div>
             <div class="flex gap-3 pt-2">
                 <button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-bold uppercase text-xs">Cancel</button>
@@ -179,9 +172,7 @@
 
         window.onload = () => {
             initSetupGrid();
-            if (sapMasterData.length > 0) {
-                unlockAudit();
-            }
+            if (sapMasterData.length > 0) unlockAudit();
             if (currentActiveBin) {
                 document.getElementById('setup-screen').classList.add('hidden');
                 document.getElementById('bin-input').value = currentActiveBin;
@@ -215,23 +206,25 @@
             selectBin(`W${rowLetter}00A`);
         }
 
-        // --- UPDATED RESET FUNCTION WITH PROMPT ---
+        function openRowSelector() {
+            document.getElementById('row-end-modal').classList.add('hidden');
+            document.getElementById('setup-screen').classList.remove('hidden');
+            document.getElementById('row-selection').classList.remove('hidden');
+        }
+
         function clearAllData() { 
-            const warning = "⚠️ WARNING: This will permanently delete all SAP data and your current audit progress.\n\nAre you sure you want to reset the app?";
-            if (confirm(warning)) { 
-                localStorage.clear(); 
-                location.reload(); 
+            if (confirm("⚠️ WARNING: This will permanently delete all SAP data and progress. Reset?")) { 
+                localStorage.clear(); location.reload(); 
             } 
         }
 
-        // --- COORDINATE LOGIC (WxZZ$ + Wx100) ---
+        // --- COORDINATE LOGIC ---
         function getNextPhysicalBin(current) {
             if (!current) return null;
             let row = current.charAt(1);
             if (current.endsWith("100")) {
                 let nextRow = String.fromCharCode(row.charCodeAt(0) + 1);
-                if (nextRow > 'P') return null;
-                return `W${nextRow}00A`;
+                return nextRow > 'P' ? null : `W${nextRow}00A`;
             }
             let bay = parseInt(current.substring(2, 4));
             let level = current.charAt(4);
@@ -296,8 +289,7 @@
             currentBinItems = expected.map(i => ({ 
                 ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin 
             }));
-            saveSession();
-            renderAuditList();
+            saveSession(); renderAuditList();
         }
 
         function finalizeBin() {
@@ -317,8 +309,6 @@
                 showRowEndPrompt(currentActiveBin.charAt(1), nextBin);
             } else if (nextBin) {
                 selectBin(nextBin);
-            } else {
-                currentBinItems = []; currentActiveBin = ""; document.getElementById('bin-input').value = "";
             }
             document.getElementById('stat-bins-done').innerText = binsAudited.size;
             saveSession(); renderAuditList(); window.scrollTo(0,0);
@@ -380,9 +370,9 @@
                             <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-inner' : 'border-slate-200 text-slate-400 bg-white shadow-sm'}">Missing</button>
                         </div>
                         <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl">
-                            <button onclick="adjustQty(${index}, -1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-400 active:bg-slate-200">－</button>
-                            <input type="number" inputmode="decimal" id="qty-input-${index}" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="QTY" class="flex-1 bg-transparent text-center font-black text-xl text-blue-700 outline-none border-none">
-                            <button onclick="adjustQty(${index}, 1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-200">＋</button>
+                            <button onclick="adjustQty(${index}, -1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-400">－</button>
+                            <input type="number" inputmode="decimal" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="QTY" class="flex-1 bg-transparent text-center font-black text-xl text-blue-700 outline-none border-none">
+                            <button onclick="adjustQty(${index}, 1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600">＋</button>
                         </div>
                     </div>`;
                 container.appendChild(card);
@@ -413,12 +403,10 @@
                     hu: String(row['Handling Unit'] || row['HU'] || "").trim(),
                     product: String(row['Product'] || ""),
                     desc: row['Product Short Description'] || row['Product short description'] || "",
-                    batch: String(row['Batch'] || ""),
-                    uom: row['Base Unit of Measure'] || row['UoM'] || "EA",
+                    uom: row['Base Unit of Measure'] || "EA",
                     sapQty: parseFloat(row['Quantity']) || 0
                 }));
-                saveSession();
-                unlockAudit();
+                saveSession(); unlockAudit();
             };
             reader.readAsArrayBuffer(file);
         }
@@ -428,14 +416,10 @@
         function submitExtra() {
             const hu = document.getElementById('add-hu').value.trim();
             const prod = document.getElementById('add-prod').value.trim();
-            const batch = document.getElementById('add-batch').value.trim();
-            const uom = document.getElementById('add-uom').value.trim() || "EA";
             const qty = parseFloat(document.getElementById('add-qty').value) || 0;
             if(!currentActiveBin || !hu || !prod || qty <= 0) return alert("Fill all fields.");
             const sapMatch = sapMasterData.find(i => i.hu === hu);
-            const desc = (hu === "0") ? "Missing HU" : (sapMatch ? sapMatch.desc : "GHOST HU");
-            currentBinItems.push({ hu, product: prod, batch, uom, sapQty: sapMatch?sapMatch.sapQty:0, sapBin: sapMatch?sapMatch.sapBin:null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: desc });
-            ['add-hu', 'add-prod', 'add-batch', 'add-uom', 'add-qty'].forEach(id => document.getElementById(id).value = "");
+            currentBinItems.push({ hu, product: prod, sapQty: sapMatch?sapMatch.sapQty:0, sapBin: sapMatch?sapMatch.sapBin:null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch?sapMatch.desc:"GHOST HU" });
             toggleAddForm(); saveSession(); renderAuditList();
         }
 
@@ -450,36 +434,16 @@
         function filterReport(type) {
             const container = document.getElementById('report-body');
             container.innerHTML = "";
-            document.querySelectorAll('[id^="f-"]').forEach(b => b.classList.remove('bg-blue-600', 'text-white'));
-            document.getElementById(`f-${type}`).classList.add('bg-blue-600', 'text-white');
             const combined = [...auditLog, ...currentBinItems];
-            const foundHUs = new Set(combined.filter(i => i.verified).map(i => i.hu));
             let filtered = [];
             if (type === 'move') filtered = combined.filter(i => i.sapBin && i.sapBin !== i.scannedBin && i.verified);
             else if (type === 'adj') filtered = combined.filter(i => i.sapBin === i.scannedBin && i.countQty !== i.sapQty && !i.isMissing && i.verified);
-            else if (type === 'inactive') filtered = combined.filter(i => i.sapBin === null);
-            else if (type === 'missing') filtered = combined.filter(i => (i.isMissing || (!i.verified && !i.isExtra)) && !foundHUs.has(i.hu));
+            else if (type === 'missing') filtered = combined.filter(i => i.isMissing);
             
-            if (filtered.length === 0) { container.innerHTML = `<p class="text-center p-10 text-slate-300 font-black text-[10px]">No records</p>`; return; }
             filtered.forEach(i => {
                 const div = document.createElement('div');
                 div.className = "p-3 bg-white rounded-xl border border-slate-200 shadow-sm";
-                let subText = "";
-                if (type === 'move') {
-                    subText = `<div class="mt-2 p-2 bg-blue-50 border border-blue-100 rounded-lg">
-                                <p class="text-[10px] font-black text-blue-700 uppercase">Found In: ${i.scannedBin}</p>
-                                <p class="text-[10px] font-black text-orange-600 uppercase">Move To: ${i.sapBin}</p>
-                               </div>`;
-                } else {
-                    subText = `<div class="flex justify-between mt-1"><div class="text-[9px]">SAP: ${i.sapQty}</div><div class="text-[9px] font-black">Count: ${i.countQty} ${i.uom}</div></div>`;
-                }
-                div.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <span class="text-[10px] font-bold text-slate-900 bg-slate-100 px-1 rounded">HU: ${i.hu}</span>
-                    </div>
-                    <p class="font-black text-xs mt-1">${i.product}</p>
-                    <p class="text-[10px] text-blue-600 font-bold uppercase leading-tight">${i.desc || ''}</p>
-                    ${subText}`;
+                div.innerHTML = `<p class="font-black text-xs">${i.product}</p><p class="text-[10px] text-blue-600 font-bold uppercase">${type==='move' ? 'Move to: '+i.sapBin : 'Cnt: '+i.countQty}</p>`;
                 container.appendChild(div);
             });
         }
@@ -487,24 +451,8 @@
         function sendEmailReport() {
             const user = document.getElementById('email-user').value.trim();
             if (!user) return alert("Enter username.");
-            const combined = [...auditLog, ...currentBinItems];
-            const foundHUs = new Set(combined.filter(i => i.verified).map(i => i.hu));
-            const addSection = (title, data) => {
-                if (data.length === 0) return "";
-                let s = `\n--- ${title.toUpperCase()} ---\n`;
-                data.forEach(i => {
-                    if (title === "Movements") {
-                        s += `HU:${i.hu} | Prod:${i.product} (${i.desc}) | FOUND IN:${i.scannedBin} | MOVE TO:${i.sapBin}\n`;
-                    } else {
-                        s += `HU:${i.hu} | Prod:${i.product} (${i.desc}) | Loc:${i.scannedBin} | SAP:${i.sapQty} | Cnt:${i.countQty} ${i.uom}\n`;
-                    }
-                });
-                return s;
-            };
-            let body = `AUDIT REPORT - ${new Date().toLocaleString()}\n`;
-            body += addSection("Movements", combined.filter(i => i.sapBin && i.sapBin !== i.scannedBin && i.verified));
-            body += addSection("Adjustments", combined.filter(i => i.sapBin === i.scannedBin && i.countQty !== i.sapQty && !i.isMissing && i.verified));
-            body += addSection("Missing", combined.filter(i => (i.isMissing || (!i.verified && !i.isExtra)) && !foundHUs.has(i.hu)));
+            let body = `AUDIT REPORT\n`;
+            [...auditLog, ...currentBinItems].forEach(i => body += `HU:${i.hu} | Loc:${i.scannedBin} | Qty:${i.countQty}\n`);
             window.location.href = `mailto:${user}@novusfoods.com?subject=Audit Report&body=${encodeURIComponent(body)}`;
         }
 
@@ -512,12 +460,7 @@
             const hu = input.value.trim();
             if (hu.length >= 8) {
                 const match = sapMasterData.find(i => i.hu === hu);
-                if (match) {
-                    document.getElementById('add-prod').value = match.product;
-                    document.getElementById('add-batch').value = match.batch;
-                    document.getElementById('add-uom').value = match.uom;
-                    document.getElementById('add-qty').focus();
-                }
+                if (match) { document.getElementById('add-prod').value = match.product; document.getElementById('add-qty').focus(); }
             }
         }
     </script>

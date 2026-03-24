@@ -44,7 +44,6 @@
 
     <!-- AUDIT VIEW -->
     <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
-        
         <!-- STARTUP OVERLAY -->
         <div id="setup-screen" class="absolute inset-0 bg-slate-100 z-40 flex flex-col p-6 overflow-y-auto">
             <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
@@ -208,7 +207,6 @@
             } 
         }
 
-        // --- COORDINATE LOGIC ---
         function getNextPhysicalBin(current) {
             if (!current) return null;
             let row = current.charAt(1);
@@ -409,7 +407,19 @@
             const qty = parseFloat(document.getElementById('add-qty').value) || 0;
             if(!currentActiveBin || !hu || !prod || qty <= 0) return alert("Fill all fields.");
             const sapMatch = sapMasterData.find(i => i.hu === hu);
-            currentBinItems.push({ hu, product: prod, sapQty: sapMatch?sapMatch.sapQty:0, sapBin: sapMatch?sapMatch.sapBin:null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch?sapMatch.desc:"NOT IN SAP DATA", uom: sapMatch?sapMatch.uom:"EA" });
+            currentBinItems.push({ 
+                hu, 
+                product: prod, 
+                sapQty: sapMatch ? sapMatch.sapQty : 0, 
+                sapBin: sapMatch ? sapMatch.sapBin : null, 
+                scannedBin: currentActiveBin, 
+                countQty: qty, 
+                verified: true, 
+                isMissing: false, 
+                isExtra: !sapMatch, 
+                desc: sapMatch ? sapMatch.desc : "NOT IN SAP EXPORT", 
+                uom: sapMatch ? sapMatch.uom : "EA" 
+            });
             toggleAddForm(); saveSession(); renderAuditList();
         }
 
@@ -421,37 +431,58 @@
             if(view === 'report') filterReport('move');
         }
 
+        // --- NEW RECONCILIATION LOGIC ---
+        function getReconciledData() {
+            const allRecords = [...auditLog, ...currentBinItems];
+            const huMap = {};
+
+            allRecords.forEach(rec => {
+                if (!huMap[rec.hu]) {
+                    huMap[rec.hu] = { ...rec };
+                } else {
+                    let existing = huMap[rec.hu];
+                    // If we found it somewhere else, prioritize the found location and count
+                    if ((rec.verified || rec.isExtra) && existing.isMissing) {
+                        existing.scannedBin = rec.scannedBin;
+                        existing.countQty = rec.countQty;
+                        existing.verified = true;
+                        existing.isMissing = false;
+                        // Keep original sapBin if it was known
+                        if (!existing.sapBin && rec.sapBin) existing.sapBin = rec.sapBin;
+                    }
+                }
+            });
+            return Object.values(huMap);
+        }
+
         function filterReport(type) {
             const container = document.getElementById('report-body');
             container.innerHTML = "";
             
-            // UI Button Highlighting
             ['move', 'adj', 'inactive', 'missing'].forEach(id => {
                 const btn = document.getElementById('f-' + id);
-                if (id === type) {
-                    btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
-                    btn.classList.remove('bg-white', 'text-slate-400');
-                } else {
-                    btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
-                    btn.classList.add('bg-white', 'text-slate-400');
-                }
+                btn.className = `whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase border shadow-sm ${id === type ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-200'}`;
             });
 
-            const combined = [...auditLog, ...currentBinItems];
+            const reconciled = getReconciledData();
             let filtered = [];
 
             if (type === 'move') {
-                filtered = combined.filter(i => i.sapBin && i.sapBin !== i.scannedBin && i.verified && !i.isExtra);
+                // Movement: Found in different bin than SAP says.
+                filtered = reconciled.filter(i => i.sapBin && i.sapBin !== i.scannedBin && i.verified);
             } else if (type === 'adj') {
-                filtered = combined.filter(i => i.sapBin === i.scannedBin && i.countQty !== i.sapQty && !i.isMissing && i.verified);
+                // Adjustment: Count is different from SAP (even if it moved)
+                filtered = reconciled.filter(i => i.verified && i.countQty !== i.sapQty);
             } else if (type === 'missing') {
-                filtered = combined.filter(i => i.isMissing);
+                // Missing: Flagged missing and never found elsewhere
+                filtered = reconciled.filter(i => i.isMissing);
             } else if (type === 'inactive') {
-                filtered = combined.filter(i => i.isExtra);
+                // Extras: Found but NOT in SAP data at all
+                filtered = reconciled.filter(i => i.isExtra && !i.sapBin);
             }
             
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-400 text-xs font-bold uppercase">No records found for this category</div>`;
+                container.innerHTML = `<div class="p-10 text-center text-slate-400 text-xs font-bold uppercase">Clear</div>`;
                 return;
             }
 
@@ -459,9 +490,13 @@
                 const div = document.createElement('div');
                 div.className = "p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3";
                 
-                let specificDetail = "";
+                let statusBadge = "";
+                let details = "";
+
                 if (type === 'move') {
-                    specificDetail = `
+                    const isAlsoAdj = i.countQty !== i.sapQty;
+                    statusBadge = isAlsoAdj ? `<span class="bg-red-100 text-red-600 text-[8px] font-black px-2 py-0.5 rounded ml-2">MOVE + ADJ</span>` : `<span class="bg-blue-100 text-blue-600 text-[8px] font-black px-2 py-0.5 rounded ml-2">MOVEMENT</span>`;
+                    details = `
                         <div class="flex justify-between items-center bg-blue-50 p-2 rounded-lg border border-blue-100">
                             <div><p class="text-[8px] uppercase font-black text-blue-400">SAP Bin</p><p class="font-bold text-slate-700 text-xs">${i.sapBin}</p></div>
                             <div class="text-blue-500 font-bold">➜</div>
@@ -469,21 +504,25 @@
                         </div>`;
                 } else if (type === 'adj') {
                     const diff = i.countQty - i.sapQty;
-                    specificDetail = `
+                    statusBadge = `<span class="bg-orange-100 text-orange-600 text-[8px] font-black px-2 py-0.5 rounded ml-2">ADJUSTMENT</span>`;
+                    details = `
                         <div class="flex justify-between items-center bg-orange-50 p-2 rounded-lg border border-orange-100">
                             <div><p class="text-[8px] uppercase font-black text-orange-400">SAP Qty</p><p class="font-bold text-slate-700 text-xs">${i.sapQty}</p></div>
-                            <div class="text-right"><p class="text-[8px] uppercase font-black text-orange-400">Counted</p><p class="font-bold text-orange-700 text-xs">${i.countQty} (${diff > 0 ? '+' : ''}${diff})</p></div>
+                            <div class="text-right"><p class="text-[8px] uppercase font-black text-orange-400">Physical</p><p class="font-bold text-orange-700 text-xs">${i.countQty} (${diff > 0 ? '+' : ''}${diff})</p></div>
                         </div>`;
                 } else if (type === 'missing') {
-                    specificDetail = `<div class="bg-red-50 p-2 rounded-lg border border-red-100 text-center"><p class="text-[10px] font-black text-red-600 uppercase">Missing from Bin: ${i.sapBin}</p></div>`;
+                    details = `<div class="bg-red-50 p-2 rounded-lg border border-red-100 text-center"><p class="text-[10px] font-black text-red-600 uppercase">Missing from: ${i.sapBin}</p></div>`;
                 } else if (type === 'inactive') {
-                    specificDetail = `<div class="bg-purple-50 p-2 rounded-lg border border-purple-100 text-center"><p class="text-[10px] font-black text-purple-600 uppercase">Extra Item Found In Bin: ${i.scannedBin}</p></div>`;
+                    details = `<div class="bg-purple-50 p-2 rounded-lg border border-purple-100 text-center"><p class="text-[10px] font-black text-purple-600 uppercase">GHOST HU Found at: ${i.scannedBin}</p></div>`;
                 }
 
                 div.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
-                            <span class="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 font-mono text-[10px] rounded font-bold mb-1 border border-slate-200">HU: ${i.hu}</span>
+                            <div class="flex items-center mb-1">
+                                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 font-mono text-[10px] rounded font-bold border border-slate-200">HU: ${i.hu}</span>
+                                ${statusBadge}
+                            </div>
                             <h4 class="text-xs font-black text-slate-800 leading-tight">${i.product}</h4>
                             <p class="text-[9px] text-slate-500 font-bold uppercase mt-0.5 line-clamp-1">${i.desc}</p>
                         </div>
@@ -492,7 +531,7 @@
                              <p class="text-sm font-black text-slate-700 leading-none">${i.countQty} <span class="text-[10px]">${i.uom}</span></p>
                         </div>
                     </div>
-                    ${specificDetail}
+                    ${details}
                 `;
                 container.appendChild(div);
             });
@@ -502,26 +541,27 @@
             const user = document.getElementById('email-user').value.trim();
             if (!user) return alert("Enter username.");
             
-            const combined = [...auditLog, ...currentBinItems];
-            let body = `SAP AUDIT REPORT - ${new Date().toLocaleString()}\n`;
+            const reconciled = getReconciledData();
+            let body = `SAP RECONCILED AUDIT REPORT - ${new Date().toLocaleString()}\n`;
             body += `==========================================\n\n`;
             
-            combined.forEach(i => {
+            reconciled.forEach(i => {
                 let status = "OK";
-                if (i.isMissing) status = "MISSING";
-                else if (i.isExtra) status = "EXTRA ITEM (NOT IN BIN)";
-                else if (i.sapBin !== i.scannedBin) status = "LOCATION DISCREPANCY (MOVED)";
-                else if (i.sapQty !== i.countQty) status = "QUANTITY DISCREPANCY";
+                if (i.isMissing) status = "MISSING (NOT FOUND)";
+                else if (i.isExtra && !i.sapBin) status = "GHOST HU (NOT IN SAP)";
+                else if (i.sapBin !== i.scannedBin && i.sapQty !== i.countQty) status = "MOVEMENT + ADJUSTMENT";
+                else if (i.sapBin !== i.scannedBin) status = "MOVEMENT";
+                else if (i.sapQty !== i.countQty) status = "QUANTITY ADJUSTMENT";
 
                 body += `HU: ${i.hu}\n`;
-                body += `PRODUCT: ${i.product} - ${i.desc}\n`;
-                body += `STATUS: ${status}\n`;
-                body += `SAP LOC: ${i.sapBin || 'NONE'} | PHYSICAL LOC: ${i.scannedBin}\n`;
-                body += `SAP QTY: ${i.sapQty} | PHYSICAL QTY: ${i.countQty} ${i.uom}\n`;
+                body += `PRODUCT: ${i.product} | ${i.desc}\n`;
+                body += `FINAL STATUS: ${status}\n`;
+                body += `SAP LOC: ${i.sapBin || 'N/A'} | FOUND LOC: ${i.scannedBin}\n`;
+                body += `SAP QTY: ${i.sapQty} | COUNTED: ${i.countQty} ${i.uom}\n`;
                 body += `------------------------------------------\n`;
             });
 
-            window.location.href = `mailto:${user}@novusfoods.com?subject=Warehouse Audit Report&body=${encodeURIComponent(body)}`;
+            window.location.href = `mailto:${user}@novusfoods.com?subject=Reconciled Warehouse Audit&body=${encodeURIComponent(body)}`;
         }
 
         function autoLookupExtra(input) {

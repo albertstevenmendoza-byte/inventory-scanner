@@ -25,7 +25,6 @@
         
         .tab-btn-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 800; }
         .nav-active { background-color: #2563eb; color: white; }
-
         .tag-both { background: #1e293b; color: #f8fafc; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 900; letter-spacing: 0.5px; }
     </style>
 </head>
@@ -33,7 +32,6 @@
 
     <div id="toast" class="bg-green-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase shadow-2xl">Bin Saved</div>
 
-    <!-- Header -->
     <header class="bg-slate-900 text-white px-4 py-3 shadow-2xl shrink-0 z-50">
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -46,13 +44,11 @@
         </div>
     </header>
 
-    <!-- Navigation -->
     <nav class="bg-white border-b flex p-1.5 shrink-0 gap-1">
         <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest nav-active rounded-xl">Audit Mode</button>
         <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 rounded-xl">Live Report</button>
     </nav>
 
-    <!-- AUDIT VIEW -->
     <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
         <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col p-6 overflow-y-auto">
             <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
@@ -93,7 +89,6 @@
         </div>
     </main>
 
-    <!-- CAMERA -->
     <div id="camera-overlay">
         <video id="camera-stream" autoplay playsinline muted></video>
         <div class="absolute inset-x-0 bottom-0 p-8 space-y-8 bg-gradient-to-t from-black/90 to-transparent">
@@ -106,7 +101,6 @@
         </div>
     </div>
 
-    <!-- REPORT VIEW -->
     <main id="view-report" class="hidden flex-1 flex flex-col overflow-hidden">
         <div class="bg-white border-b flex shrink-0 overflow-x-auto no-scrollbar">
             <button onclick="setReportTab('move')" id="tab-move" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter tab-btn-active">Movements</button>
@@ -121,7 +115,6 @@
         </div>
     </main>
 
-    <!-- ADD MODAL -->
     <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
             <h2 class="text-2xl font-black uppercase text-slate-900">Physical Find</h2>
@@ -239,17 +232,14 @@
             const allAudited = [...auditLog]; let displayList = [];
 
             if (activeReportTab === 'move') {
-                // Movements: Scanned bin != SAP bin
                 displayList = allAudited.filter(i => i.hu !== "0" && i.sapBin && i.scannedBin !== i.sapBin && !i.isMissing && i.verified);
             } else if (activeReportTab === 'adj') {
-                // Adjustments: Scanned qty != SAP qty
                 displayList = allAudited.filter(i => i.verified && i.countQty !== i.sapQty && !i.isMissing);
             } else if (activeReportTab === 'inactive') {
-                // Inactive: Extra HUs (Not in master) OR HU "0"
                 displayList = allAudited.filter(i => i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0"));
             } else if (activeReportTab === 'miss') {
-                // Explicitly marked as missing in Audit Mode
-                displayList = allAudited.filter(i => i.isMissing);
+                // STRICT LOGIC: Only show items manually marked as missing during the audit
+                displayList = allAudited.filter(i => i.isMissing === true);
             }
 
             if(displayList.length === 0) { container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Discrepancies</div>`; return; }
@@ -275,15 +265,10 @@
                     status = `<p class="text-[10px] text-blue-600 font-black">${i.hu === "0" ? 'MISSING LABEL / NOT VISIBLE' : 'HU NOT IN SAP'}</p>`;
                 } else if (activeReportTab === 'miss') {
                     status = `<p class="text-[10px] text-red-600 font-black">MARKED MISSING AT ${i.scannedBin}</p>`;
+                    status += `<p class="text-[8px] text-slate-400 font-bold mt-1">SAP Location: ${i.sapBin || 'N/A'}</p>`;
                 }
 
-                div.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <p class="text-[10px] font-black mono text-blue-600">HU: ${i.hu}</p>
-                    </div>
-                    <p class="text-xs font-bold leading-tight">${i.product}</p>
-                    <p class="text-[10px] text-slate-500 mb-1">${i.desc}</p>
-                    ${status}`;
+                div.innerHTML = `<p class="text-[10px] font-black mono text-blue-600">HU: ${i.hu}</p><p class="text-xs font-bold leading-tight">${i.product}</p><p class="text-[10px] text-slate-500 mb-1">${i.desc}</p>${status}`;
                 container.appendChild(div);
             });
         }
@@ -292,8 +277,7 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                const raw = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                sapMasterData = raw.map(row => ({
+                sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({
                     sapBin: String(row['Storage Bin'] || row['Storage bin'] || "").trim().toUpperCase(),
                     hu: String(row['Handling Unit'] || row['HU'] || "").trim(),
                     product: String(row['Product'] || ""),
@@ -319,14 +303,9 @@
         window.onload = () => { initSetupGrid(); if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
         function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
         function autoLookupExtra(input) {
-            const hu = input.value.trim();
-            if (hu === "0" || hu.length < 8) return;
+            const hu = input.value.trim(); if (hu === "0" || hu.length < 8) return;
             const match = sapMasterData.find(i => i.hu === hu);
-            if (match) {
-                haptic();
-                document.getElementById('add-prod').value = match.product;
-                document.getElementById('add-batch').value = match.batch || "";
-            }
+            if (match) { haptic(); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch || ""; }
         }
         function submitExtra() {
             const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim();
@@ -343,6 +322,22 @@
             document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
             document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
         }
+        async function openSpyglass() {
+            haptic(); document.getElementById('camera-overlay').style.display = 'flex';
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.getElementById('camera-stream'); video.srcObject = videoStream; videoTrack = videoStream.getVideoTracks()[0];
+            } catch (err) { alert("Camera Error"); closeSpyglass(); }
+        }
+        function closeSpyglass() { document.getElementById('camera-overlay').style.display = 'none'; if (videoStream) videoStream.getTracks().forEach(t => t.stop()); isFrozen = false; }
+        function handleZoom(val) { document.getElementById('camera-stream').style.transform = `scale(${val})`; }
+        function toggleFreeze() {
+            const v = document.getElementById('camera-stream'); const btn = document.getElementById('freeze-btn-ui');
+            if (isFrozen) { v.play(); btn.innerText = "FREEZE"; btn.classList.replace('bg-red-600', 'bg-blue-600'); } 
+            else { v.pause(); btn.innerText = "LIVE"; btn.classList.replace('bg-blue-600', 'bg-red-600'); }
+            isFrozen = !isFrozen; haptic();
+        }
+        async function toggleTorch() { if (!videoTrack) return; torchActive = !torchActive; try { await videoTrack.applyConstraints({ advanced: [{ torch: torchActive }] }); } catch(e){} }
     </script>
 </body>
 </html>

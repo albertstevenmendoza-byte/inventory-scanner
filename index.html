@@ -229,7 +229,13 @@
 
         function renderReport() {
             const container = document.getElementById('report-body'); container.innerHTML = "";
-            const allAudited = [...auditLog]; let displayList = [];
+            const allAudited = [...auditLog];
+            
+            // Movement Overrides Missing Logic: 
+            // Create a set of HUs that have been verified (found) anywhere in the warehouse.
+            const foundHUs = new Set(allAudited.filter(i => i.verified).map(i => i.hu));
+
+            let displayList = [];
 
             if (activeReportTab === 'move') {
                 displayList = allAudited.filter(i => i.hu !== "0" && i.sapBin && i.scannedBin !== i.sapBin && !i.isMissing && i.verified);
@@ -238,8 +244,8 @@
             } else if (activeReportTab === 'inactive') {
                 displayList = allAudited.filter(i => i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0"));
             } else if (activeReportTab === 'miss') {
-                // STRICT LOGIC: Only show items manually marked as missing during the audit
-                displayList = allAudited.filter(i => i.isMissing === true);
+                // FIXED: Only show items explicitly marked as missing AND not found anywhere else (Movement overrides Missing)
+                displayList = allAudited.filter(i => i.isMissing === true && !foundHUs.has(i.hu));
             }
 
             if(displayList.length === 0) { container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Discrepancies</div>`; return; }

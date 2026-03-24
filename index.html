@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SAP Auditor | Pro Zoom</title>
+    <title>SAP Auditor | Pro Zoom Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
@@ -16,41 +16,39 @@
         .card-missing { border-left: 10px solid #ef4444; background: #fef2f2; opacity: 0.7; }
         .card-extra { border-left: 10px solid #8b5cf6; background: #f5f3ff; }
         .card-error { border: 2px solid #ef4444 !important; animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
-        .nav-active { background-color: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        .nav-active { background-color: #2563eb; color: white; }
         
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
         
-        /* Camera Overlay Styles */
         #camera-overlay { display: none; position: fixed; inset: 0; background: black; z-index: 200; flex-direction: column; }
         #camera-stream { width: 100%; height: 100%; object-fit: cover; transition: transform 0.1s ease-out; }
-        .zoom-slider { -webkit-appearance: none; width: 100%; height: 8px; background: rgba(255,255,255,0.2); rounded: 10px; outline: none; }
-        .zoom-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; background: white; border-radius: 50%; cursor: pointer; border: 4px solid #2563eb; }
+        
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 300; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 flex flex-col h-screen overflow-hidden">
+
+    <div id="toast" class="bg-slate-900 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-2xl border border-slate-700">Bin Saved & Synced</div>
 
     <!-- Header -->
     <header class="bg-slate-900 text-white px-4 py-3 shadow-2xl shrink-0 z-50">
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg ring-2 ring-blue-400/30">
+                <div class="bg-blue-600 p-2 rounded-xl">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                 </div>
-                <div>
-                    <h1 class="text-sm font-black uppercase tracking-tighter leading-none">SAP Auditor</h1>
-                    <div id="save-indicator" class="text-[8px] text-blue-400 font-bold uppercase tracking-widest mt-1 opacity-0 transition-opacity">Auto-Saving...</div>
-                </div>
+                <h1 class="text-sm font-black uppercase tracking-tighter">SAP Auditor</h1>
             </div>
             <button onclick="clearAllData()" class="bg-slate-800 text-slate-400 px-3 py-2 text-[10px] uppercase font-black border border-slate-700 rounded-lg">Reset</button>
         </div>
     </header>
 
-    <!-- Nav Tabs -->
+    <!-- Nav -->
     <nav class="bg-white border-b flex p-1.5 shrink-0 gap-1">
-        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all nav-active rounded-xl">Audit Mode</button>
-        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 bg-slate-50 rounded-xl">Live Report</button>
+        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest nav-active rounded-xl">Audit Mode</button>
+        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 rounded-xl">Live Report</button>
     </nav>
 
     <!-- AUDIT VIEW -->
@@ -58,12 +56,12 @@
         <!-- SETUP SCREEN -->
         <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col p-6 overflow-y-auto">
             <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
-                <div class="w-24 h-24 bg-white shadow-2xl rounded-[2.5rem] flex items-center justify-center mb-8 border border-slate-100">
-                    <svg class="text-blue-600" xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <div class="w-24 h-24 bg-white shadow-2xl rounded-[2.5rem] flex items-center justify-center mb-8 border border-slate-100 text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 </div>
-                <h2 class="text-3xl font-black uppercase text-slate-900 mb-2">Initialize</h2>
+                <h2 class="text-3xl font-black uppercase text-slate-900 mb-2">Upload Data</h2>
                 <input type="file" id="sap-upload-main" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
-                <label for="sap-upload-main" class="w-full max-w-xs bg-blue-600 text-white py-6 rounded-3xl font-black uppercase text-sm shadow-xl cursor-pointer block">Select Export File</label>
+                <label for="sap-upload-main" class="w-full max-w-xs bg-blue-600 text-white py-6 rounded-3xl font-black uppercase text-sm shadow-xl cursor-pointer block">Select Excel File</label>
             </div>
             <div id="row-selection" class="hidden">
                 <h2 class="text-2xl font-black uppercase mb-6 text-slate-900">Select Row</h2>
@@ -75,89 +73,64 @@
         <div class="px-4 py-4 bg-white border-b shadow-sm shrink-0">
             <div class="flex gap-2">
                 <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">◀</button>
-                <div class="relative flex-1">
-                    <input type="text" id="bin-input" placeholder="SCAN BIN..." autocomplete="off"
-                           class="w-full py-4 px-6 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl mono text-blue-700 uppercase outline-none"
-                           oninput="suggestBins(this.value)">
-                </div>
+                <input type="text" id="bin-input" placeholder="SCAN BIN..." autocomplete="off"
+                       class="flex-1 py-4 px-6 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl mono text-blue-700 uppercase outline-none"
+                       oninput="suggestBins(this.value)">
                 <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">▶</button>
             </div>
             <div id="bin-suggestions" class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1"></div>
         </div>
 
         <!-- LIST -->
-        <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-60"></div>
+        <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-64"></div>
 
         <!-- STICKY FOOTER -->
         <div class="fixed bottom-0 left-0 right-0 glass p-4 shadow-2xl z-50">
             <div class="flex gap-3 mb-4">
-                <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[11px] shadow-sm">+ Add Item</button>
-                <!-- SPYGLASS BUTTON -->
-                <button onclick="openSpyglass()" class="w-20 bg-blue-100 text-blue-600 py-4 rounded-2xl flex items-center justify-center shadow-sm active:scale-95 transition-all">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[11px]">+ Found Item</button>
+                <button onclick="openSpyglass()" class="w-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
-                <button onclick="finalizeBin()" class="flex-1 bg-slate-800 text-slate-300 py-4 rounded-2xl font-black uppercase text-[11px]">Mark Empty</button>
+                <button onclick="markBinEmpty()" class="flex-1 bg-slate-800 text-slate-300 py-4 rounded-2xl font-black uppercase text-[11px]">Mark Empty</button>
             </div>
-            <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl">Finalize Bin</button>
+            <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl">Finalize & Next Bin</button>
         </div>
     </main>
 
-    <!-- CAMERA SPYGLASS OVERLAY -->
+    <!-- CAMERA OVERLAY -->
     <div id="camera-overlay">
         <video id="camera-stream" autoplay playsinline muted></video>
-        
-        <!-- Camera Controls -->
         <div class="absolute inset-x-0 bottom-0 p-8 space-y-8 bg-gradient-to-t from-black/80 to-transparent">
-            <div class="flex items-center gap-4">
-                <span class="text-white font-black text-xs">ZOOM</span>
-                <input type="range" id="zoom-control" class="zoom-slider flex-1" min="1" max="5" step="0.1" value="1" oninput="handleZoom(this.value)">
-            </div>
-            
+            <input type="range" id="zoom-control" class="w-full h-2 bg-white/20 rounded-lg appearance-none" min="1" max="5" step="0.1" value="1" oninput="handleZoom(this.value)">
             <div class="flex justify-between items-center">
-                <button onclick="closeSpyglass()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-                
-                <button id="freeze-btn" onclick="toggleFreeze()" class="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-2xl border-4 border-white">
-                    <svg id="freeze-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
-                </button>
-                
-                <button onclick="toggleTorch()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-                </button>
+                <button onclick="closeSpyglass()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">✕</button>
+                <button onclick="toggleFreeze()" class="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-white">FREEZE</button>
+                <button onclick="toggleTorch()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">💡</button>
             </div>
         </div>
-
-        <div id="freeze-notice" class="hidden absolute top-10 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full font-black text-xs animate-pulse">IMAGE FROZEN</div>
     </div>
 
     <!-- REPORT VIEW -->
     <main id="view-report" class="hidden flex-1 flex flex-col p-4 space-y-4">
-        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar shrink-0">
-            <button onclick="filterReport('move')" id="f-move" class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase bg-white border border-slate-200">Movements</button>
-            <button onclick="filterReport('adj')" id="f-adj" class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase bg-white border border-slate-200">Adjustments</button>
-            <button onclick="filterReport('inactive')" id="f-inactive" class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase bg-white border border-slate-200">Extras</button>
-            <button onclick="filterReport('missing')" id="f-missing" class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase bg-white border border-slate-200">Missing</button>
-        </div>
-        <div class="flex-1 overflow-y-auto space-y-3" id="report-body"></div>
+        <div id="report-body" class="flex-1 overflow-y-auto space-y-3"></div>
         <div class="bg-white p-5 rounded-3xl shadow-xl space-y-4">
-            <input type="text" id="email-user" placeholder="Novus User" class="w-full p-4 bg-slate-50 rounded-2xl font-black text-blue-700 uppercase text-sm outline-none">
-            <button onclick="sendEmailReport()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-sm">Send Report</button>
+            <input type="text" id="email-user" placeholder="Novus Username" class="w-full p-4 bg-slate-50 rounded-2xl font-black text-blue-700 uppercase outline-none">
+            <button onclick="sendEmailReport()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-sm">Email Final Report</button>
         </div>
-    </main>
+    </nav>
 
     <!-- MODAL: ADD EXTRA ITEM -->
     <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
-            <h2 class="text-2xl font-black uppercase text-slate-900 text-center">Add Found Item</h2>
+            <h2 class="text-2xl font-black uppercase text-slate-900 text-center">Physical Find</h2>
             <div class="space-y-4">
-                <input type="text" id="add-hu" placeholder="HU Number" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
+                <input type="text" id="add-hu" placeholder="HU Number" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none" oninput="autoLookupExtra(this)">
                 <input type="text" id="add-prod" placeholder="Product ID" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
-                <input type="number" id="add-qty" placeholder="Qty" class="w-full p-6 bg-blue-50 rounded-2xl font-black text-center text-3xl text-blue-700 outline-none">
+                <input type="number" id="add-qty" placeholder="Counted Qty" class="w-full p-6 bg-blue-50 rounded-2xl font-black text-center text-3xl text-blue-700 outline-none">
             </div>
             <div class="flex gap-3 pt-4">
                 <button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
-                <button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-2xl font-black uppercase shadow-lg shadow-orange-200">Add to Bin</button>
+                <button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Confirm Add</button>
             </div>
         </div>
     </div>
@@ -170,7 +143,6 @@
         let currentActiveBin = localStorage.getItem('currentActiveBin') || "";
         let binsAudited = new Set(JSON.parse(localStorage.getItem('binsAudited')) || []);
         
-        // --- CAMERA STATE ---
         let videoStream = null;
         let videoTrack = null;
         let isFrozen = false;
@@ -178,139 +150,69 @@
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
 
+        function showToast() {
+            const t = document.getElementById('toast');
+            t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+
         function saveSession() {
             localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
             localStorage.setItem('auditLog', JSON.stringify(auditLog));
             localStorage.setItem('currentBinItems', JSON.stringify(currentBinItems));
             localStorage.setItem('currentActiveBin', currentActiveBin);
             localStorage.setItem('binsAudited', JSON.stringify(Array.from(binsAudited)));
-            const ind = document.getElementById('save-indicator');
-            ind.style.opacity = '1';
-            setTimeout(() => ind.style.opacity = '0', 800);
         }
 
-        // --- CAMERA LOGIC ---
-        async function openSpyglass() {
-            haptic();
-            const overlay = document.getElementById('camera-overlay');
-            const video = document.getElementById('camera-stream');
-            overlay.style.display = 'flex';
-
-            try {
-                videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', focusMode: 'continuous' }
-                });
-                video.srcObject = videoStream;
-                videoTrack = videoStream.getVideoTracks()[0];
-                
-                // Try to get hardware zoom capabilities
-                const capabilities = videoTrack.getCapabilities();
-                if (capabilities.zoom) {
-                    const control = document.getElementById('zoom-control');
-                    control.min = capabilities.zoom.min;
-                    control.max = capabilities.zoom.max;
-                    control.step = capabilities.zoom.step;
-                }
-            } catch (err) {
-                alert("Camera access denied or not available.");
-                closeSpyglass();
-            }
-        }
-
-        function closeSpyglass() {
-            const overlay = document.getElementById('camera-overlay');
-            overlay.style.display = 'none';
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-            }
-            isFrozen = false;
-            torchActive = false;
-        }
-
-        function handleZoom(val) {
-            const video = document.getElementById('camera-stream');
-            // Hardware Zoom
-            if (videoTrack && videoTrack.getCapabilities().zoom) {
-                videoTrack.applyConstraints({ advanced: [{ zoom: val }] });
-            } 
-            // CSS Fallback Zoom (Digital)
-            video.style.transform = `scale(${val})`;
-        }
-
-        function toggleFreeze() {
-            const video = document.getElementById('camera-stream');
-            const notice = document.getElementById('freeze-notice');
-            const icon = document.getElementById('freeze-icon');
-            haptic();
-            
-            if (isFrozen) {
-                video.play();
-                notice.classList.add('hidden');
-                icon.innerHTML = '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle>';
-            } else {
-                video.pause();
-                notice.classList.remove('hidden');
-                icon.innerHTML = '<rect x="6" y="6" width="12" height="12" rx="2"></rect>';
-            }
-            isFrozen = !isFrozen;
-        }
-
-        async function toggleTorch() {
-            if (!videoTrack) return;
-            haptic();
-            try {
-                torchActive = !torchActive;
-                await videoTrack.applyConstraints({
-                    advanced: [{ torch: torchActive }]
-                });
-            } catch (err) {
-                console.log("Torch not supported on this device.");
-            }
-        }
-
-        // --- CORE APP LOGIC (Preserved) ---
-        window.onload = () => {
-            initSetupGrid();
-            if (sapMasterData.length > 0) unlockAudit();
-            if (currentActiveBin) {
-                document.getElementById('setup-screen').classList.add('hidden');
-                document.getElementById('bin-input').value = currentActiveBin;
-                renderAuditList();
-                suggestBins("");
-            }
-            document.getElementById('stat-bins-done').innerText = binsAudited.size;
-        };
-
-        function initSetupGrid() {
-            const grid = document.getElementById('row-grid');
-            grid.innerHTML = "";
-            "ABCDEFGHIJKLMNOP".split("").forEach(row => {
-                const btn = document.createElement('button');
-                btn.className = "bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl text-slate-800 shadow-sm active:bg-blue-600 active:text-white";
-                btn.innerText = row;
-                btn.onclick = () => { haptic(); startAuditAtRow(row); };
-                grid.appendChild(btn);
-            });
-        }
-
-        function unlockAudit() {
-            document.getElementById('upload-prompt').classList.add('hidden');
-            document.getElementById('row-selection').classList.remove('hidden');
-        }
-
-        function startAuditAtRow(rowLetter) {
-            document.getElementById('setup-screen').classList.add('hidden');
-            selectBin(`W${rowLetter}01A`);
-        }
-
+        // --- CORE NAVIGATION ---
         function selectBin(binName) {
-            document.getElementById('bin-input').value = binName;
             currentActiveBin = binName.toUpperCase();
+            document.getElementById('bin-input').value = currentActiveBin;
+            
+            // Load fresh data for this bin
             const expected = sapMasterData.filter(i => i.sapBin === currentActiveBin);
             currentBinItems = expected.map(i => ({ 
                 ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin 
             }));
-            saveSession(); renderAuditList(); suggestBins("");
+            
+            saveSession();
+            renderAuditList();
+            suggestBins("");
+        }
+
+        function finalizeBin() {
+            if(!currentActiveBin) return;
+            haptic();
+
+            // Validation: Every item must be verified (qty > 0) OR marked missing
+            const unaddressed = currentBinItems.filter(i => !i.verified && !i.isMissing);
+            if (unaddressed.length > 0) {
+                alert("Please count or mark 'Missing' for all items in this bin.");
+                return;
+            }
+
+            // Move current items to the permanent log
+            auditLog.push(...currentBinItems);
+            binsAudited.add(currentActiveBin);
+            document.getElementById('stat-bins-done').innerText = binsAudited.size;
+            
+            showToast();
+            saveSession();
+            stepBin(1); // Move to next and auto-load
+        }
+
+        function markBinEmpty() {
+            if(!currentActiveBin) return;
+            haptic();
+            if (confirm(`Confirm Bin ${currentActiveBin} is physically EMPTY?`)) {
+                // Set all expected items to missing
+                currentBinItems.forEach(i => {
+                    i.isMissing = true;
+                    i.verified = false;
+                    i.countQty = 0;
+                });
+                finalizeBin();
+            }
         }
 
         function stepBin(dir) {
@@ -329,12 +231,55 @@
                 else if (level === 'B') level = 'A';
                 else { level = 'C'; bay--; }
             }
-            if (bay > 0 && bay < 100) selectBin(`W${row}${bay.toString().padStart(2, '0')}${level}`);
+            
+            if (bay > 0 && bay < 100) {
+                const nextBin = `W${row}${bay.toString().padStart(2, '0')}${level}`;
+                selectBin(nextBin);
+            }
         }
 
+        // --- CAMERA LOGIC ---
+        async function openSpyglass() {
+            haptic();
+            document.getElementById('camera-overlay').style.display = 'flex';
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.getElementById('camera-stream');
+                video.srcObject = videoStream;
+                videoTrack = videoStream.getVideoTracks()[0];
+            } catch (err) { alert("Camera Error"); closeSpyglass(); }
+        }
+
+        function closeSpyglass() {
+            document.getElementById('camera-overlay').style.display = 'none';
+            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+            isFrozen = false;
+        }
+
+        function handleZoom(val) {
+            document.getElementById('camera-stream').style.transform = `scale(${val})`;
+        }
+
+        function toggleFreeze() {
+            const v = document.getElementById('camera-stream');
+            isFrozen ? v.play() : v.pause();
+            isFrozen = !isFrozen;
+            haptic();
+        }
+
+        async function toggleTorch() {
+            if (!videoTrack) return;
+            torchActive = !torchActive;
+            try { await videoTrack.applyConstraints({ advanced: [{ torch: torchActive }] }); } catch(e){}
+        }
+
+        // --- UI RENDERING ---
         function renderAuditList() {
             const container = document.getElementById('audit-list');
             container.innerHTML = "";
+            if (currentBinItems.length === 0 && currentActiveBin !== "") {
+                container.innerHTML = `<div class="py-20 text-center text-slate-400 font-black uppercase text-xs">Bin Empty in SAP</div>`;
+            }
             currentBinItems.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.id = `card-${index}`;
@@ -353,7 +298,7 @@
                     </div>
                     <div class="flex flex-col gap-3">
                         <div class="flex gap-2">
-                            ${!item.isExtra ? `<button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Match SAP</button>` : ''}
+                            ${!item.isExtra ? `<button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Confirm ${item.sapQty}</button>` : ''}
                             <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-lg' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button>
                         </div>
                         <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
@@ -366,6 +311,7 @@
             });
         }
 
+        // --- DATA HANDLING ---
         function quickConfirm(idx) {
             haptic();
             currentBinItems[idx].countQty = currentBinItems[idx].sapQty;
@@ -379,6 +325,7 @@
             let current = currentBinItems[idx].countQty || 0;
             currentBinItems[idx].countQty = Math.max(0, current + delta);
             currentBinItems[idx].verified = (currentBinItems[idx].countQty > 0);
+            if(currentBinItems[idx].verified) currentBinItems[idx].isMissing = false;
             saveSession(); renderAuditList();
         }
 
@@ -388,12 +335,11 @@
             saveSession();
         }
 
-        function finalizeBin() {
+        function toggleMissing(idx) { 
             haptic();
-            auditLog.push(...currentBinItems);
-            binsAudited.add(currentActiveBin);
-            document.getElementById('stat-bins-done').innerText = binsAudited.size;
-            stepBin(1);
+            currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; 
+            if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } 
+            saveSession(); renderAuditList(); 
         }
 
         function handleFileUpload(event) {
@@ -410,13 +356,44 @@
                     uom: row['Base Unit of Measure'] || "EA",
                     sapQty: parseFloat(row['Quantity']) || 0
                 }));
-                saveSession(); unlockAudit();
+                saveSession();
+                document.getElementById('upload-prompt').classList.add('hidden');
+                document.getElementById('row-selection').classList.remove('hidden');
             };
             reader.readAsArrayBuffer(file);
         }
 
-        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
+        function initSetupGrid() {
+            const grid = document.getElementById('row-grid');
+            "ABCDEFGHIJKLMNOP".split("").forEach(row => {
+                const btn = document.createElement('button');
+                btn.className = "bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white";
+                btn.innerText = row;
+                btn.onclick = () => { haptic(); document.getElementById('setup-screen').classList.add('hidden'); selectBin(`W${row}01A`); };
+                grid.appendChild(btn);
+            });
+        }
 
+        function switchView(view) {
+            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
+            document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
+        }
+
+        function clearAllData() { if (confirm("Clear all audit progress?")) { localStorage.clear(); location.reload(); } }
+
+        window.onload = () => {
+            initSetupGrid();
+            if (sapMasterData.length > 0) {
+                document.getElementById('upload-prompt').classList.add('hidden');
+                document.getElementById('row-selection').classList.remove('hidden');
+            }
+            if (currentActiveBin) {
+                document.getElementById('setup-screen').classList.add('hidden');
+                selectBin(currentActiveBin);
+            }
+        };
+
+        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
         function submitExtra() {
             const hu = document.getElementById('add-hu').value.trim();
             const prod = document.getElementById('add-prod').value.trim();
@@ -429,16 +406,6 @@
             });
             toggleAddForm(); saveSession(); renderAuditList();
         }
-
-        function switchView(view) {
-            haptic();
-            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
-            document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
-            document.getElementById('nav-audit').classList.toggle('nav-active', view === 'audit');
-            document.getElementById('nav-report').classList.toggle('nav-active', view === 'report');
-        }
-
-        function clearAllData() { if (confirm("Reset everything?")) { localStorage.clear(); location.reload(); } }
     </script>
 </body>
 </html>

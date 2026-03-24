@@ -187,7 +187,6 @@
             const hu = input.value.trim();
             const badge = document.getElementById('smart-fill-badge');
             
-            // SAP HUs are typically long; search if input is 8+ chars
             if (hu.length >= 8) {
                 const match = sapMasterData.find(i => i.hu === hu);
                 if (match) {
@@ -195,7 +194,6 @@
                     document.getElementById('add-prod').value = match.product;
                     document.getElementById('add-batch').value = match.batch || "";
                     badge.classList.remove('hidden');
-                    // Move focus to Qty field automatically for speed
                     setTimeout(() => document.getElementById('add-qty').focus(), 100);
                 } else {
                     badge.classList.add('hidden');
@@ -218,7 +216,6 @@
             
             saveSession();
             renderAuditList();
-            suggestBins("");
             window.scrollTo(0,0);
         }
 
@@ -256,7 +253,8 @@
                 else { level = 'C'; bay--; }
             }
             
-            if (bay > 0 && bay < 100) {
+            // Fixed validation logic to allow Bay 00
+            if (bay >= 0 && bay < 100) {
                 selectBin(`W${row}${bay.toString().padStart(2, '0')}${level}`);
             }
         }
@@ -406,7 +404,8 @@
                 const btn = document.createElement('button');
                 btn.className = "bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white";
                 btn.innerText = row;
-                btn.onclick = () => { haptic(); document.getElementById('setup-screen').classList.add('hidden'); selectBin(`W${row}01A`); };
+                // Fixed to start at Bay 00A
+                btn.onclick = () => { haptic(); document.getElementById('setup-screen').classList.add('hidden'); selectBin(`W${row}00A`); };
                 grid.appendChild(btn);
             });
         }
@@ -470,7 +469,6 @@
                 desc: "PHYSICAL FIND", uom: "EA" 
             });
             toggleAddForm(); saveSession(); renderAuditList();
-            // Reset fields
             document.getElementById('add-hu').value = "";
             document.getElementById('add-prod').value = "";
             document.getElementById('add-batch').value = "";

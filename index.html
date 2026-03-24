@@ -110,16 +110,13 @@
 
     <!-- REPORT VIEW -->
     <main id="view-report" class="hidden flex-1 flex flex-col overflow-hidden">
-        <!-- Internal Tabs -->
         <div class="bg-white border-b flex shrink-0 overflow-x-auto no-scrollbar">
             <button onclick="setReportTab('move')" id="tab-move" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter tab-btn-active">Movements</button>
             <button onclick="setReportTab('adj')" id="tab-adj" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter text-slate-400">Adjustments</button>
-            <button onclick="setReportTab('inactive')" id="tab-inactive" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter text-slate-400">Not Scanned</button>
+            <button onclick="setReportTab('inactive')" id="tab-inactive" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter text-slate-400">Inactive HUs</button>
             <button onclick="setReportTab('miss')" id="tab-miss" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter text-slate-400">Missing</button>
         </div>
-        
         <div id="report-body" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
-        
         <div class="bg-white p-5 border-t space-y-4 shrink-0">
             <input type="text" id="email-user" placeholder="Novus Username" class="w-full p-4 bg-slate-50 rounded-2xl font-black text-blue-700 uppercase outline-none">
             <button onclick="sendEmailReport()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-sm">Email Report</button>
@@ -135,8 +132,8 @@
             </div>
             <div class="space-y-4">
                 <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2">HU Number</label>
-                    <input type="text" id="add-hu" placeholder="Scan HU..." class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2">HU Number (Enter 0 if Missing)</label>
+                    <input type="text" id="add-hu" placeholder="Scan HU or 0..." class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -193,6 +190,7 @@
         function autoLookupExtra(input) {
             const hu = input.value.trim();
             const badge = document.getElementById('smart-fill-badge');
+            if (hu === "0") { badge.classList.add('hidden'); return; }
             if (hu.length >= 8) {
                 const match = sapMasterData.find(i => i.hu === hu);
                 if (match) {
@@ -210,116 +208,58 @@
             if (!binName) return;
             currentActiveBin = binName.toUpperCase();
             document.getElementById('bin-input').value = currentActiveBin;
-            
             const expected = sapMasterData.filter(i => i.sapBin === currentActiveBin);
             currentBinItems = expected.map(i => ({ 
                 ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin 
             }));
-            
-            saveSession();
-            renderAuditList();
-            window.scrollTo(0,0);
+            saveSession(); renderAuditList(); window.scrollTo(0,0);
         }
 
         function finalizeBin() {
             if(!currentActiveBin) return;
             haptic();
-            const incomplete = currentBinItems.filter(i => !i.verified && !i.isMissing);
-            if (incomplete.length > 0) { alert("Please address all items in this bin."); return; }
-
-            // OVERRIDE LOGIC: Filter out any existing entries for this bin before adding new ones
+            if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Please address all items."); return; }
             auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
             auditLog.push(...currentBinItems);
-            
-            showToast();
-            saveSession();
-            stepBin(1);
+            showToast(); saveSession(); stepBin(1);
         }
 
         function stepBin(dir) {
             if (!currentActiveBin) return;
-            let rowChar = currentActiveBin.charAt(1);
-            let bayNum = parseInt(currentActiveBin.substring(2, 4));
-            let levelChar = currentActiveBin.charAt(4);
-
-            const rows = "ABCDEFGHIJKLMNOP";
-            const levels = "ABC";
-            let rowIndex = rows.indexOf(rowChar);
-            let levelIndex = levels.indexOf(levelChar);
-
-            if (dir > 0) {
-                levelIndex++;
-                if (levelIndex > 2) {
-                    levelIndex = 0;
-                    bayNum++;
-                    if (bayNum > 39) {
-                        bayNum = 0;
-                        rowIndex++;
-                    }
-                }
-            } else {
-                levelIndex--;
-                if (levelIndex < 0) {
-                    levelIndex = 2;
-                    bayNum--;
-                    if (bayNum < 0) {
-                        bayNum = 39;
-                        rowIndex--;
-                    }
-                }
-            }
-            
-            if (rowIndex >= 0 && rowIndex < rows.length) {
-                const nextBin = `W${rows[rowIndex]}${bayNum.toString().padStart(2, '0')}${levels[levelIndex]}`;
-                selectBin(nextBin);
-            }
+            let rows = "ABCDEFGHIJKLMNOP", levels = "ABC";
+            let rIdx = rows.indexOf(currentActiveBin.charAt(1));
+            let bNum = parseInt(currentActiveBin.substring(2, 4));
+            let lIdx = levels.indexOf(currentActiveBin.charAt(4));
+            if (dir > 0) { lIdx++; if (lIdx > 2) { lIdx = 0; bNum++; if (bNum > 39) { bNum = 0; rIdx++; } } } 
+            else { lIdx--; if (lIdx < 0) { lIdx = 2; bNum--; if (bNum < 0) { bNum = 39; rIdx--; } } }
+            if (rIdx >= 0 && rIdx < rows.length) selectBin(`W${rows[rIdx]}${bNum.toString().padStart(2, '0')}${levels[lIdx]}`);
         }
 
-        // --- CAMERA SPYGLASS ---
+        // --- CAMERA ---
         async function openSpyglass() {
-            haptic();
-            document.getElementById('camera-overlay').style.display = 'flex';
+            haptic(); document.getElementById('camera-overlay').style.display = 'flex';
             try {
                 videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 const video = document.getElementById('camera-stream');
-                video.srcObject = videoStream;
-                videoTrack = videoStream.getVideoTracks()[0];
-            } catch (err) { alert("Camera Permission Required"); closeSpyglass(); }
+                video.srcObject = videoStream; videoTrack = videoStream.getVideoTracks()[0];
+            } catch (err) { alert("Camera Error"); closeSpyglass(); }
         }
-
-        function closeSpyglass() {
-            document.getElementById('camera-overlay').style.display = 'none';
-            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-            isFrozen = false;
-        }
-
+        function closeSpyglass() { document.getElementById('camera-overlay').style.display = 'none'; if (videoStream) videoStream.getTracks().forEach(t => t.stop()); isFrozen = false; }
         function handleZoom(val) { document.getElementById('camera-stream').style.transform = `scale(${val})`; }
-
         function toggleFreeze() {
-            const v = document.getElementById('camera-stream');
-            const btn = document.getElementById('freeze-btn-ui');
+            const v = document.getElementById('camera-stream'); const btn = document.getElementById('freeze-btn-ui');
             if (isFrozen) { v.play(); btn.innerText = "FREEZE"; btn.classList.replace('bg-red-600', 'bg-blue-600'); } 
             else { v.pause(); btn.innerText = "LIVE"; btn.classList.replace('bg-blue-600', 'bg-red-600'); }
             isFrozen = !isFrozen; haptic();
         }
+        async function toggleTorch() { if (!videoTrack) return; torchActive = !torchActive; try { await videoTrack.applyConstraints({ advanced: [{ torch: torchActive }] }); } catch(e){} }
 
-        async function toggleTorch() {
-            if (!videoTrack) return;
-            torchActive = !torchActive;
-            try { await videoTrack.applyConstraints({ advanced: [{ torch: torchActive }] }); } catch(e){}
-        }
-
-        // --- UI RENDERING ---
+        // --- UI ---
         function renderAuditList() {
-            const container = document.getElementById('audit-list');
-            container.innerHTML = "";
-            if (currentBinItems.length === 0 && currentActiveBin !== "") {
-                container.innerHTML = `<div class="py-20 text-center text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin</div>`;
-                return;
-            }
+            const container = document.getElementById('audit-list'); container.innerHTML = "";
+            if (currentBinItems.length === 0 && currentActiveBin !== "") { container.innerHTML = `<div class="py-20 text-center text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin</div>`; return; }
             currentBinItems.forEach((item, index) => {
                 const card = document.createElement('div');
-                card.id = `card-${index}`;
                 card.className = `p-5 rounded-[2rem] shadow-sm border bg-white transition-all ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-4">
@@ -350,11 +290,11 @@
         }
 
         function quickConfirm(idx) { haptic(); currentBinItems[idx].countQty = currentBinItems[idx].sapQty; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; saveSession(); renderAuditList(); }
-        function adjustQty(idx, delta) { haptic(); let current = currentBinItems[idx].countQty || 0; currentBinItems[idx].countQty = Math.max(0, current + delta); currentBinItems[idx].verified = (currentBinItems[idx].countQty > 0); if(currentBinItems[idx].verified) currentBinItems[idx].isMissing = false; saveSession(); renderAuditList(); }
+        function adjustQty(idx, delta) { haptic(); let c = currentBinItems[idx].countQty || 0; currentBinItems[idx].countQty = Math.max(0, c + delta); currentBinItems[idx].verified = (currentBinItems[idx].countQty > 0); if(currentBinItems[idx].verified) currentBinItems[idx].isMissing = false; saveSession(); renderAuditList(); }
         function updateCount(idx, val) { currentBinItems[idx].countQty = parseFloat(val) || 0; currentBinItems[idx].verified = (currentBinItems[idx].countQty > 0); saveSession(); }
         function toggleMissing(idx) { haptic(); currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } saveSession(); renderAuditList(); }
 
-        // --- REPORT LOGIC ---
+        // --- REPORTING ---
         function setReportTab(tab) {
             activeReportTab = tab;
             document.querySelectorAll('#view-report button').forEach(b => {
@@ -366,50 +306,55 @@
         }
 
         function renderReport() {
-            const container = document.getElementById('report-body');
-            container.innerHTML = "";
-            const allAudited = [...auditLog];
-            let displayList = [];
+            const container = document.getElementById('report-body'); container.innerHTML = "";
+            const allAudited = [...auditLog]; let displayList = [];
 
             if (activeReportTab === 'move') {
-                // Movements: Scanned in a bin that is not the SAP bin
-                displayList = allAudited.filter(i => i.sapBin && i.scannedBin !== i.sapBin && !i.isMissing && i.verified);
+                // Movements: Scanned bin != SAP bin
+                displayList = allAudited.filter(i => i.hu !== "0" && i.sapBin && i.scannedBin !== i.sapBin && !i.isMissing && i.verified);
             } else if (activeReportTab === 'adj') {
-                // Adjustments: Scanned in correct bin but qty differs
-                displayList = allAudited.filter(i => i.sapBin === i.scannedBin && i.countQty !== i.sapQty && !i.isMissing && i.verified);
-            } else if (activeReportTab === 'miss') {
-                // Missing: Flagged as missing during audit
-                displayList = allAudited.filter(i => i.isMissing);
+                // Adjustments: Scanned qty != SAP qty
+                displayList = allAudited.filter(i => i.countQty !== i.sapQty && !i.isMissing && i.verified);
             } else if (activeReportTab === 'inactive') {
-                // Not Scanned: In SAP master but HU not found in any audited log
+                // Inactive: Extra HUs (Not in master) OR HU "0"
+                displayList = allAudited.filter(i => i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0"));
+            } else if (activeReportTab === 'miss') {
+                // Missing: Flagged or never scanned
                 const auditedHUs = new Set(allAudited.map(a => a.hu));
-                displayList = sapMasterData.filter(m => !auditedHUs.has(m.hu));
+                const neverScanned = sapMasterData.filter(m => !auditedHUs.has(m.hu)).map(m => ({...m, isMissing: true, desc: "Never Scanned"}));
+                displayList = [...allAudited.filter(i => i.isMissing), ...neverScanned];
             }
 
-            if(displayList.length === 0) {
-                container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Items Found</div>`;
-                return;
-            }
+            if(displayList.length === 0) { container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Items Found</div>`; return; }
 
             displayList.forEach(i => {
+                const isMoved = i.sapBin && i.scannedBin !== i.sapBin;
+                const isAdjusted = i.countQty !== i.sapQty;
                 const div = document.createElement('div');
                 div.className = "p-4 bg-white rounded-2xl border border-slate-100 shadow-sm";
-                let statusText = "";
-                if (activeReportTab === 'move') statusText = `<p class="text-[10px] text-purple-600 font-black">MOVED: ${i.sapBin} ➔ ${i.scannedBin}</p>`;
-                else if (activeReportTab === 'adj') statusText = `<p class="text-[10px] text-orange-600 font-black">QTY: ${i.countQty} (SAP: ${i.sapQty})</p>`;
-                else if (activeReportTab === 'miss') statusText = `<p class="text-[10px] text-red-600 font-black">MISSING FROM ${i.sapBin}</p>`;
-                else if (activeReportTab === 'inactive') statusText = `<p class="text-[10px] text-slate-400 font-black">SAP LOCATION: ${i.sapBin}</p>`;
+                
+                let status = "";
+                if (activeReportTab === 'move') {
+                    status = `<p class="text-[10px] text-purple-600 font-black">MOVED: ${i.sapBin} ➔ ${i.scannedBin}</p>`;
+                    if (isAdjusted) status += `<p class="text-[8px] text-orange-500 font-black uppercase mt-0.5">⚠️ Also Adjusted (Qty: ${i.countQty} vs ${i.sapQty})</p>`;
+                } else if (activeReportTab === 'adj') {
+                    status = `<p class="text-[10px] text-orange-600 font-black">ADJUSTED: ${i.countQty} (SAP: ${i.sapQty})</p>`;
+                    if (isMoved) status += `<p class="text-[8px] text-purple-500 font-black uppercase mt-0.5">⚠️ Also Moved (From: ${i.sapBin})</p>`;
+                } else if (activeReportTab === 'inactive') {
+                    status = `<p class="text-[10px] text-blue-600 font-black">${i.hu === "0" ? 'MISSING LABEL / NOT VISIBLE' : 'HU NOT IN SAP'}</p>`;
+                } else if (activeReportTab === 'miss') {
+                    status = `<p class="text-[10px] text-red-600 font-black">MISSING FROM ${i.sapBin || 'UNKNOWN'}</p>`;
+                }
 
                 div.innerHTML = `<p class="text-[10px] font-black mono text-blue-600">HU: ${i.hu}</p>
                                  <p class="text-xs font-bold leading-tight">${i.product}</p>
-                                 <p class="text-[10px] text-slate-500 mb-1">${i.desc}</p>${statusText}`;
+                                 <p class="text-[10px] text-slate-500 mb-1">${i.desc}</p>${status}`;
                 container.appendChild(div);
             });
         }
 
-        // --- SETUP & EXCEL ---
+        // --- DATA ---
         function handleFileUpload(event) {
-            const file = event.target.files[0];
             const reader = new FileReader();
             reader.onload = (e) => {
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
@@ -419,62 +364,36 @@
                     hu: String(row['Handling Unit'] || row['HU'] || "").trim(),
                     product: String(row['Product'] || ""),
                     batch: String(row['Batch'] || row['Batch Number'] || row['Charg'] || "").trim(),
-                    desc: row['Product Short Description'] || row['Product short description'] || "",
-                    uom: row['Base Unit of Measure'] || "EA",
+                    desc: row['Product Short Description'] || row['Product short description'] || row['Description'] || "",
                     sapQty: parseFloat(row['Quantity']) || 0
                 }));
-                saveSession();
-                document.getElementById('upload-prompt').classList.add('hidden');
-                document.getElementById('row-selection').classList.remove('hidden');
+                saveSession(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden');
             };
-            reader.readAsArrayBuffer(file);
+            reader.readAsArrayBuffer(event.target.files[0]);
         }
-
         function initSetupGrid() {
             const grid = document.getElementById('row-grid');
             "ABCDEFGHIJKLMNOP".split("").forEach(row => {
                 const btn = document.createElement('button');
                 btn.className = "bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white";
-                btn.innerText = row;
-                btn.onclick = () => { haptic(); document.getElementById('setup-screen').classList.add('hidden'); selectBin(`W${row}00A`); };
+                btn.innerText = row; btn.onclick = () => { haptic(); document.getElementById('setup-screen').classList.add('hidden'); selectBin(`W${row}00A`); };
                 grid.appendChild(btn);
             });
         }
-
-        function switchView(view) {
-            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
-            document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
-            if(view === 'report') renderReport();
-        }
-
+        function switchView(view) { document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', view !== 'report'); if(view === 'report') renderReport(); }
         function clearAllData() { if (confirm("Reset App?")) { localStorage.clear(); location.reload(); } }
-
-        window.onload = () => {
-            initSetupGrid();
-            if (sapMasterData.length > 0) {
-                document.getElementById('upload-prompt').classList.add('hidden');
-                document.getElementById('row-selection').classList.remove('hidden');
-            }
-            if (currentActiveBin) {
-                document.getElementById('setup-screen').classList.add('hidden');
-                selectBin(currentActiveBin);
-            }
-        };
-
-        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); document.getElementById('smart-fill-badge').classList.add('hidden'); }
-        
+        window.onload = () => { initSetupGrid(); if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
+        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
         function submitExtra() {
-            const hu = document.getElementById('add-hu').value.trim();
-            const prod = document.getElementById('add-prod').value.trim();
-            const batch = document.getElementById('add-batch').value.trim();
-            const qty = parseFloat(document.getElementById('add-qty').value) || 0;
+            const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim();
+            const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0;
             if(!hu || qty <= 0) return;
             const sapMatch = sapMasterData.find(m => m.hu === hu);
             currentBinItems.push({ 
                 hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, 
                 sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, 
                 countQty: qty, verified: true, isMissing: false, isExtra: true, 
-                desc: sapMatch ? sapMatch.desc : "PHYSICAL FIND", uom: "EA" 
+                desc: sapMatch ? sapMatch.desc : (hu === "0" ? "HU NOT VISIBLE / MISSING LABEL" : "PHYSICAL FIND")
             });
             toggleAddForm(); saveSession(); renderAuditList();
             document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";

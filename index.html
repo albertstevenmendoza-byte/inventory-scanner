@@ -3,153 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SAP Auditor | Mobile Pro</title>
+    <title>SAP Auditor | Pro Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
     <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
         input[type="number"], input[type="text"] { font-size: 16px !important; }
-        .card-verified { border-left: 8px solid #22c55e; background-color: #f0fdf4; }
-        .card-missing { border-left: 8px solid #ef4444; background-color: #fef2f2; opacity: 0.8; }
-        .card-extra { border-left: 8px solid #a855f7; background-color: #f5f3ff; }
-        .card-error { border: 2px solid #ef4444 !important; animation: shake 0.2s ease-in-out 0s 2; }
-        .nav-active { background-color: #3b82f6; color: white; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(5px); } 75% { transform: translateX(-5px); } }
+        
+        /* Refined Card States */
+        .card-verified { border-left: 10px solid #10b981; background: linear-gradient(to right, #f0fdf4, #ffffff); }
+        .card-missing { border-left: 10px solid #ef4444; background: #fef2f2; opacity: 0.7; }
+        .card-extra { border-left: 10px solid #8b5cf6; background: #f5f3ff; }
+        .card-error { border: 2px solid #ef4444 !important; animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        
+        .nav-active { background-color: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
         @media print { .no-print { display: none; } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Glassmorphism */
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-900 flex flex-col h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex flex-col h-screen overflow-hidden">
 
     <!-- Header -->
-    <header class="bg-slate-900 text-white p-3 shadow-lg shrink-0 no-print">
+    <header class="bg-slate-900 text-white px-4 py-3 shadow-2xl shrink-0 no-print z-50">
         <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="bg-blue-600 p-1.5 rounded-lg shadow-inner">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-xl shadow-lg ring-2 ring-blue-400/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                 </div>
-                <h1 class="text-lg font-black uppercase tracking-tighter">SAP Auditor</h1>
+                <div>
+                    <h1 class="text-sm font-black uppercase tracking-tighter leading-none">SAP Auditor</h1>
+                    <div id="save-indicator" class="text-[8px] text-blue-400 font-bold uppercase tracking-widest mt-1 opacity-0 transition-opacity">Auto-Saving...</div>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                <button onclick="clearAllData()" class="text-slate-400 p-2 text-[10px] uppercase font-bold border border-slate-700 rounded-lg active:bg-red-600 active:text-white transition-colors">Reset App</button>
-            </div>
+            <button onclick="clearAllData()" class="bg-slate-800 text-slate-400 px-3 py-2 text-[10px] uppercase font-black border border-slate-700 rounded-lg active:bg-red-600 active:text-white transition-all">Reset</button>
         </div>
-        <div id="data-status" class="text-[9px] text-center text-slate-500 font-bold uppercase mt-2 tracking-widest">System Offline</div>
     </header>
 
     <!-- Nav Tabs -->
-    <nav class="bg-white border-b flex p-1 no-print shrink-0">
-        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-xs font-black uppercase tracking-widest transition-all nav-active rounded-l-lg">Audit Mode</button>
-        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-xs font-black uppercase tracking-widest transition-all text-slate-400 bg-slate-50 rounded-r-lg">Live Report</button>
+    <nav class="bg-white border-b flex p-1.5 no-print shrink-0 gap-1">
+        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all nav-active rounded-xl">Audit Mode</button>
+        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 bg-slate-50 rounded-xl">Live Report</button>
     </nav>
 
     <!-- AUDIT VIEW -->
     <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
         <!-- STARTUP OVERLAY -->
-        <div id="setup-screen" class="absolute inset-0 bg-slate-100 z-40 flex flex-col p-6 overflow-y-auto">
+        <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col p-6 overflow-y-auto">
             <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
-                <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <div class="w-24 h-24 bg-white shadow-2xl rounded-[2.5rem] flex items-center justify-center mb-8 border border-slate-100">
+                    <svg class="text-blue-600" xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 </div>
-                <h2 class="text-2xl font-black uppercase text-slate-800 mb-2">Data Required</h2>
-                <p class="text-slate-500 text-sm mb-8 max-w-[240px]">Upload the <b>SAP Physical Stock</b> export to begin.</p>
+                <h2 class="text-3xl font-black uppercase text-slate-900 mb-2">Initialize</h2>
+                <p class="text-slate-500 text-sm mb-10 max-w-[260px] font-medium">Upload your SAP Physical Stock Export (XLSX/CSV) to begin the audit.</p>
                 <input type="file" id="sap-upload-main" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
-                <label for="sap-upload-main" class="w-full max-w-xs bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl active:scale-95 transition-all cursor-pointer block">Select Excel File</label>
+                <label for="sap-upload-main" class="w-full max-w-xs bg-blue-600 text-white py-6 rounded-3xl font-black uppercase text-sm shadow-[0_20px_40px_rgba(37,99,235,0.3)] active:scale-95 transition-all cursor-pointer block">Select Export File</label>
+                <div id="data-status" class="text-[10px] text-slate-400 font-bold uppercase mt-8 tracking-widest">System Offline</div>
             </div>
             <div id="row-selection" class="hidden">
-                <h2 class="text-2xl font-black uppercase mb-2 text-slate-800">Select Row</h2>
-                <p class="text-slate-500 text-sm mb-6 font-bold uppercase">Choose a row to begin auditing.</p>
-                <div class="grid grid-cols-4 gap-3" id="row-grid"></div>
+                <h2 class="text-2xl font-black uppercase mb-2 text-slate-900">Select Row</h2>
+                <p class="text-slate-400 text-xs mb-8 font-bold uppercase tracking-wider">Storage Location: Warehouse 1</p>
+                <div class="grid grid-cols-4 gap-4" id="row-grid"></div>
             </div>
         </div>
 
         <!-- SMART BIN INPUT -->
-        <div class="p-3 bg-white border-b shadow-sm shrink-0">
+        <div class="px-4 py-4 bg-white border-b shadow-sm shrink-0">
             <div class="flex gap-2">
-                <button onclick="stepBin(-1)" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-black">◀</button>
-                <input type="text" id="bin-input" placeholder="TYPE/SCAN BIN..." autocomplete="off"
-                       class="flex-1 p-4 bg-slate-100 border-2 border-slate-200 rounded-xl text-xl font-black text-blue-700 uppercase focus:border-blue-500 outline-none"
-                       oninput="suggestBins(this.value)">
-                <button onclick="stepBin(1)" class="bg-slate-200 text-slate-600 px-4 rounded-xl font-black">▶</button>
+                <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black active:bg-slate-200">
+                    <svg class="mx-auto" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <div class="relative flex-1">
+                    <input type="text" id="bin-input" placeholder="SCAN BIN..." autocomplete="off"
+                           class="w-full py-4 px-6 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl mono text-blue-700 uppercase focus:border-blue-500 focus:bg-white outline-none transition-all shadow-inner"
+                           oninput="suggestBins(this.value)">
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-[8px] font-black text-slate-400 uppercase">Live</span>
+                    </div>
+                </div>
+                <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black active:bg-slate-200">
+                    <svg class="mx-auto" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+            <!-- Progress Bar -->
+            <div class="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div id="row-progress-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: 0%"></div>
             </div>
             <div id="bin-suggestions" class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1"></div>
         </div>
 
         <!-- LIST AREA -->
-        <div id="audit-list" class="flex-1 overflow-y-auto p-3 space-y-3 pb-56"></div>
+        <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-60"></div>
 
         <!-- STICKY FOOTER -->
-        <div class="fixed bottom-0 left-0 right-0 bg-slate-900 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] no-print z-50">
-            <div class="flex gap-2 mb-3">
-                <button onclick="toggleAddForm()" class="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-lg">+ Found Item</button>
-                <button onclick="finalizeBin()" class="flex-1 bg-slate-700 text-slate-300 py-3 rounded-xl font-black uppercase text-[10px] border border-slate-600">Mark Bin Empty</button>
+        <div class="fixed bottom-0 left-0 right-0 glass p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] no-print z-50 safe-area-bottom">
+            <div class="flex gap-3 mb-4">
+                <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[11px] shadow-sm active:bg-orange-50">+ Add Item</button>
+                <button onclick="finalizeBin()" class="flex-1 bg-slate-800 text-slate-300 py-4 rounded-2xl font-black uppercase text-[11px] shadow-sm">Mark Empty</button>
             </div>
             <div class="flex items-center justify-between gap-4">
-                <div class="text-white">
-                    <p class="text-[8px] uppercase text-slate-400 font-bold">Bins Done</p>
-                    <p id="stat-bins-done" class="text-xl font-black leading-none">0</p>
+                <div class="bg-slate-900 px-4 py-2 rounded-2xl">
+                    <p class="text-[8px] uppercase text-slate-500 font-black">Completed</p>
+                    <p id="stat-bins-done" class="text-xl mono font-black leading-none text-white">0</p>
                 </div>
-                <button onclick="finalizeBin()" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-black uppercase text-sm shadow-xl active:scale-95 transition-all">Finalize & Next Bin</button>
+                <button onclick="finalizeBin()" class="flex-1 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-[0_10px_20px_rgba(37,99,235,0.4)] active:scale-95 transition-all">Finalize Bin</button>
             </div>
         </div>
     </main>
 
     <!-- ROW FINISHED MODAL -->
-    <div id="row-end-modal" class="hidden fixed inset-0 bg-slate-900/95 z-[70] p-6 flex items-center justify-center">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-sm text-center">
-            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <div id="row-end-modal" class="hidden fixed inset-0 glass z-[100] p-6 flex items-center justify-center">
+        <div class="bg-white rounded-[3rem] p-10 w-full max-w-sm text-center shadow-2xl border border-slate-100">
+            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
-            <h2 class="text-2xl font-black uppercase mb-2">Row Complete!</h2>
-            <p id="row-end-text" class="text-slate-500 font-bold mb-6 text-sm"></p>
+            <h2 class="text-3xl font-black uppercase mb-2 tracking-tighter">Row Done!</h2>
+            <p id="row-end-text" class="text-slate-500 font-bold mb-8 text-sm uppercase tracking-widest"></p>
             <div class="space-y-3">
-                <button id="btn-next-row" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg">Continue to Next Row</button>
-                <button onclick="openRowSelector()" class="w-full bg-white border-2 border-blue-600 text-blue-600 py-4 rounded-2xl font-black uppercase text-xs">Navigate to Different Row</button>
-                <button onclick="switchView('report'); document.getElementById('row-end-modal').classList.add('hidden')" class="w-full bg-slate-100 text-slate-600 py-4 rounded-2xl font-black uppercase text-xs">Finish & View Report</button>
+                <button id="btn-next-row" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs shadow-xl">Next Row</button>
+                <button onclick="openRowSelector()" class="w-full bg-white border-2 border-slate-200 text-slate-600 py-5 rounded-2xl font-black uppercase text-xs">Pick Row</button>
+                <button onclick="switchView('report'); document.getElementById('row-end-modal').classList.add('hidden')" class="w-full text-slate-400 py-3 font-black uppercase text-[10px]">View Report</button>
             </div>
         </div>
     </div>
 
     <!-- REPORT VIEW -->
-    <main id="view-report" class="hidden flex-1 flex flex-col overflow-hidden p-3 space-y-3">
-        <div class="flex gap-1 overflow-x-auto pb-2 no-print shrink-0 no-scrollbar">
-            <button onclick="filterReport('move')" id="f-move" class="whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase bg-white border border-slate-200 shadow-sm">Movements</button>
-            <button onclick="filterReport('adj')" id="f-adj" class="whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase bg-white border border-slate-200 shadow-sm">Adjustments</button>
-            <button onclick="filterReport('inactive')" id="f-inactive" class="whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase bg-white border border-slate-200 shadow-sm">Extra Items</button>
-            <button onclick="filterReport('missing')" id="f-missing" class="whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase bg-white border border-slate-200 shadow-sm">Missing</button>
+    <main id="view-report" class="hidden flex-1 flex flex-col overflow-hidden p-4 space-y-4">
+        <div class="flex gap-2 overflow-x-auto pb-2 no-print shrink-0 no-scrollbar">
+            <button onclick="filterReport('move')" id="f-move" class="whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase bg-white border border-slate-200 shadow-sm">Movements</button>
+            <button onclick="filterReport('adj')" id="f-adj" class="whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase bg-white border border-slate-200 shadow-sm">Adjustments</button>
+            <button onclick="filterReport('inactive')" id="f-inactive" class="whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase bg-white border border-slate-200 shadow-sm">Extras</button>
+            <button onclick="filterReport('missing')" id="f-missing" class="whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase bg-white border border-slate-200 shadow-sm">Missing</button>
         </div>
         <div class="flex-1 overflow-y-auto space-y-3" id="report-body"></div>
-        <div class="bg-white p-4 rounded-2xl shadow-xl border border-slate-200 no-print space-y-3">
-            <div class="flex items-center gap-2">
-                <input type="text" id="email-user" placeholder="Novus Username" class="flex-1 p-3 border rounded-xl bg-slate-50 font-bold text-blue-700 outline-none">
-                <span class="text-xs font-bold text-slate-500">@novusfoods.com</span>
+        <div class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100 no-print space-y-4 safe-area-bottom">
+            <div class="flex items-center gap-3 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                <input type="text" id="email-user" placeholder="Novus User" class="flex-1 p-3 bg-transparent font-black text-blue-700 outline-none uppercase text-sm">
+                <span class="pr-4 text-[10px] font-black text-slate-400">@NOVUSFOODS.COM</span>
             </div>
-            <button onclick="sendEmailReport()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase text-sm shadow-md">Email Report</button>
+            <button onclick="sendEmailReport()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-lg active:bg-blue-600 transition-colors">Submit Final Report</button>
         </div>
     </main>
 
     <!-- MODAL: ADD EXTRA ITEM -->
-    <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/90 z-[60] p-4 flex items-center justify-center">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4">
-            <h2 class="text-xl font-black uppercase text-slate-800">Add Physical Item</h2>
-            <div class="space-y-3">
-                <input type="text" id="add-hu" placeholder="HU Number" class="w-full p-4 bg-slate-100 rounded-xl font-bold outline-none" oninput="autoLookupExtra(this)">
-                <input type="text" id="add-prod" placeholder="Product ID" class="w-full p-4 bg-slate-100 rounded-xl font-bold outline-none">
-                <input type="number" id="add-qty" placeholder="Physical Count" class="w-full p-5 bg-blue-50 rounded-xl font-black text-center text-2xl text-blue-700 outline-none">
+    <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
+            <h2 class="text-2xl font-black uppercase text-slate-900 tracking-tighter text-center">Add Found Item</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">HU Number</label>
+                    <input type="text" id="add-hu" placeholder="000000000..." class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500 transition-all" oninput="autoLookupExtra(this)">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Product ID</label>
+                    <input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Physical Qty</label>
+                    <input type="number" id="add-qty" placeholder="0" class="w-full p-6 bg-blue-50 rounded-2xl font-black text-center text-3xl text-blue-700 outline-none border-2 border-blue-100 focus:border-blue-500">
+                </div>
             </div>
-            <div class="flex gap-3 pt-2">
-                <button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-bold uppercase text-xs">Cancel</button>
-                <button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-xl font-black uppercase shadow-lg">Confirm Add</button>
+            <div class="flex gap-3 pt-4">
+                <button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
+                <button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-2xl font-black uppercase shadow-lg shadow-orange-200 active:scale-95 transition-all">Add to Bin</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- DATA STATE ---
+        // --- DATA STATE (Logic Integrity Maintained) ---
         let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
         let auditLog = JSON.parse(localStorage.getItem('auditLog')) || []; 
         let currentBinItems = JSON.parse(localStorage.getItem('currentBinItems')) || [];
         let currentActiveBin = localStorage.getItem('currentActiveBin') || "";
         let binsAudited = new Set(JSON.parse(localStorage.getItem('binsAudited')) || []);
+
+        function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
 
         function saveSession() {
             localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
@@ -157,6 +194,12 @@
             localStorage.setItem('currentBinItems', JSON.stringify(currentBinItems));
             localStorage.setItem('currentActiveBin', currentActiveBin);
             localStorage.setItem('binsAudited', JSON.stringify(Array.from(binsAudited)));
+            
+            // Visual feedback for save
+            const ind = document.getElementById('save-indicator');
+            ind.style.opacity = '1';
+            setTimeout(() => ind.style.opacity = '0', 800);
+            updateProgressBar();
         }
 
         window.onload = () => {
@@ -169,16 +212,26 @@
                 suggestBins("");
             }
             document.getElementById('stat-bins-done').innerText = binsAudited.size;
+            updateProgressBar();
         };
+
+        function updateProgressBar() {
+            if (!currentActiveBin) return;
+            const row = currentActiveBin.charAt(1);
+            const rowBins = Array.from(binsAudited).filter(b => b.charAt(1) === row).length;
+            const totalInRow = 120; // Approx 40 bays * 3 levels
+            const pct = Math.min(100, (rowBins / totalInRow) * 100);
+            document.getElementById('row-progress-bar').style.width = `${pct}%`;
+        }
 
         function initSetupGrid() {
             const grid = document.getElementById('row-grid');
             grid.innerHTML = "";
             "ABCDEFGHIJKLMNOP".split("").forEach(row => {
                 const btn = document.createElement('button');
-                btn.className = "bg-white border-2 border-slate-200 p-4 rounded-2xl font-black text-xl text-blue-600 shadow-sm active:bg-blue-600 active:text-white";
+                btn.className = "bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl text-slate-800 shadow-sm active:bg-blue-600 active:text-white transition-all";
                 btn.innerText = row;
-                btn.onclick = () => startAuditAtRow(row);
+                btn.onclick = () => { haptic(); startAuditAtRow(row); };
                 grid.appendChild(btn);
             });
         }
@@ -186,13 +239,13 @@
         function unlockAudit() {
             document.getElementById('upload-prompt').classList.add('hidden');
             document.getElementById('row-selection').classList.remove('hidden');
-            document.getElementById('data-status').innerText = `ONLINE: ${sapMasterData.length} SKU`;
-            document.getElementById('data-status').className = "text-[9px] text-center text-green-500 font-bold uppercase mt-2 tracking-widest";
+            document.getElementById('data-status').innerText = `SYSTEM READY: ${sapMasterData.length} ITEMS`;
+            document.getElementById('data-status').className = "text-[10px] text-center text-green-500 font-black uppercase mt-8 tracking-widest";
         }
 
         function startAuditAtRow(rowLetter) {
             document.getElementById('setup-screen').classList.add('hidden');
-            selectBin(`W${rowLetter}00A`);
+            selectBin(`W${rowLetter}01A`);
         }
 
         function openRowSelector() {
@@ -202,7 +255,7 @@
         }
 
         function clearAllData() { 
-            if (confirm("⚠️ WARNING: This will permanently delete all SAP data and progress. Reset?")) { 
+            if (confirm("⚠️ DESTROY ALL DATA? This cannot be undone.")) { 
                 localStorage.clear(); location.reload(); 
             } 
         }
@@ -212,7 +265,7 @@
             let row = current.charAt(1);
             if (current.endsWith("100")) {
                 let nextRow = String.fromCharCode(row.charCodeAt(0) + 1);
-                return nextRow > 'P' ? null : `W${nextRow}00A`;
+                return nextRow > 'P' ? null : `W${nextRow}01A`;
             }
             let bay = parseInt(current.substring(2, 4));
             let level = current.charAt(4);
@@ -234,13 +287,14 @@
             if (level === 'C') level = 'B';
             else if (level === 'B') level = 'A';
             else {
-                if (bay === 0) return null;
+                if (bay <= 1) return null;
                 level = 'C'; bay--;
             }
             return `W${row}${bay.toString().padStart(2, '0')}${level}`;
         }
 
         function stepBin(dir) {
+            haptic();
             const next = dir > 0 ? getNextPhysicalBin(currentActiveBin) : getPrevPhysicalBin(currentActiveBin);
             if (next) selectBin(next);
         }
@@ -252,15 +306,17 @@
                 const bayPrefix = currentActiveBin.substring(0, 4);
                 ['A', 'B', 'C'].forEach(lvl => {
                     const btn = document.createElement('button');
-                    btn.className = `px-6 py-2 rounded-lg font-black text-sm border shrink-0 ${currentActiveBin.endsWith(lvl) && !currentActiveBin.endsWith("100") ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-blue-600 border-blue-200'}`;
-                    btn.innerText = lvl;
-                    btn.onclick = () => selectBin(bayPrefix + lvl);
+                    const isAct = currentActiveBin.endsWith(lvl) && !currentActiveBin.endsWith("100");
+                    btn.className = `px-6 py-3 rounded-xl font-black text-xs border shrink-0 transition-all ${isAct ? 'bg-blue-600 text-white border-blue-700 shadow-lg' : 'bg-white text-slate-400 border-slate-100 shadow-sm'}`;
+                    btn.innerText = `LEVEL ${lvl}`;
+                    btn.onclick = () => { haptic(); selectBin(bayPrefix + lvl); };
                     container.appendChild(btn);
                 });
                 const floorBtn = document.createElement('button');
-                floorBtn.className = `px-6 py-2 rounded-lg font-black text-sm border shrink-0 ${currentActiveBin.endsWith("100") ? 'bg-orange-500 text-white border-orange-600' : 'bg-orange-50 text-orange-600 border-orange-200'}`;
-                floorBtn.innerText = "100 (Floor)";
-                floorBtn.onclick = () => selectBin(`W${currentActiveBin.charAt(1)}100`);
+                const isFlr = currentActiveBin.endsWith("100");
+                floorBtn.className = `px-6 py-3 rounded-xl font-black text-xs border shrink-0 transition-all ${isFlr ? 'bg-orange-500 text-white border-orange-600 shadow-lg' : 'bg-orange-50 text-orange-600 border-orange-100'}`;
+                floorBtn.innerText = "FLOOR (100)";
+                floorBtn.onclick = () => { haptic(); selectBin(`W${currentActiveBin.charAt(1)}100`); };
                 container.appendChild(floorBtn);
             }
         }
@@ -282,11 +338,13 @@
 
         function finalizeBin() {
             if(!currentActiveBin) return;
+            haptic();
             let errors = false;
             currentBinItems.forEach((item, index) => {
                 const card = document.getElementById(`card-${index}`);
                 if ((item.verified && item.countQty <= 0) || (!item.verified && !item.isMissing)) {
                     card.classList.add('card-error'); errors = true;
+                    setTimeout(() => card.classList.remove('card-error'), 500);
                 }
             });
             if (errors) return;
@@ -306,16 +364,17 @@
             const modal = document.getElementById('row-end-modal');
             const text = document.getElementById('row-end-text');
             const nextBtn = document.getElementById('btn-next-row');
-            text.innerText = `Row ${finishedRow} complete.`;
+            text.innerText = `Row ${finishedRow} COMPLETE`;
             if (nextBin) {
-                nextBtn.innerText = `Continue to Row ${nextBin.charAt(1)}`;
-                nextBtn.onclick = () => { modal.classList.add('hidden'); selectBin(nextBin); };
+                nextBtn.innerText = `START ROW ${nextBin.charAt(1)}`;
+                nextBtn.onclick = () => { haptic(); modal.classList.add('hidden'); selectBin(nextBin); };
                 nextBtn.classList.remove('hidden');
             } else { nextBtn.classList.add('hidden'); }
             modal.classList.remove('hidden');
         }
 
         function quickConfirm(idx) {
+            haptic();
             currentBinItems[idx].countQty = currentBinItems[idx].sapQty;
             currentBinItems[idx].verified = true;
             currentBinItems[idx].isMissing = false;
@@ -323,6 +382,7 @@
         }
 
         function adjustQty(idx, delta) {
+            haptic();
             let current = currentBinItems[idx].countQty || 0;
             currentBinItems[idx].countQty = Math.max(0, current + delta);
             currentBinItems[idx].verified = (currentBinItems[idx].countQty > 0);
@@ -334,33 +394,37 @@
             const container = document.getElementById('audit-list');
             container.innerHTML = "";
             if (currentBinItems.length === 0 && currentActiveBin !== "") {
-                container.innerHTML = `<div class="p-10 text-center text-slate-400 italic text-xs uppercase font-black">Bin empty in SAP</div>`;
+                container.innerHTML = `<div class="py-20 text-center space-y-4">
+                    <div class="text-slate-200 flex justify-center"><svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 8V21H3V8"/><path d="M1 3H23V8H1V3Z"/><path d="M10 12H14"/></svg></div>
+                    <p class="text-slate-400 italic text-[10px] uppercase font-black tracking-widest">Bin empty in SAP export</p>
+                </div>`;
             }
             currentBinItems.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.id = `card-${index}`;
-                card.className = `p-4 rounded-2xl shadow-md border bg-white transition-all ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
+                card.className = `p-5 rounded-[2rem] shadow-sm border bg-white transition-all duration-300 ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
+                    <div class="flex justify-between items-start mb-4">
                         <div class="flex-1">
-                            <span class="inline-block px-2 py-0.5 bg-slate-800 text-white font-mono text-xs rounded mb-2">HU: ${item.hu}</span>
-                            <h3 class="text-sm font-black text-slate-800 leading-tight">${item.product}</h3>
-                            <p class="text-[10px] text-blue-600 font-bold uppercase mt-0.5 leading-tight">${item.desc}</p>
+                            <span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2 shadow-sm">HU: ${item.hu}</span>
+                            <h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase leading-tight">${item.desc}</p>
                         </div>
-                        <div class="text-right">
-                            <p class="text-[8px] font-black text-slate-400 uppercase">SAP Qty</p>
-                            <p class="text-lg font-black text-slate-700">${item.isExtra ? '--' : item.sapQty} <span class="text-[10px]">${item.uom}</span></p>
+                        <div class="text-right bg-slate-50 p-2 rounded-xl border border-slate-100 min-w-[70px]">
+                            <p class="text-[7px] font-black text-slate-400 uppercase">SAP Qty</p>
+                            <p class="text-lg mono font-black text-slate-700">${item.isExtra ? '--' : item.sapQty}</p>
+                            <p class="text-[8px] font-bold text-slate-400">${item.uom}</p>
                         </div>
                     </div>
                     <div class="flex flex-col gap-3">
                         <div class="flex gap-2 items-center">
-                            ${!item.isExtra ? `<button onclick="quickConfirm(${index})" class="flex-[2] py-4 bg-green-600 text-white rounded-xl font-black text-xs uppercase shadow-md active:scale-95 transition-all">ALL ${item.sapQty}</button>` : ''}
-                            <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-inner' : 'border-slate-200 text-slate-400 bg-white shadow-sm'}">Missing</button>
+                            ${!item.isExtra ? `<button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-100 active:scale-95 transition-all">Match SAP</button>` : ''}
+                            <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 transition-all ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-lg' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button>
                         </div>
-                        <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl">
-                            <button onclick="adjustQty(${index}, -1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-400">－</button>
-                            <input type="number" inputmode="decimal" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="QTY" class="flex-1 bg-transparent text-center font-black text-xl text-blue-700 outline-none border-none">
-                            <button onclick="adjustQty(${index}, 1)" class="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600">＋</button>
+                        <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                            <button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300 active:bg-slate-100">－</button>
+                            <input type="number" inputmode="decimal" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none border-none">
+                            <button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-blue-50">＋</button>
                         </div>
                     </div>`;
                 container.appendChild(card);
@@ -368,6 +432,7 @@
         }
 
         function toggleMissing(idx) { 
+            haptic();
             currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; 
             if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } 
             saveSession(); renderAuditList(); 
@@ -399,13 +464,14 @@
             reader.readAsArrayBuffer(file);
         }
 
-        function toggleAddForm() { document.getElementById('add-item-modal').classList.toggle('hidden'); }
+        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
 
         function submitExtra() {
+            haptic();
             const hu = document.getElementById('add-hu').value.trim();
             const prod = document.getElementById('add-prod').value.trim();
             const qty = parseFloat(document.getElementById('add-qty').value) || 0;
-            if(!currentActiveBin || !hu || !prod || qty <= 0) return alert("Fill all fields.");
+            if(!currentActiveBin || !hu || !prod || qty <= 0) return alert("All fields required.");
             const sapMatch = sapMasterData.find(i => i.hu === hu);
             currentBinItems.push({ 
                 hu, 
@@ -417,13 +483,17 @@
                 verified: true, 
                 isMissing: false, 
                 isExtra: !sapMatch, 
-                desc: sapMatch ? sapMatch.desc : "NOT IN SAP EXPORT", 
+                desc: sapMatch ? sapMatch.desc : "PHYSICAL DISCOVERY", 
                 uom: sapMatch ? sapMatch.uom : "EA" 
             });
             toggleAddForm(); saveSession(); renderAuditList();
+            document.getElementById('add-hu').value = "";
+            document.getElementById('add-prod').value = "";
+            document.getElementById('add-qty').value = "";
         }
 
         function switchView(view) {
+            haptic();
             document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
             document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
             document.getElementById('nav-audit').classList.toggle('nav-active', view === 'audit');
@@ -431,23 +501,19 @@
             if(view === 'report') filterReport('move');
         }
 
-        // --- NEW RECONCILIATION LOGIC ---
         function getReconciledData() {
             const allRecords = [...auditLog, ...currentBinItems];
             const huMap = {};
-
             allRecords.forEach(rec => {
                 if (!huMap[rec.hu]) {
                     huMap[rec.hu] = { ...rec };
                 } else {
                     let existing = huMap[rec.hu];
-                    // If we found it somewhere else, prioritize the found location and count
                     if ((rec.verified || rec.isExtra) && existing.isMissing) {
                         existing.scannedBin = rec.scannedBin;
                         existing.countQty = rec.countQty;
                         existing.verified = true;
                         existing.isMissing = false;
-                        // Keep original sapBin if it was known
                         if (!existing.sapBin && rec.sapBin) existing.sapBin = rec.sapBin;
                     }
                 }
@@ -461,74 +527,62 @@
             
             ['move', 'adj', 'inactive', 'missing'].forEach(id => {
                 const btn = document.getElementById('f-' + id);
-                btn.className = `whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase border shadow-sm ${id === type ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-200'}`;
+                btn.className = `whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase border transition-all ${id === type ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-400 border-slate-100 shadow-sm'}`;
             });
 
             const reconciled = getReconciledData();
             let filtered = [];
 
-            if (type === 'move') {
-                // Movement: Found in different bin than SAP says.
-                filtered = reconciled.filter(i => i.sapBin && i.sapBin !== i.scannedBin && i.verified);
-            } else if (type === 'adj') {
-                // Adjustment: Count is different from SAP (even if it moved)
-                filtered = reconciled.filter(i => i.verified && i.countQty !== i.sapQty);
-            } else if (type === 'missing') {
-                // Missing: Flagged missing and never found elsewhere
-                filtered = reconciled.filter(i => i.isMissing);
-            } else if (type === 'inactive') {
-                // Extras: Found but NOT in SAP data at all
-                filtered = reconciled.filter(i => i.isExtra && !i.sapBin);
-            }
+            if (type === 'move') filtered = reconciled.filter(i => i.sapBin && i.sapBin !== i.scannedBin && i.verified);
+            else if (type === 'adj') filtered = reconciled.filter(i => i.verified && i.countQty !== i.sapQty);
+            else if (type === 'missing') filtered = reconciled.filter(i => i.isMissing);
+            else if (type === 'inactive') filtered = reconciled.filter(i => i.isExtra && !i.sapBin);
             
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-400 text-xs font-bold uppercase">Clear</div>`;
+                container.innerHTML = `<div class="py-20 text-center text-slate-300 text-[10px] font-black uppercase tracking-[0.2em]">Category Clear</div>`;
                 return;
             }
 
             filtered.forEach(i => {
                 const div = document.createElement('div');
-                div.className = "p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3";
+                div.className = "p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm space-y-4";
                 
                 let statusBadge = "";
                 let details = "";
 
                 if (type === 'move') {
                     const isAlsoAdj = i.countQty !== i.sapQty;
-                    statusBadge = isAlsoAdj ? `<span class="bg-red-100 text-red-600 text-[8px] font-black px-2 py-0.5 rounded ml-2">MOVE + ADJ</span>` : `<span class="bg-blue-100 text-blue-600 text-[8px] font-black px-2 py-0.5 rounded ml-2">MOVEMENT</span>`;
-                    details = `
-                        <div class="flex justify-between items-center bg-blue-50 p-2 rounded-lg border border-blue-100">
-                            <div><p class="text-[8px] uppercase font-black text-blue-400">SAP Bin</p><p class="font-bold text-slate-700 text-xs">${i.sapBin}</p></div>
-                            <div class="text-blue-500 font-bold">➜</div>
-                            <div class="text-right"><p class="text-[8px] uppercase font-black text-blue-400">Found In</p><p class="font-bold text-blue-700 text-xs">${i.scannedBin}</p></div>
+                    statusBadge = `<span class="bg-blue-100 text-blue-600 text-[8px] font-black px-2 py-1 rounded-lg ml-2 uppercase">${isAlsoAdj ? 'Move + Adj' : 'Movement'}</span>`;
+                    details = `<div class="flex justify-between items-center bg-blue-50/50 p-3 rounded-2xl border border-blue-100/50">
+                            <div><p class="text-[7px] uppercase font-black text-blue-400 mb-1">SAP Bin</p><p class="mono font-black text-slate-700 text-xs">${i.sapBin}</p></div>
+                            <div class="text-blue-300">➜</div>
+                            <div class="text-right"><p class="text-[7px] uppercase font-black text-blue-400 mb-1">Found</p><p class="mono font-black text-blue-700 text-xs">${i.scannedBin}</p></div>
                         </div>`;
                 } else if (type === 'adj') {
                     const diff = i.countQty - i.sapQty;
-                    statusBadge = `<span class="bg-orange-100 text-orange-600 text-[8px] font-black px-2 py-0.5 rounded ml-2">ADJUSTMENT</span>`;
-                    details = `
-                        <div class="flex justify-between items-center bg-orange-50 p-2 rounded-lg border border-orange-100">
-                            <div><p class="text-[8px] uppercase font-black text-orange-400">SAP Qty</p><p class="font-bold text-slate-700 text-xs">${i.sapQty}</p></div>
-                            <div class="text-right"><p class="text-[8px] uppercase font-black text-orange-400">Physical</p><p class="font-bold text-orange-700 text-xs">${i.countQty} (${diff > 0 ? '+' : ''}${diff})</p></div>
+                    statusBadge = `<span class="bg-orange-100 text-orange-600 text-[8px] font-black px-2 py-1 rounded-lg ml-2 uppercase">Adjustment</span>`;
+                    details = `<div class="flex justify-between items-center bg-orange-50/50 p-3 rounded-2xl border border-orange-100/50">
+                            <div><p class="text-[7px] uppercase font-black text-orange-400 mb-1">SAP Qty</p><p class="mono font-black text-slate-700 text-xs">${i.sapQty}</p></div>
+                            <div class="text-right"><p class="text-[7px] uppercase font-black text-orange-400 mb-1">Physical</p><p class="mono font-black text-orange-700 text-xs">${i.countQty} (${diff > 0 ? '+' : ''}${diff})</p></div>
                         </div>`;
                 } else if (type === 'missing') {
-                    details = `<div class="bg-red-50 p-2 rounded-lg border border-red-100 text-center"><p class="text-[10px] font-black text-red-600 uppercase">Missing from: ${i.sapBin}</p></div>`;
+                    details = `<div class="bg-red-50 p-3 rounded-2xl border border-red-100 text-center"><p class="text-[10px] font-black text-red-600 uppercase">Missing from: ${i.sapBin}</p></div>`;
                 } else if (type === 'inactive') {
-                    details = `<div class="bg-purple-50 p-2 rounded-lg border border-purple-100 text-center"><p class="text-[10px] font-black text-purple-600 uppercase">GHOST HU Found at: ${i.scannedBin}</p></div>`;
+                    details = `<div class="bg-purple-50 p-3 rounded-2xl border border-purple-100 text-center"><p class="text-[10px] font-black text-purple-600 uppercase tracking-tight">Ghost HU Found at: ${i.scannedBin}</p></div>`;
                 }
 
                 div.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
-                            <div class="flex items-center mb-1">
-                                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 font-mono text-[10px] rounded font-bold border border-slate-200">HU: ${i.hu}</span>
+                            <div class="flex items-center mb-2">
+                                <span class="px-2 py-1 bg-slate-900 text-slate-400 mono text-[9px] rounded-lg font-bold">HU: ${i.hu}</span>
                                 ${statusBadge}
                             </div>
                             <h4 class="text-xs font-black text-slate-800 leading-tight">${i.product}</h4>
-                            <p class="text-[9px] text-slate-500 font-bold uppercase mt-0.5 line-clamp-1">${i.desc}</p>
                         </div>
                         <div class="text-right shrink-0 pl-3">
-                             <p class="text-[8px] font-black text-slate-400 uppercase">Final Qty</p>
-                             <p class="text-sm font-black text-slate-700 leading-none">${i.countQty} <span class="text-[10px]">${i.uom}</span></p>
+                             <p class="text-[7px] font-black text-slate-400 uppercase mb-1">Final Count</p>
+                             <p class="text-sm mono font-black text-slate-700 leading-none">${i.countQty} <span class="text-[8px] font-bold uppercase">${i.uom}</span></p>
                         </div>
                     </div>
                     ${details}
@@ -539,29 +593,28 @@
 
         function sendEmailReport() {
             const user = document.getElementById('email-user').value.trim();
-            if (!user) return alert("Enter username.");
+            if (!user) return alert("Enter Username.");
             
             const reconciled = getReconciledData();
-            let body = `SAP RECONCILED AUDIT REPORT - ${new Date().toLocaleString()}\n`;
+            let body = `AUDIT REPORT - ${new Date().toLocaleString()}\n`;
             body += `==========================================\n\n`;
             
             reconciled.forEach(i => {
                 let status = "OK";
-                if (i.isMissing) status = "MISSING (NOT FOUND)";
+                if (i.isMissing) status = "MISSING";
                 else if (i.isExtra && !i.sapBin) status = "GHOST HU (NOT IN SAP)";
-                else if (i.sapBin !== i.scannedBin && i.sapQty !== i.countQty) status = "MOVEMENT + ADJUSTMENT";
+                else if (i.sapBin !== i.scannedBin && i.sapQty !== i.countQty) status = "MOVE + ADJ";
                 else if (i.sapBin !== i.scannedBin) status = "MOVEMENT";
-                else if (i.sapQty !== i.countQty) status = "QUANTITY ADJUSTMENT";
+                else if (i.sapQty !== i.countQty) status = "QTY ADJUSTMENT";
 
-                body += `HU: ${i.hu}\n`;
-                body += `PRODUCT: ${i.product} | ${i.desc}\n`;
-                body += `FINAL STATUS: ${status}\n`;
-                body += `SAP LOC: ${i.sapBin || 'N/A'} | FOUND LOC: ${i.scannedBin}\n`;
-                body += `SAP QTY: ${i.sapQty} | COUNTED: ${i.countQty} ${i.uom}\n`;
+                body += `HU: ${i.hu} | STATUS: ${status}\n`;
+                body += `PROD: ${i.product}\n`;
+                body += `LOC: SAP(${i.sapBin || 'N/A'}) -> FOUND(${i.scannedBin})\n`;
+                body += `QTY: SAP(${i.sapQty}) -> COUNTED(${i.countQty})\n`;
                 body += `------------------------------------------\n`;
             });
 
-            window.location.href = `mailto:${user}@novusfoods.com?subject=Reconciled Warehouse Audit&body=${encodeURIComponent(body)}`;
+            window.location.href = `mailto:${user}@novusfoods.com?subject=Warehouse Audit Report&body=${encodeURIComponent(body)}`;
         }
 
         function autoLookupExtra(input) {
@@ -569,6 +622,7 @@
             if (hu.length >= 8) {
                 const match = sapMasterData.find(i => i.hu === hu);
                 if (match) { 
+                    haptic();
                     document.getElementById('add-prod').value = match.product; 
                     document.getElementById('add-qty').focus(); 
                 }

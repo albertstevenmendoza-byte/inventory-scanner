@@ -10,36 +10,26 @@
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        input[type="number"], input[type="text"] { font-size: 16px !important; }
-        
         .card-verified { border-left: 10px solid #10b981; background: linear-gradient(to right, #f0fdf4, #ffffff); }
         .card-missing { border-left: 10px solid #ef4444; background: #fef2f2; opacity: 0.7; }
         .card-extra { border-left: 10px solid #8b5cf6; background: #f5f3ff; }
-        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); }
-        
-        #camera-overlay { display: none; position: fixed; inset: 0; background: black; z-index: 200; flex-direction: column; }
-        #camera-stream { width: 100%; height: 100%; object-fit: cover; }
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 300; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
-        
         .tab-btn-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 800; }
         .nav-active { background-color: #2563eb !important; color: white !important; }
-        .tag-both { background: #1e293b; color: #f8fafc; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 900; letter-spacing: 0.5px; }
-        
+        .tag-both { background: #1e293b; color: #f8fafc; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 900; }
         .row-progress-badge { font-size: 8px; background: #e2e8f0; padding: 2px 6px; border-radius: 99px; position: absolute; top: -5px; right: -5px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 flex flex-col h-screen overflow-hidden">
 
-    <div id="toast" class="bg-green-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase shadow-2xl">Bin Saved</div>
+    <div id="toast" class="bg-green-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase shadow-2xl">Synced to Cloud</div>
 
     <header class="bg-slate-900 text-white px-4 py-3 shadow-2xl shrink-0 z-50">
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                </div>
+                <div class="bg-blue-600 p-2 rounded-xl">📦</div>
                 <h1 class="text-sm font-black uppercase tracking-tighter">SAP Auditor</h1>
             </div>
             <button onclick="clearAllData()" class="bg-slate-800 text-slate-400 px-3 py-2 text-[10px] uppercase font-black border border-slate-700 rounded-lg">Reset</button>
@@ -47,39 +37,31 @@
     </header>
 
     <nav class="bg-white border-b flex p-1.5 shrink-0 gap-1">
-        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest nav-active rounded-xl transition-colors">Audit Mode</button>
-        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 rounded-xl transition-colors">Live Report</button>
+        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase nav-active rounded-xl">Audit Mode</button>
+        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase text-slate-400 bg-slate-50 rounded-xl">Live Report</button>
     </nav>
 
     <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
         <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col p-6 overflow-y-auto">
             <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
-                <div class="w-24 h-24 bg-white shadow-2xl rounded-[2.5rem] flex items-center justify-center mb-8 text-blue-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                </div>
                 <h2 class="text-3xl font-black uppercase text-slate-900 mb-2">Upload Data</h2>
                 <input type="file" id="sap-upload-main" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
-                <label for="sap-upload-main" class="w-full max-w-xs bg-blue-600 text-white py-6 rounded-3xl font-black uppercase text-sm shadow-xl cursor-pointer block">Select Excel File</label>
+                <label for="sap-upload-main" class="bg-blue-600 text-white py-6 px-12 rounded-3xl font-black uppercase text-sm shadow-xl">Select File</label>
             </div>
             <div id="row-selection" class="hidden">
-                <div class="flex justify-between items-end mb-6">
-                    <h2 class="text-2xl font-black uppercase text-slate-900">Select Row</h2>
-                    <span id="total-progress" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">0 Bins Done</span>
-                </div>
+                <h2 class="text-2xl font-black uppercase mb-6">Select Row</h2>
                 <div class="grid grid-cols-4 gap-4" id="row-grid"></div>
             </div>
         </div>
 
-        <div class="px-4 py-4 bg-white border-b shadow-sm shrink-0">
+        <div class="px-4 py-4 bg-white border-b shrink-0">
             <div class="flex gap-2">
-                <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">◀</button>
+                <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl">◀</button>
                 <div class="flex-1 relative">
-                    <input type="text" id="bin-input" placeholder="SCAN BIN..." autocomplete="off"
-                           class="w-full py-4 px-6 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl mono text-blue-700 uppercase outline-none"
-                           onchange="selectBin(this.value)">
+                    <input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-4 px-6 bg-slate-50 border-2 rounded-2xl text-xl mono text-blue-700 uppercase outline-none" onchange="selectBin(this.value)">
                     <span id="bin-status-badge" class="hidden absolute right-4 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">✅ DONE</span>
                 </div>
-                <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">▶</button>
+                <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl">▶</button>
             </div>
         </div>
 
@@ -88,38 +70,39 @@
         <div class="fixed bottom-0 left-0 right-0 glass p-4 shadow-2xl z-50">
             <div class="flex gap-3 mb-4">
                 <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[11px]">+ Found Item</button>
-                <button onclick="openSpyglass()" class="flex-1 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-black uppercase text-[11px] gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    Spyglass
-                </button>
+                <button onclick="openSpyglass()" class="flex-1 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-black uppercase text-[11px] gap-2">📷 Spyglass</button>
             </div>
-            <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl active:scale-95 transition-transform">Finalize & Next Bin</button>
+            <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl">Finalize & Next Bin</button>
         </div>
     </main>
 
     <main id="view-report" class="hidden flex-1 flex flex-col overflow-hidden">
         <div class="bg-white border-b flex shrink-0 overflow-x-auto no-scrollbar">
-            <button onclick="setReportTab('move')" id="tab-move" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter tab-btn-active">Movements</button>
-            <button onclick="setReportTab('adj')" id="tab-adj" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter text-slate-400">Adjustments</button>
-            <button onclick="setReportTab('inactive')" id="tab-inactive" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter text-slate-400">Inactive HUs</button>
-            <button onclick="setReportTab('miss')" id="tab-miss" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter text-slate-400">Missing</button>
+            <button onclick="setReportTab('move')" id="tab-move" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tab-btn-active">Movements</button>
+            <button onclick="setReportTab('adj')" id="tab-adj" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase text-slate-400">Adjustments</button>
+            <button onclick="setReportTab('inactive')" id="tab-inactive" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase text-slate-400">Inactive HUs</button>
+            <button onclick="setReportTab('miss')" id="tab-miss" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase text-slate-400">Missing</button>
         </div>
         <div id="report-body" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
         <div class="bg-white p-5 border-t space-y-4 shrink-0">
-            <input type="text" id="email-user" placeholder="Novus Username" class="w-full p-4 bg-slate-50 rounded-2xl font-black text-blue-700 uppercase outline-none">
-            <button onclick="sendEmailReport()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-sm">Email Report</button>
+            <div id="mobile-chat" class="h-24 overflow-y-auto bg-slate-50 p-2 rounded-lg text-[10px] space-y-1 mb-2"></div>
+            <div class="flex gap-2">
+                <input type="text" id="email-user" placeholder="Name" class="w-20 p-2 bg-slate-50 rounded-lg text-xs outline-none">
+                <input type="text" id="mobile-msg" placeholder="Chat..." class="flex-1 p-2 bg-slate-50 rounded-lg text-xs outline-none">
+                <button onclick="sendMobileMsg()" class="bg-blue-600 text-white px-4 rounded-lg font-bold">↑</button>
+            </div>
         </div>
     </main>
 
-    <!-- MODALS & CAMERA -->
+    <!-- MODALS -->
     <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
-            <h2 class="text-2xl font-black uppercase text-slate-900">Physical Find</h2>
+            <h2 class="text-2xl font-black uppercase">Physical Find</h2>
             <div class="space-y-4">
-                <input type="text" id="add-hu" placeholder="Scan HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none" oninput="autoLookupExtra(this)">
+                <input type="text" id="add-hu" placeholder="HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 rounded-2xl mono outline-none" oninput="autoLookupExtra(this)">
                 <div class="grid grid-cols-2 gap-3">
-                    <input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
-                    <input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
+                    <input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none">
+                    <input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none">
                 </div>
                 <input type="number" id="add-qty" placeholder="Count" class="w-full p-6 bg-blue-50 rounded-2xl font-black text-center text-3xl text-blue-700 outline-none">
             </div>
@@ -130,25 +113,13 @@
         </div>
     </div>
 
-    <div id="camera-overlay" class="fixed inset-0 bg-black z-[200] hidden flex-col">
-        <video id="camera-stream" autoplay playsinline muted class="w-full h-full object-cover"></video>
-        <div class="absolute inset-x-0 bottom-0 p-8 space-y-8 bg-gradient-to-t from-black/90 to-transparent">
-            <input type="range" id="zoom-control" class="w-full h-2 bg-white/20 rounded-lg appearance-none" min="1" max="5" step="0.1" value="1" oninput="handleZoom(this.value)">
-            <div class="flex justify-between items-center">
-                <button onclick="closeSpyglass()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">✕</button>
-                <button id="freeze-btn-ui" onclick="toggleFreeze()" class="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-white font-black text-xs">FREEZE</button>
-                <button onclick="toggleTorch()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">💡</button>
-            </div>
-        </div>
-    </div>
-
     <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
         let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
         let auditLog = JSON.parse(localStorage.getItem('auditLog')) || []; 
         let currentBinItems = JSON.parse(localStorage.getItem('currentBinItems')) || [];
         let currentActiveBin = localStorage.getItem('currentActiveBin') || "";
         let activeReportTab = 'move';
-        let videoStream, videoTrack, isFrozen = false, torchActive = false;
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
         function saveSession() {
@@ -158,65 +129,47 @@
             localStorage.setItem('currentActiveBin', currentActiveBin);
         }
 
-        function switchView(view) {
-            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
-            document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
-            const navAudit = document.getElementById('nav-audit');
-            const navReport = document.getElementById('nav-report');
-            if (view === 'audit') {
-                navAudit.classList.add('nav-active'); navAudit.classList.remove('text-slate-400', 'bg-slate-50');
-                navReport.classList.remove('nav-active'); navReport.classList.add('text-slate-400', 'bg-slate-50');
-            } else {
-                navReport.classList.add('nav-active'); navReport.classList.remove('text-slate-400', 'bg-slate-50');
-                navAudit.classList.remove('nav-active'); navAudit.classList.add('text-slate-400', 'bg-slate-50');
-                renderReport();
-            }
-        }
-
-        function getFinalizedBins() { return new Set(auditLog.map(i => i.scannedBin)); }
-
-        function updateRowProgressUI() {
-            const finalized = getFinalizedBins();
-            document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`;
-            "ABCDEFGHIJKLMNOP".split("").forEach(row => {
-                const badge = document.getElementById(`row-badge-${row}`);
-                if (badge) {
-                    const rowCount = Array.from(finalized).filter(b => b.charAt(1) === row).length;
-                    badge.innerText = rowCount;
-                    badge.classList.toggle('bg-emerald-500', rowCount > 0); badge.classList.toggle('text-white', rowCount > 0);
-                }
+        async function finalizeBin() {
+            if(!currentActiveBin) return;
+            haptic();
+            if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Finish bin first."); return; }
+            
+            // Cloud Sync Logic
+            const itemsToLog = currentBinItems.length === 0 ? [] : currentBinItems.map(i => {
+                let type = 'ok';
+                if (i.isMissing) type = 'miss';
+                else if (i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0")) type = 'inactive';
+                else if (i.sapBin && i.scannedBin !== i.sapBin) type = 'move';
+                else if (i.countQty !== i.sapQty) type = 'adj';
+                return {
+                    hu: i.hu, product: i.product, desc: i.desc, batch: i.batch,
+                    sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty,
+                    countQty: i.countQty, type: type
+                };
             });
+
+            fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog })
+            });
+
+            auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
+            if (currentBinItems.length === 0) auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
+            else auditLog.push(...currentBinItems);
+            
+            showToast(); saveSession(); updateRowProgressUI(); stepBin(1);
         }
 
         function selectBin(binName) {
             if (!binName) return;
             currentActiveBin = binName.toUpperCase();
             document.getElementById('bin-input').value = currentActiveBin;
-            const alreadyDone = getFinalizedBins().has(currentActiveBin);
+            const alreadyDone = new Set(auditLog.map(i => i.scannedBin)).has(currentActiveBin);
             document.getElementById('bin-status-badge').classList.toggle('hidden', !alreadyDone);
             const expected = sapMasterData.filter(i => i.sapBin === currentActiveBin);
-            currentBinItems = expected.map(i => ({ 
-                ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin 
-            }));
+            currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin }));
             saveSession(); renderAuditList(); window.scrollTo(0,0);
-        }
-
-        function finalizeBin() {
-            if(!currentActiveBin) return;
-            haptic();
-            if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Finish bin first."); return; }
-            
-            // Override logic
-            auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
-            
-            // LOGIC: If bin is empty, push a placeholder so it's marked as "Done"
-            if (currentBinItems.length === 0) {
-                auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
-            } else {
-                auditLog.push(...currentBinItems);
-            }
-            
-            saveSession(); updateRowProgressUI(); stepBin(1);
         }
 
         function stepBin(dir) {
@@ -230,7 +183,7 @@
 
         function renderAuditList() {
             const container = document.getElementById('audit-list'); container.innerHTML = "";
-            if (currentBinItems.length === 0 && currentActiveBin !== "") { container.innerHTML = `<div class="py-20 text-center text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin</div>`; return; }
+            if (currentBinItems.length === 0 && currentActiveBin !== "") { container.innerHTML = `<div class="py-20 text-center text-slate-300 font-black uppercase text-xs">Empty Bin</div>`; return; }
             currentBinItems.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.className = `p-5 rounded-[2rem] shadow-sm border bg-white transition-all ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
@@ -267,6 +220,37 @@
         function updateCount(idx, val) { currentBinItems[idx].countQty = parseFloat(val) || 0; currentBinItems[idx].verified = (currentBinItems[idx].countQty > 0); saveSession(); }
         function toggleMissing(idx) { haptic(); currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } saveSession(); renderAuditList(); }
 
+        function switchView(view) {
+            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
+            document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
+            const navAudit = document.getElementById('nav-audit');
+            const navReport = document.getElementById('nav-report');
+            if (view === 'audit') {
+                navAudit.classList.add('nav-active'); navAudit.classList.remove('text-slate-400', 'bg-slate-50');
+                navReport.classList.remove('nav-active'); navReport.classList.add('text-slate-400', 'bg-slate-50');
+            } else {
+                navReport.classList.add('nav-active'); navReport.classList.remove('text-slate-400', 'bg-slate-50');
+                navAudit.classList.remove('nav-active'); navAudit.classList.add('text-slate-400', 'bg-slate-50');
+                renderReport();
+            }
+        }
+
+        async function sendMobileMsg() {
+            const text = document.getElementById('mobile-msg').value;
+            const user = document.getElementById('email-user').value || "Floor";
+            if (!text) return;
+            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) });
+            document.getElementById('mobile-msg').value = "";
+        }
+
+        async function syncCloud() {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            const box = document.getElementById('mobile-chat');
+            box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
         function setReportTab(tab) {
             activeReportTab = tab;
             document.querySelectorAll('#view-report button').forEach(b => {
@@ -279,41 +263,28 @@
 
         function renderReport() {
             const container = document.getElementById('report-body'); container.innerHTML = "";
-            const allAudited = [...auditLog].filter(i => !i.isEmpty); // Ignore empty bin placeholders
+            const allAudited = [...auditLog].filter(i => !i.isEmpty);
             const foundHUs = new Set(allAudited.filter(i => i.verified).map(i => i.hu));
             let displayList = [];
 
-            if (activeReportTab === 'move') {
-                displayList = allAudited.filter(i => i.hu !== "0" && i.sapBin && i.scannedBin !== i.sapBin && !i.isMissing && i.verified);
-            } else if (activeReportTab === 'adj') {
-                displayList = allAudited.filter(i => i.verified && i.countQty !== i.sapQty && !i.isMissing);
-            } else if (activeReportTab === 'inactive') {
-                displayList = allAudited.filter(i => i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0"));
-            } else if (activeReportTab === 'miss') {
-                displayList = allAudited.filter(i => i.isMissing === true && !foundHUs.has(i.hu));
-            }
+            if (activeReportTab === 'move') displayList = allAudited.filter(i => i.hu !== "0" && i.sapBin && i.scannedBin !== i.sapBin && !i.isMissing && i.verified);
+            else if (activeReportTab === 'adj') displayList = allAudited.filter(i => i.verified && i.countQty !== i.sapQty && !i.isMissing);
+            else if (activeReportTab === 'inactive') displayList = allAudited.filter(i => i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0"));
+            else if (activeReportTab === 'miss') displayList = allAudited.filter(i => i.isMissing === true && !foundHUs.has(i.hu));
 
             if(displayList.length === 0) { container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Discrepancies</div>`; return; }
 
             displayList.forEach(i => {
                 const isMoved = i.sapBin && i.scannedBin !== i.sapBin && i.hu !== "0";
                 const isAdjusted = i.verified && i.countQty !== i.sapQty;
-                const isBoth = isMoved && isAdjusted;
                 const div = document.createElement('div');
                 div.className = "p-4 bg-white rounded-2xl border border-slate-100 shadow-sm";
                 let status = "";
-                let bothTag = isBoth ? `<span class="tag-both ml-2">MOV+ADJ</span>` : "";
-                if (activeReportTab === 'move') {
-                    status = `<p class="text-[10px] text-purple-600 font-black">MOVED: ${i.sapBin} ➔ ${i.scannedBin} ${bothTag}</p>`;
-                    if (isAdjusted) status += `<p class="text-[8px] text-slate-400 font-bold mt-1">QTY DIFF: ${i.countQty} vs ${i.sapQty}</p>`;
-                } else if (activeReportTab === 'adj') {
-                    status = `<p class="text-[10px] text-orange-600 font-black">ADJUSTED: ${i.countQty} (SAP: ${i.sapQty}) ${bothTag}</p>`;
-                    if (isMoved) status += `<p class="text-[8px] text-slate-400 font-bold mt-1">LOCATION: ${i.scannedBin} (SAP: ${i.sapBin})</p>`;
-                } else if (activeReportTab === 'inactive') {
-                    status = `<p class="text-[10px] text-blue-600 font-black">${i.hu === "0" ? 'MISSING LABEL / NOT VISIBLE' : 'HU NOT IN SAP'}</p>`;
-                } else if (activeReportTab === 'miss') {
-                    status = `<p class="text-[10px] text-red-600 font-black">MARKED MISSING AT ${i.scannedBin}</p>`;
-                }
+                let bothTag = (isMoved && isAdjusted) ? `<span class="tag-both ml-2">MOV+ADJ</span>` : "";
+                if (activeReportTab === 'move') status = `<p class="text-[10px] text-purple-600 font-black">MOVED: ${i.sapBin} ➔ ${i.scannedBin} ${bothTag}</p>`;
+                else if (activeReportTab === 'adj') status = `<p class="text-[10px] text-orange-600 font-black">ADJUSTED: ${i.countQty} (SAP: ${i.sapQty}) ${bothTag}</p>`;
+                else if (activeReportTab === 'inactive') status = `<p class="text-[10px] text-blue-600 font-black">${i.hu === "0" ? 'MISSING LABEL / NOT VISIBLE' : 'HU NOT IN SAP'}</p>`;
+                else if (activeReportTab === 'miss') status = `<p class="text-[10px] text-red-600 font-black">MARKED MISSING AT ${i.scannedBin}</p>`;
                 div.innerHTML = `<p class="text-[10px] font-black mono text-blue-600">HU: ${i.hu}</p><p class="text-xs font-bold leading-tight">${i.product}</p><p class="text-[10px] text-slate-500 mb-1">${i.desc}</p>${status}`;
                 container.appendChild(div);
             });
@@ -335,6 +306,7 @@
             };
             reader.readAsArrayBuffer(event.target.files[0]);
         }
+
         function initSetupGrid() {
             const grid = document.getElementById('row-grid'); grid.innerHTML = "";
             "ABCDEFGHIJKLMNOP".split("").forEach(row => {
@@ -346,14 +318,22 @@
             });
             updateRowProgressUI();
         }
-        function clearAllData() { if (confirm("Reset App?")) { localStorage.clear(); location.reload(); } }
-        window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
-        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
-        function autoLookupExtra(input) {
-            const hu = input.value.trim(); if (hu === "0" || hu.length < 8) return;
-            const match = sapMasterData.find(i => i.hu === hu);
-            if (match) { haptic(); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch || ""; }
+
+        function updateRowProgressUI() {
+            const finalized = new Set(auditLog.map(i => i.scannedBin));
+            "ABCDEFGHIJKLMNOP".split("").forEach(row => {
+                const badge = document.getElementById(`row-badge-${row}`);
+                if (badge) badge.innerText = Array.from(finalized).filter(b => b.charAt(1) === row).length;
+            });
         }
+
+        function showToast(msg = "Synced to Cloud") {
+            const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+
+        function clearAllData() { if (confirm("Reset App?")) { localStorage.clear(); location.reload(); } }
+        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
         function submitExtra() {
             const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim();
             const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0;
@@ -363,17 +343,9 @@
             toggleAddForm(); saveSession(); renderAuditList();
             document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
         }
-        async function openSpyglass() {
-            haptic(); document.getElementById('camera-overlay').style.display = 'flex';
-            try {
-                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                const video = document.getElementById('camera-stream'); video.srcObject = videoStream; videoTrack = videoStream.getVideoTracks()[0];
-            } catch (err) { alert("Camera Error"); closeSpyglass(); }
-        }
-        function closeSpyglass() { document.getElementById('camera-overlay').style.display = 'none'; if (videoStream) videoStream.getTracks().forEach(t => t.stop()); isFrozen = false; }
-        function handleZoom(val) { document.getElementById('camera-stream').style.transform = `scale(${val})`; }
-        function toggleFreeze() { const v = document.getElementById('camera-stream'); const btn = document.getElementById('freeze-btn-ui'); if (isFrozen) { v.play(); btn.innerText = "FREEZE"; btn.classList.replace('bg-red-600', 'bg-blue-600'); } else { v.pause(); btn.innerText = "LIVE"; btn.classList.replace('bg-blue-600', 'bg-red-600'); } isFrozen = !isFrozen; haptic(); }
-        async function toggleTorch() { if (!videoTrack) return; torchActive = !torchActive; try { await videoTrack.applyConstraints({ advanced: [{ torch: torchActive }] }); } catch(e){} }
+
+        window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
+        setInterval(syncCloud, 5000);
     </script>
 </body>
 </html>

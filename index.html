@@ -73,7 +73,7 @@
         <div class="fixed bottom-0 left-0 right-0 glass p-4 shadow-2xl z-50">
             <div class="flex gap-3 mb-4">
                 <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[11px]">+ Found Item</button>
-                <button onclick="openSpyglass()" class="flex-1 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-black uppercase text-[11px] gap-2">📷 Spyglass</button>
+                <button onclick="leaveAisle()" class="flex-1 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center font-black uppercase text-[11px] gap-2 border border-slate-200">🚪 Leave Aisle</button>
             </div>
             <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl">Finalize & Next Bin</button>
         </div>
@@ -122,7 +122,6 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
         
-        // --- MASTER BIN LIST FROM IMAGE ---
         const ALL_SAP_BINS = [
             "B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK",
             "FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B",
@@ -133,7 +132,6 @@
             "PRFL-01-02","PRFL-01-04","PSA-INTERMEDIATE","RECV-HOLD","RECV01","RECV02","RECV03","RECV04","RETURN-BLND-FLOOR","SIG-INSIDE-01","SIG-INSIDE-02",
             "STG01","STG02","STG03","STG04","STG05","STG06","STG07","STG08","STG09","STG10","STG11","STG12","STG13","STG14","STG_RTN","VIRTUAL_BIN","VIRTUAL_FLUID_LOAD","VIRTUAL_RET_BIN"
         ];
-        // Populate W aisles dynamically based on the image ranges
         const aisleConfigs = {A:36, B:38, C:38, D:38, E:38, F:38, G:38, H:38, J:37, K:12, L:34, M:35, N:24, P:6};
         Object.keys(aisleConfigs).forEach(char => {
             for(let i=0; i<=aisleConfigs[char]; i++){
@@ -154,6 +152,14 @@
             localStorage.setItem('auditLog', JSON.stringify(auditLog));
             localStorage.setItem('currentBinItems', JSON.stringify(currentBinItems));
             localStorage.setItem('currentActiveBin', currentActiveBin);
+        }
+
+        function leaveAisle() {
+            haptic();
+            currentActiveBin = "";
+            document.getElementById('setup-screen').classList.remove('hidden');
+            updateRowProgressUI();
+            saveSession();
         }
 
         function autoLookupExtra(input) {
@@ -211,7 +217,7 @@
 
             if (dir > 0 && currentAisle !== nextAisle && currentAisle !== 'OTHER') {
                 if (confirm(`Aisle ${currentAisle} Done! Move to ${nextAisle}?`)) selectBin(nextBin);
-                else document.getElementById('setup-screen').classList.remove('hidden');
+                else leaveAisle();
             } else {
                 selectBin(nextBin);
             }
@@ -268,7 +274,7 @@
                 let status = "";
                 if (activeReportTab === 'move') status = `<p class="text-[10px] text-purple-600 font-black">MOVED: ${i.sapBin} ➔ ${i.scannedBin} ${isBoth ? '<span class="tag-both ml-2">MOV+ADJ</span>' : ''}</p>`;
                 else if (activeReportTab === 'adj') status = `<p class="text-[10px] text-orange-600 font-black">ADJUSTED: ${i.countQty} (SAP: ${i.sapQty}) ${isBoth ? '<span class="tag-both ml-2">MOV+ADJ</span>' : ''}</p>`;
-                else if (activeReportTab === 'inactive') status = `<p class="text-[10px] text-blue-600 font-black">${i.hu === "0" ? 'MISSING LABEL / NOT VISIBLE' : 'HU NOT IN SAP'}</p>`;
+                else if (activeReportTab === 'inactive') status = `<p class="text-[10px] text-blue-600 font-black">${i.hu === "0" ? 'LABEL MISSING' : 'HU NOT IN SAP'}</p>`;
                 else if (activeReportTab === 'miss') status = `<p class="text-[10px] text-red-600 font-black">MARKED MISSING AT ${i.scannedBin}</p>`;
                 div.innerHTML = `<p class="text-[10px] font-black mono text-blue-600">HU: ${i.hu}</p><p class="text-xs font-bold leading-tight">${i.product}</p><p class="text-[10px] text-slate-500 mb-1">${i.desc}</p>${status}`;
                 container.appendChild(div);
@@ -324,13 +330,8 @@
             const sapMatch = sapMasterData.find(m => m.hu === hu);
             currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : (hu === "0" ? "LABEL MISSING" : "PHYSICAL FIND") });
             toggleAddForm(); saveSession(); renderAuditList();
-            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
-        }
-        async function openSpyglass() {
-            haptic(); const overlay = document.createElement('div'); overlay.className = "fixed inset-0 bg-black z-[200] flex flex-col";
-            overlay.innerHTML = `<video id="v" autoplay playsinline muted class="w-full h-full object-cover"></video><button onclick="this.parentElement.remove()" class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/20 text-white px-8 py-4 rounded-full">Close</button>`;
-            document.body.appendChild(overlay);
-            try { const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); document.querySelector('#v').srcObject = s; } catch (e) { overlay.remove(); }
+            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
+            document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
         }
         window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
         setInterval(syncCloud, 5000);

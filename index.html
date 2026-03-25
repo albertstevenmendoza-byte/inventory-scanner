@@ -15,7 +15,11 @@
         .card-extra { border-left: 10px solid #8b5cf6; background: #f5f3ff; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); }
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 300; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+        
+        #toast, #msg-notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 400; pointer-events: none; opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #msg-notification { top: -100px; pointer-events: auto; }
+        #msg-notification.show { top: 20px; opacity: 1; }
+
         .tab-btn-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 800; }
         .nav-active { background-color: #2563eb !important; color: white !important; }
         .tag-both { background: #1e293b; color: #f8fafc; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 900; }
@@ -24,7 +28,16 @@
 </head>
 <body class="bg-slate-50 text-slate-900 flex flex-col h-screen overflow-hidden">
 
-    <div id="toast" class="bg-green-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase shadow-2xl">Synced to Cloud</div>
+    <!-- Notifications -->
+    <div id="toast" class="bg-green-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase shadow-2xl">Synced</div>
+    
+    <div id="msg-notification" onclick="switchView('report')" class="bg-blue-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 min-w-[280px] cursor-pointer">
+        <div class="bg-white/20 p-2 rounded-lg text-lg">💬</div>
+        <div>
+            <p id="msg-sender" class="text-[10px] font-black uppercase opacity-80 leading-none mb-1">Office</p>
+            <p id="msg-preview" class="text-xs font-bold leading-tight truncate max-w-[200px]">New message received</p>
+        </div>
+    </div>
 
     <header class="bg-slate-900 text-white px-4 py-3 shadow-2xl shrink-0 z-50">
         <div class="flex justify-between items-center">
@@ -97,7 +110,6 @@
         </div>
     </main>
 
-    <!-- ADD MODAL -->
     <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
             <div class="flex justify-between items-center">
@@ -122,24 +134,13 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
         
-        // --- UPDATED BIN LIST TO INCLUDE FLOOR 100 BINS ---
-        const ALL_SAP_BINS = [
-            "B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK",
-            "FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B",
-            "FB01A","FB01B","FB02A","FB02B","FB03A","FB03B","FB04A","FB04B","FB05A","FB05B","FB06A","FB06B","FB07A","FB07B","FB08A","FB08B",
-            "FC01A","FC01B","FC02A","FC02B","FC03A","FC03B","FC04A","FC04B","FC05A","FC05B","FC06A","FC06B","FC07A","FC07B","FC08A","FC08B",
-            "FD01A","FD01B","FD02A","FD02B","FD03A","FD03B","FD04A","FD04B","FD05A","FD05B","FD06A","FD06B","FD07A","FD07B","FD08A","FD08B","FD09A","FD09B","FD10A","FD10B",
-            "GR-PRODUCTION","GR-ZONE","GR-ZONE-SMALLPARC","KITS-FLOOR","MIXAREA1_HU_FIX","MIXAREA2_HU_FIX","PACKRM1_NHU","PACKRM2_NHU","PACKRM2_HU_FIX","PKG_RETURN",
-            "PRFL-01-02","PRFL-01-04","PSA-INTERMEDIATE","RECV-HOLD","RECV01","RECV02","RECV03","RECV04","RETURN-BLND-FLOOR","SIG-INSIDE-01","SIG-INSIDE-02",
-            "STG01","STG02","STG03","STG04","STG05","STG06","STG07","STG08","STG09","STG10","STG11","STG12","STG13","STG14","STG_RTN","VIRTUAL_BIN","VIRTUAL_FLUID_LOAD","VIRTUAL_RET_BIN"
-        ];
+        const ALL_SAP_BINS = ["B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK","FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B","FB01A","FB01B","FB02A","FB02B","FB03A","FB03B","FB04A","FB04B","FB05A","FB05B","FB06A","FB06B","FB07A","FB07B","FB08A","FB08B","FC01A","FC01B","FC02A","FC02B","FC03A","FC03B","FC04A","FC04B","FC05A","FC05B","FC06A","FC06B","FC07A","FC07B","FC08A","FC08B","FD01A","FD01B","FD02A","FD02B","FD03A","FD03B","FD04A","FD04B","FD05A","FD05B","FD06A","FD06B","FD07A","FD07B","FD08A","FD08B","FD09A","FD09B","FD10A","FD10B","GR-PRODUCTION","GR-ZONE","GR-ZONE-SMALLPARC","KITS-FLOOR","MIXAREA1_HU_FIX","MIXAREA2_HU_FIX","PACKRM1_NHU","PACKRM2_NHU","PACKRM2_HU_FIX","PKG_RETURN","PRFL-01-02","PRFL-01-04","PSA-INTERMEDIATE","RECV-HOLD","RECV01","RECV02","RECV03","RECV04","RETURN-BLND-FLOOR","SIG-INSIDE-01","SIG-INSIDE-02","STG01","STG02","STG03","STG04","STG05","STG06","STG07","STG08","STG09","STG10","STG11","STG12","STG13","STG14","STG_RTN","VIRTUAL_BIN","VIRTUAL_FLUID_LOAD","VIRTUAL_RET_BIN"];
         const aisleConfigs = {A:36, B:38, C:38, D:38, E:38, F:38, G:38, H:38, J:37, K:12, L:34, M:35, N:24, P:6};
         Object.keys(aisleConfigs).forEach(char => {
             for(let i=0; i<=aisleConfigs[char]; i++){
                 const bay = i.toString().padStart(2,'0');
                 ALL_SAP_BINS.push(`W${char}${bay}A`,`W${char}${bay}B`,`W${char}${bay}C`);
             }
-            // ADD FLOOR BIN 100
             ALL_SAP_BINS.push(`W${char}100`);
         });
 
@@ -148,6 +149,7 @@
         let currentBinItems = JSON.parse(localStorage.getItem('currentBinItems')) || [];
         let currentActiveBin = localStorage.getItem('currentActiveBin') || "";
         let activeReportTab = 'move';
+        let lastMsgTime = null; // Track message timestamps
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
         function saveSession() {
@@ -157,13 +159,39 @@
             localStorage.setItem('currentActiveBin', currentActiveBin);
         }
 
-        function leaveAisle() {
+        function showMsgNotification(sender, text) {
             haptic();
-            currentActiveBin = "";
-            document.getElementById('setup-screen').classList.remove('hidden');
-            updateRowProgressUI();
-            saveSession();
+            const el = document.getElementById('msg-notification');
+            document.getElementById('msg-sender').innerText = sender;
+            document.getElementById('msg-preview').innerText = text;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
         }
+
+        async function syncCloud() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                
+                // Notification Logic
+                if (data.chat && data.chat.length > 0) {
+                    const latest = data.chat[data.chat.length - 1];
+                    const currentUser = document.getElementById('email-user').value || "Floor";
+                    
+                    // If timestamp is different AND sender isn't current user
+                    if (lastMsgTime && latest.time !== lastMsgTime && latest.user !== currentUser) {
+                        showMsgNotification(latest.user, latest.text);
+                    }
+                    lastMsgTime = latest.time;
+                }
+
+                const box = document.getElementById('mobile-chat');
+                box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join('');
+                box.scrollTop = box.scrollHeight;
+            } catch(e){}
+        }
+
+        function leaveAisle() { haptic(); currentActiveBin = ""; document.getElementById('setup-screen').classList.remove('hidden'); updateRowProgressUI(); saveSession(); }
 
         function autoLookupExtra(input) {
             const hu = input.value.trim();
@@ -182,7 +210,6 @@
             if(!currentActiveBin) return;
             haptic();
             if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Finish bin first."); return; }
-            
             let itemsToLog = [];
             if (currentBinItems.length === 0) {
                 itemsToLog.push({ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok' });
@@ -196,13 +223,10 @@
                     return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
                 });
             }
-
             fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) });
-
             auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
             if (currentBinItems.length === 0) auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
             else auditLog.push(...currentBinItems);
-            
             showToast(); saveSession(); updateRowProgressUI(); stepBin(1);
         }
 
@@ -210,20 +234,15 @@
             if (!currentActiveBin) return;
             const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin);
             if (currentIdx === -1) return;
-            
             const nextIdx = currentIdx + dir;
             if (nextIdx < 0 || nextIdx >= ALL_SAP_BINS.length) return;
-
             const nextBin = ALL_SAP_BINS[nextIdx];
             const currentAisle = currentActiveBin.startsWith('W') ? currentActiveBin.charAt(1) : 'OTHER';
             const nextAisle = nextBin.startsWith('W') ? nextBin.charAt(1) : 'OTHER';
-
             if (dir > 0 && currentAisle !== nextAisle && currentAisle !== 'OTHER') {
                 if (confirm(`Aisle ${currentAisle} Done! Move to ${nextAisle}?`)) selectBin(nextBin);
                 else leaveAisle();
-            } else {
-                selectBin(nextBin);
-            }
+            } else { selectBin(nextBin); }
         }
 
         function selectBin(binName) {
@@ -269,7 +288,6 @@
             else if (activeReportTab === 'adj') displayList = allAudited.filter(i => i.verified && i.countQty !== i.sapQty && !i.isMissing);
             else if (activeReportTab === 'inactive') displayList = allAudited.filter(i => i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0"));
             else if (activeReportTab === 'miss') displayList = allAudited.filter(i => i.isMissing === true && !foundHUs.has(i.hu));
-
             if(displayList.length === 0) { container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Discrepancies</div>`; return; }
             displayList.forEach(i => {
                 const isBoth = (i.sapBin && i.scannedBin !== i.sapBin && i.hu !== "0") && (i.verified && i.countQty !== i.sapQty);
@@ -322,9 +340,6 @@
 
         function showToast(msg = "Synced to Cloud") { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
         async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; }
-        async function syncCloud() { try { const res = await fetch(API_URL); const data = await res.json(); const box = document.getElementById('mobile-chat'); box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join(''); box.scrollTop = box.scrollHeight; } catch(e){} }
-        function setReportTab(tab) { activeReportTab = tab; document.querySelectorAll('#view-report button').forEach(b => { b.classList.remove('tab-btn-active', 'text-blue-600'); if (b.id && b.id.startsWith('tab-')) b.classList.add('text-slate-400'); }); document.getElementById(`tab-${tab}`).classList.add('tab-btn-active', 'text-blue-600'); renderReport(); }
-        function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
         function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); document.getElementById('smart-fill-badge').classList.add('hidden'); }
         function submitExtra() {
             const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim();
@@ -336,14 +351,13 @@
             document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
             document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
         }
-
         async function openSpyglass() {
             haptic(); const overlay = document.createElement('div'); overlay.className = "fixed inset-0 bg-black z-[200] flex flex-col";
             overlay.innerHTML = `<video id="v" autoplay playsinline muted class="w-full h-full object-cover"></video><button onclick="this.parentElement.remove()" class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/20 text-white px-8 py-4 rounded-full">Close</button>`;
             document.body.appendChild(overlay);
             try { const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); document.querySelector('#v').srcObject = s; } catch (e) { overlay.remove(); }
         }
-
+        function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
         window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
         setInterval(syncCloud, 5000);
     </script>

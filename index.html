@@ -46,7 +46,7 @@
             <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
                 <h2 class="text-3xl font-black uppercase text-slate-900 mb-2">Upload Data</h2>
                 <input type="file" id="sap-upload-main" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
-                <label for="sap-upload-main" class="bg-blue-600 text-white py-6 px-12 rounded-3xl font-black uppercase text-sm shadow-xl">Select File</label>
+                <label for="sap-upload-main" class="bg-blue-600 text-white py-6 px-12 rounded-3xl font-black uppercase text-sm shadow-xl cursor-pointer">Select File</label>
             </div>
             <div id="row-selection" class="hidden">
                 <h2 class="text-2xl font-black uppercase mb-6">Select Row</h2>
@@ -94,17 +94,20 @@
         </div>
     </main>
 
-    <!-- MODALS -->
+    <!-- ADD MODAL -->
     <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
-            <h2 class="text-2xl font-black uppercase">Physical Find</h2>
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-black uppercase">Physical Find</h2>
+                <span id="smart-fill-badge" class="hidden bg-green-100 text-green-600 text-[8px] font-black px-2 py-1 rounded-full animate-pulse uppercase">Smart Filled</span>
+            </div>
             <div class="space-y-4">
-                <input type="text" id="add-hu" placeholder="HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 rounded-2xl mono outline-none" oninput="autoLookupExtra(this)">
+                <input type="text" id="add-hu" placeholder="Scan HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
                 <div class="grid grid-cols-2 gap-3">
-                    <input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none">
-                    <input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none">
+                    <input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
+                    <input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
                 </div>
-                <input type="number" id="add-qty" placeholder="Count" class="w-full p-6 bg-blue-50 rounded-2xl font-black text-center text-3xl text-blue-700 outline-none">
+                <input type="number" id="add-qty" placeholder="Count" class="w-full p-6 bg-blue-50 rounded-2xl font-black text-center text-3xl text-blue-700 outline-none border-2 border-blue-100 focus:border-blue-500">
             </div>
             <div class="flex gap-3 pt-4">
                 <button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
@@ -120,6 +123,7 @@
         let currentBinItems = JSON.parse(localStorage.getItem('currentBinItems')) || [];
         let currentActiveBin = localStorage.getItem('currentActiveBin') || "";
         let activeReportTab = 'move';
+        let videoStream, videoTrack, isFrozen = false, torchActive = false;
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
         function saveSession() {
@@ -129,12 +133,36 @@
             localStorage.setItem('currentActiveBin', currentActiveBin);
         }
 
+        // --- SMART FILL LOGIC ---
+        function autoLookupExtra(input) {
+            const hu = input.value.trim();
+            const badge = document.getElementById('smart-fill-badge');
+            
+            if (hu === "0") { badge.classList.add('hidden'); return; }
+            
+            // Search if length is 8+ (Typical SAP HU length)
+            if (hu.length >= 8) {
+                const match = sapMasterData.find(i => i.hu === hu);
+                if (match) {
+                    haptic();
+                    document.getElementById('add-prod').value = match.product;
+                    document.getElementById('add-batch').value = match.batch || "";
+                    badge.classList.remove('hidden');
+                    // Auto-focus the quantity field to save time
+                    setTimeout(() => document.getElementById('add-qty').focus(), 100);
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
         async function finalizeBin() {
             if(!currentActiveBin) return;
             haptic();
             if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Finish bin first."); return; }
             
-            // Cloud Sync Logic
             const itemsToLog = currentBinItems.length === 0 ? [] : currentBinItems.map(i => {
                 let type = 'ok';
                 if (i.isMissing) type = 'miss';
@@ -244,11 +272,13 @@
         }
 
         async function syncCloud() {
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            const box = document.getElementById('mobile-chat');
-            box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join('');
-            box.scrollTop = box.scrollHeight;
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                const box = document.getElementById('mobile-chat');
+                box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join('');
+                box.scrollTop = box.scrollHeight;
+            } catch(e){}
         }
 
         function setReportTab(tab) {
@@ -325,6 +355,8 @@
                 const badge = document.getElementById(`row-badge-${row}`);
                 if (badge) badge.innerText = Array.from(finalized).filter(b => b.charAt(1) === row).length;
             });
+            const total = finalized.size;
+            document.getElementById('total-progress').innerText = `${total} Bins Done`;
         }
 
         function showToast(msg = "Synced to Cloud") {
@@ -333,7 +365,7 @@
         }
 
         function clearAllData() { if (confirm("Reset App?")) { localStorage.clear(); location.reload(); } }
-        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
+        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); document.getElementById('smart-fill-badge').classList.add('hidden'); }
         function submitExtra() {
             const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim();
             const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0;
@@ -341,7 +373,22 @@
             const sapMatch = sapMasterData.find(m => m.hu === hu);
             currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : (hu === "0" ? "HU NOT VISIBLE / MISSING LABEL" : "PHYSICAL FIND") });
             toggleAddForm(); saveSession(); renderAuditList();
-            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
+            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
+            document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
+        }
+
+        async function openSpyglass() {
+            haptic();
+            const overlay = document.createElement('div');
+            overlay.id = "camera-overlay";
+            overlay.className = "fixed inset-0 bg-black z-[200] flex flex-col";
+            overlay.innerHTML = `<video id="camera-stream" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                <div class="absolute inset-x-0 bottom-0 p-8 flex justify-between"><button onclick="this.parentElement.parentElement.remove()" class="bg-white/20 text-white p-4 rounded-full">✕ Close</button></div>`;
+            document.body.appendChild(overlay);
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                document.getElementById('camera-stream').srcObject = stream;
+            } catch (err) { alert("Camera Error"); overlay.remove(); }
         }
 
         window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };

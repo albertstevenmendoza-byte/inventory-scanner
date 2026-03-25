@@ -24,11 +24,9 @@
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 300; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
         
         .tab-btn-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 800; }
-        .nav-active { background-color: #2563eb; color: white; }
+        .nav-active { background-color: #2563eb !important; color: white !important; }
         .tag-both { background: #1e293b; color: #f8fafc; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 900; letter-spacing: 0.5px; }
         
-        /* New: Progress styles */
-        .bin-completed { border: 2px solid #10b981 !important; background: #f0fdf4 !important; }
         .row-progress-badge { font-size: 8px; background: #e2e8f0; padding: 2px 6px; border-radius: 99px; position: absolute; top: -5px; right: -5px; }
     </style>
 </head>
@@ -49,12 +47,11 @@
     </header>
 
     <nav class="bg-white border-b flex p-1.5 shrink-0 gap-1">
-        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest nav-active rounded-xl">Audit Mode</button>
-        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 rounded-xl">Live Report</button>
+        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest nav-active rounded-xl transition-colors">Audit Mode</button>
+        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 rounded-xl transition-colors">Live Report</button>
     </nav>
 
     <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
-        <!-- SETUP SCREEN -->
         <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col p-6 overflow-y-auto">
             <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
                 <div class="w-24 h-24 bg-white shadow-2xl rounded-[2.5rem] flex items-center justify-center mb-8 text-blue-600">
@@ -73,7 +70,6 @@
             </div>
         </div>
 
-        <!-- BIN INPUT -->
         <div class="px-4 py-4 bg-white border-b shadow-sm shrink-0">
             <div class="flex gap-2">
                 <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">◀</button>
@@ -81,7 +77,7 @@
                     <input type="text" id="bin-input" placeholder="SCAN BIN..." autocomplete="off"
                            class="w-full py-4 px-6 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl mono text-blue-700 uppercase outline-none"
                            onchange="selectBin(this.value)">
-                    <span id="bin-status-badge" class="hidden absolute right-4 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">✅ COMPLETED</span>
+                    <span id="bin-status-badge" class="hidden absolute right-4 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">✅ DONE</span>
                 </div>
                 <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">▶</button>
             </div>
@@ -101,20 +97,6 @@
         </div>
     </main>
 
-    <!-- CAMERA -->
-    <div id="camera-overlay">
-        <video id="camera-stream" autoplay playsinline muted></video>
-        <div class="absolute inset-x-0 bottom-0 p-8 space-y-8 bg-gradient-to-t from-black/90 to-transparent">
-            <input type="range" id="zoom-control" class="w-full h-2 bg-white/20 rounded-lg appearance-none" min="1" max="5" step="0.1" value="1" oninput="handleZoom(this.value)">
-            <div class="flex justify-between items-center">
-                <button onclick="closeSpyglass()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">✕</button>
-                <button id="freeze-btn-ui" onclick="toggleFreeze()" class="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-white font-black text-xs">FREEZE</button>
-                <button onclick="toggleTorch()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">💡</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- REPORT VIEW -->
     <main id="view-report" class="hidden flex-1 flex flex-col overflow-hidden">
         <div class="bg-white border-b flex shrink-0 overflow-x-auto no-scrollbar">
             <button onclick="setReportTab('move')" id="tab-move" class="flex-1 min-w-[100px] py-4 text-[9px] font-black uppercase tracking-tighter tab-btn-active">Movements</button>
@@ -129,7 +111,7 @@
         </div>
     </main>
 
-    <!-- ADD MODAL -->
+    <!-- MODALS & CAMERA -->
     <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
             <h2 class="text-2xl font-black uppercase text-slate-900">Physical Find</h2>
@@ -144,6 +126,18 @@
             <div class="flex gap-3 pt-4">
                 <button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
                 <button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Confirm Add</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="camera-overlay" class="fixed inset-0 bg-black z-[200] hidden flex-col">
+        <video id="camera-stream" autoplay playsinline muted class="w-full h-full object-cover"></video>
+        <div class="absolute inset-x-0 bottom-0 p-8 space-y-8 bg-gradient-to-t from-black/90 to-transparent">
+            <input type="range" id="zoom-control" class="w-full h-2 bg-white/20 rounded-lg appearance-none" min="1" max="5" step="0.1" value="1" oninput="handleZoom(this.value)">
+            <div class="flex justify-between items-center">
+                <button onclick="closeSpyglass()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">✕</button>
+                <button id="freeze-btn-ui" onclick="toggleFreeze()" class="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-white font-black text-xs">FREEZE</button>
+                <button onclick="toggleTorch()" class="w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center border border-white/20">💡</button>
             </div>
         </div>
     </div>
@@ -164,22 +158,32 @@
             localStorage.setItem('currentActiveBin', currentActiveBin);
         }
 
-        // --- NEW: Progress Tracking Helpers ---
-        function getFinalizedBins() {
-            return new Set(auditLog.map(i => i.scannedBin));
+        function switchView(view) {
+            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
+            document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
+            const navAudit = document.getElementById('nav-audit');
+            const navReport = document.getElementById('nav-report');
+            if (view === 'audit') {
+                navAudit.classList.add('nav-active'); navAudit.classList.remove('text-slate-400', 'bg-slate-50');
+                navReport.classList.remove('nav-active'); navReport.classList.add('text-slate-400', 'bg-slate-50');
+            } else {
+                navReport.classList.add('nav-active'); navReport.classList.remove('text-slate-400', 'bg-slate-50');
+                navAudit.classList.remove('nav-active'); navAudit.classList.add('text-slate-400', 'bg-slate-50');
+                renderReport();
+            }
         }
+
+        function getFinalizedBins() { return new Set(auditLog.map(i => i.scannedBin)); }
 
         function updateRowProgressUI() {
             const finalized = getFinalizedBins();
             document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`;
-            
             "ABCDEFGHIJKLMNOP".split("").forEach(row => {
                 const badge = document.getElementById(`row-badge-${row}`);
                 if (badge) {
                     const rowCount = Array.from(finalized).filter(b => b.charAt(1) === row).length;
                     badge.innerText = rowCount;
-                    badge.classList.toggle('bg-emerald-500', rowCount > 0);
-                    badge.classList.toggle('text-white', rowCount > 0);
+                    badge.classList.toggle('bg-emerald-500', rowCount > 0); badge.classList.toggle('text-white', rowCount > 0);
                 }
             });
         }
@@ -188,18 +192,12 @@
             if (!binName) return;
             currentActiveBin = binName.toUpperCase();
             document.getElementById('bin-input').value = currentActiveBin;
-            
-            // Check if already counted
             const alreadyDone = getFinalizedBins().has(currentActiveBin);
-            const badge = document.getElementById('bin-status-badge');
-            badge.classList.toggle('hidden', !alreadyDone);
-            if(alreadyDone) haptic();
-
+            document.getElementById('bin-status-badge').classList.toggle('hidden', !alreadyDone);
             const expected = sapMasterData.filter(i => i.sapBin === currentActiveBin);
             currentBinItems = expected.map(i => ({ 
                 ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin 
             }));
-            
             saveSession(); renderAuditList(); window.scrollTo(0,0);
         }
 
@@ -208,13 +206,17 @@
             haptic();
             if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Finish bin first."); return; }
             
-            // Override previous count
+            // Override logic
             auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
-            auditLog.push(...currentBinItems);
             
-            saveSession(); 
-            updateRowProgressUI(); // Update selection screen
-            stepBin(1);
+            // LOGIC: If bin is empty, push a placeholder so it's marked as "Done"
+            if (currentBinItems.length === 0) {
+                auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
+            } else {
+                auditLog.push(...currentBinItems);
+            }
+            
+            saveSession(); updateRowProgressUI(); stepBin(1);
         }
 
         function stepBin(dir) {
@@ -229,7 +231,6 @@
         function renderAuditList() {
             const container = document.getElementById('audit-list'); container.innerHTML = "";
             if (currentBinItems.length === 0 && currentActiveBin !== "") { container.innerHTML = `<div class="py-20 text-center text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin</div>`; return; }
-            
             currentBinItems.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.className = `p-5 rounded-[2rem] shadow-sm border bg-white transition-all ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
@@ -278,7 +279,7 @@
 
         function renderReport() {
             const container = document.getElementById('report-body'); container.innerHTML = "";
-            const allAudited = [...auditLog];
+            const allAudited = [...auditLog].filter(i => !i.isEmpty); // Ignore empty bin placeholders
             const foundHUs = new Set(allAudited.filter(i => i.verified).map(i => i.hu));
             let displayList = [];
 
@@ -307,7 +308,7 @@
                     if (isAdjusted) status += `<p class="text-[8px] text-slate-400 font-bold mt-1">QTY DIFF: ${i.countQty} vs ${i.sapQty}</p>`;
                 } else if (activeReportTab === 'adj') {
                     status = `<p class="text-[10px] text-orange-600 font-black">ADJUSTED: ${i.countQty} (SAP: ${i.sapQty}) ${bothTag}</p>`;
-                    if (isMoved) status += `<p class="text-[8px] text-slate-400 font-bold mt-1">LOCATION DIFF: Scanned at ${i.scannedBin} (SAP: ${i.sapBin})</p>`;
+                    if (isMoved) status += `<p class="text-[8px] text-slate-400 font-bold mt-1">LOCATION: ${i.scannedBin} (SAP: ${i.sapBin})</p>`;
                 } else if (activeReportTab === 'inactive') {
                     status = `<p class="text-[10px] text-blue-600 font-black">${i.hu === "0" ? 'MISSING LABEL / NOT VISIBLE' : 'HU NOT IN SAP'}</p>`;
                 } else if (activeReportTab === 'miss') {
@@ -330,54 +331,23 @@
                     desc: row['Product Short Description'] || row['Product short description'] || row['Description'] || "",
                     sapQty: parseFloat(row['Quantity']) || 0
                 }));
-                saveSession(); 
-                document.getElementById('upload-prompt').classList.add('hidden'); 
-                document.getElementById('row-selection').classList.remove('hidden');
-                updateRowProgressUI();
+                saveSession(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid();
             };
             reader.readAsArrayBuffer(event.target.files[0]);
         }
-
         function initSetupGrid() {
-            const grid = document.getElementById('row-grid');
-            grid.innerHTML = "";
+            const grid = document.getElementById('row-grid'); grid.innerHTML = "";
             "ABCDEFGHIJKLMNOP".split("").forEach(row => {
                 const btn = document.createElement('button');
                 btn.className = "relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white";
-                btn.innerHTML = `
-                    ${row}
-                    <span id="row-badge-${row}" class="row-progress-badge">0</span>
-                `;
+                btn.innerHTML = `${row}<span id="row-badge-${row}" class="row-progress-badge">0</span>`;
                 btn.onclick = () => { haptic(); document.getElementById('setup-screen').classList.add('hidden'); selectBin(`W${row}00A`); };
                 grid.appendChild(btn);
             });
             updateRowProgressUI();
         }
-
-        function switchView(view) { 
-            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit'); 
-            document.getElementById('view-report').classList.toggle('hidden', view !== 'report'); 
-            if(view === 'report') renderReport(); 
-            if(view === 'audit' && sapMasterData.length > 0 && !currentActiveBin) {
-                document.getElementById('setup-screen').classList.remove('hidden');
-                updateRowProgressUI();
-            }
-        }
-
         function clearAllData() { if (confirm("Reset App?")) { localStorage.clear(); location.reload(); } }
-        
-        window.onload = () => { 
-            initSetupGrid(); 
-            if (sapMasterData.length > 0) { 
-                document.getElementById('upload-prompt').classList.add('hidden'); 
-                document.getElementById('row-selection').classList.remove('hidden'); 
-            } 
-            if (currentActiveBin) { 
-                document.getElementById('setup-screen').classList.add('hidden'); 
-                selectBin(currentActiveBin); 
-            } 
-        };
-
+        window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
         function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
         function autoLookupExtra(input) {
             const hu = input.value.trim(); if (hu === "0" || hu.length < 8) return;
@@ -389,15 +359,9 @@
             const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0;
             if(!hu || qty <= 0) return;
             const sapMatch = sapMasterData.find(m => m.hu === hu);
-            currentBinItems.push({ 
-                hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, 
-                sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, 
-                countQty: qty, verified: true, isMissing: false, isExtra: true, 
-                desc: sapMatch ? sapMatch.desc : (hu === "0" ? "HU NOT VISIBLE / MISSING LABEL" : "PHYSICAL FIND")
-            });
+            currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : (hu === "0" ? "HU NOT VISIBLE / MISSING LABEL" : "PHYSICAL FIND") });
             toggleAddForm(); saveSession(); renderAuditList();
-            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
-            document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
+            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
         }
         async function openSpyglass() {
             haptic(); document.getElementById('camera-overlay').style.display = 'flex';
@@ -408,12 +372,7 @@
         }
         function closeSpyglass() { document.getElementById('camera-overlay').style.display = 'none'; if (videoStream) videoStream.getTracks().forEach(t => t.stop()); isFrozen = false; }
         function handleZoom(val) { document.getElementById('camera-stream').style.transform = `scale(${val})`; }
-        function toggleFreeze() {
-            const v = document.getElementById('camera-stream'); const btn = document.getElementById('freeze-btn-ui');
-            if (isFrozen) { v.play(); btn.innerText = "FREEZE"; btn.classList.replace('bg-red-600', 'bg-blue-600'); } 
-            else { v.pause(); btn.innerText = "LIVE"; btn.classList.replace('bg-blue-600', 'bg-red-600'); }
-            isFrozen = !isFrozen; haptic();
-        }
+        function toggleFreeze() { const v = document.getElementById('camera-stream'); const btn = document.getElementById('freeze-btn-ui'); if (isFrozen) { v.play(); btn.innerText = "FREEZE"; btn.classList.replace('bg-red-600', 'bg-blue-600'); } else { v.pause(); btn.innerText = "LIVE"; btn.classList.replace('bg-blue-600', 'bg-red-600'); } isFrozen = !isFrozen; haptic(); }
         async function toggleTorch() { if (!videoTrack) return; torchActive = !torchActive; try { await videoTrack.applyConstraints({ advanced: [{ torch: torchActive }] }); } catch(e){} }
     </script>
 </body>

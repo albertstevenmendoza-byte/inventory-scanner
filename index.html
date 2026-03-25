@@ -59,12 +59,12 @@
 
         <div class="px-4 py-4 bg-white border-b shrink-0">
             <div class="flex gap-2">
-                <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">◀</button>
+                <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl">◀</button>
                 <div class="flex-1 relative">
                     <input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-4 px-6 bg-slate-50 border-2 rounded-2xl text-xl mono text-blue-700 uppercase outline-none" onchange="selectBin(this.value)">
                     <span id="bin-status-badge" class="hidden absolute right-4 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">✅ DONE</span>
                 </div>
-                <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">▶</button>
+                <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl">▶</button>
             </div>
         </div>
 
@@ -97,6 +97,7 @@
         </div>
     </main>
 
+    <!-- ADD MODAL -->
     <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
             <div class="flex justify-between items-center">
@@ -104,7 +105,7 @@
                 <span id="smart-fill-badge" class="hidden bg-green-100 text-green-600 text-[8px] font-black px-2 py-1 rounded-full animate-pulse uppercase">Smart Filled</span>
             </div>
             <div class="space-y-4">
-                <input type="text" id="add-hu" placeholder="HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none" oninput="autoLookupExtra(this)">
+                <input type="text" id="add-hu" placeholder="HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
                 <div class="grid grid-cols-2 gap-3">
                     <input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
                     <input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
@@ -120,6 +121,27 @@
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
+        
+        // --- MASTER BIN LIST FROM IMAGE ---
+        const ALL_SAP_BINS = [
+            "B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK",
+            "FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B",
+            "FB01A","FB01B","FB02A","FB02B","FB03A","FB03B","FB04A","FB04B","FB05A","FB05B","FB06A","FB06B","FB07A","FB07B","FB08A","FB08B",
+            "FC01A","FC01B","FC02A","FC02B","FC03A","FC03B","FC04A","FC04B","FC05A","FC05B","FC06A","FC06B","FC07A","FC07B","FC08A","FC08B",
+            "FD01A","FD01B","FD02A","FD02B","FD03A","FD03B","FD04A","FD04B","FD05A","FD05B","FD06A","FD06B","FD07A","FD07B","FD08A","FD08B","FD09A","FD09B","FD10A","FD10B",
+            "GR-PRODUCTION","GR-ZONE","GR-ZONE-SMALLPARC","KITS-FLOOR","MIXAREA1_HU_FIX","MIXAREA2_HU_FIX","PACKRM1_NHU","PACKRM2_NHU","PACKRM2_HU_FIX","PKG_RETURN",
+            "PRFL-01-02","PRFL-01-04","PSA-INTERMEDIATE","RECV-HOLD","RECV01","RECV02","RECV03","RECV04","RETURN-BLND-FLOOR","SIG-INSIDE-01","SIG-INSIDE-02",
+            "STG01","STG02","STG03","STG04","STG05","STG06","STG07","STG08","STG09","STG10","STG11","STG12","STG13","STG14","STG_RTN","VIRTUAL_BIN","VIRTUAL_FLUID_LOAD","VIRTUAL_RET_BIN"
+        ];
+        // Populate W aisles dynamically based on the image ranges
+        const aisleConfigs = {A:36, B:38, C:38, D:38, E:38, F:38, G:38, H:38, J:37, K:12, L:34, M:35, N:24, P:6};
+        Object.keys(aisleConfigs).forEach(char => {
+            for(let i=0; i<=aisleConfigs[char]; i++){
+                const bay = i.toString().padStart(2,'0');
+                ALL_SAP_BINS.push(`W${char}${bay}A`,`W${char}${bay}B`,`W${char}${bay}C`);
+            }
+        });
+
         let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
         let auditLog = JSON.parse(localStorage.getItem('auditLog')) || []; 
         let currentBinItems = JSON.parse(localStorage.getItem('currentBinItems')) || [];
@@ -177,20 +199,22 @@
 
         function stepBin(dir) {
             if (!currentActiveBin) return;
-            let rows = "ABCDEFGHIJKLMNOP", levels = "ABC";
-            let rChar = currentActiveBin.charAt(1); let rIdx = rows.indexOf(rChar);
-            let bNum = parseInt(currentActiveBin.substring(2, 4)); let lIdx = levels.indexOf(currentActiveBin.charAt(4));
+            const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin);
+            if (currentIdx === -1) return;
+            
+            const nextIdx = currentIdx + dir;
+            if (nextIdx < 0 || nextIdx >= ALL_SAP_BINS.length) return;
 
-            if (dir > 0) {
-                lIdx++; if (lIdx > 2) { lIdx = 0; bNum++; if (bNum > 39) {
-                    if (rIdx < rows.length - 1) {
-                        if (confirm(`Aisle ${rChar} Done! Move to ${rows[rIdx+1]}?`)) selectBin(`W${rows[rIdx+1]}00A`);
-                        else document.getElementById('setup-screen').classList.remove('hidden');
-                        return;
-                    }
-                } }
-            } else { lIdx--; if (lIdx < 0) { lIdx = 2; bNum--; if (bNum < 0) return; } }
-            selectBin(`W${rows[rIdx]}${bNum.toString().padStart(2, '0')}${levels[lIdx]}`);
+            const nextBin = ALL_SAP_BINS[nextIdx];
+            const currentAisle = currentActiveBin.startsWith('W') ? currentActiveBin.charAt(1) : 'OTHER';
+            const nextAisle = nextBin.startsWith('W') ? nextBin.charAt(1) : 'OTHER';
+
+            if (dir > 0 && currentAisle !== nextAisle && currentAisle !== 'OTHER') {
+                if (confirm(`Aisle ${currentAisle} Done! Move to ${nextAisle}?`)) selectBin(nextBin);
+                else document.getElementById('setup-screen').classList.remove('hidden');
+            } else {
+                selectBin(nextBin);
+            }
         }
 
         function selectBin(binName) {

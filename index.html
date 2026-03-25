@@ -37,8 +37,8 @@
     </header>
 
     <nav class="bg-white border-b flex p-1.5 shrink-0 gap-1">
-        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase nav-active rounded-xl">Audit Mode</button>
-        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase text-slate-400 bg-slate-50 rounded-xl">Live Report</button>
+        <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase nav-active rounded-xl transition-colors">Audit Mode</button>
+        <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase text-slate-400 bg-slate-50 rounded-xl transition-colors">Live Report</button>
     </nav>
 
     <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
@@ -49,7 +49,10 @@
                 <label for="sap-upload-main" class="bg-blue-600 text-white py-6 px-12 rounded-3xl font-black uppercase text-sm shadow-xl cursor-pointer">Select File</label>
             </div>
             <div id="row-selection" class="hidden">
-                <h2 class="text-2xl font-black uppercase mb-6">Select Row</h2>
+                <div class="flex justify-between items-end mb-6">
+                    <h2 class="text-2xl font-black uppercase text-slate-900">Select Row</h2>
+                    <span id="total-progress" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">0 Bins Done</span>
+                </div>
                 <div class="grid grid-cols-4 gap-4" id="row-grid"></div>
             </div>
         </div>
@@ -94,7 +97,6 @@
         </div>
     </main>
 
-    <!-- ADD MODAL -->
     <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
             <div class="flex justify-between items-center">
@@ -102,7 +104,7 @@
                 <span id="smart-fill-badge" class="hidden bg-green-100 text-green-600 text-[8px] font-black px-2 py-1 rounded-full animate-pulse uppercase">Smart Filled</span>
             </div>
             <div class="space-y-4">
-                <input type="text" id="add-hu" placeholder="Scan HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
+                <input type="text" id="add-hu" placeholder="HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
                 <div class="grid grid-cols-2 gap-3">
                     <input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
                     <input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
@@ -123,7 +125,7 @@
         let currentBinItems = JSON.parse(localStorage.getItem('currentBinItems')) || [];
         let currentActiveBin = localStorage.getItem('currentActiveBin') || "";
         let activeReportTab = 'move';
-        let videoStream, videoTrack, isFrozen = false, torchActive = false;
+        let videoStream, videoTrack;
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
         function saveSession() {
@@ -133,14 +135,11 @@
             localStorage.setItem('currentActiveBin', currentActiveBin);
         }
 
-        // --- SMART FILL LOGIC ---
+        // --- SMART FILL ---
         function autoLookupExtra(input) {
             const hu = input.value.trim();
             const badge = document.getElementById('smart-fill-badge');
-            
             if (hu === "0") { badge.classList.add('hidden'); return; }
-            
-            // Search if length is 8+ (Typical SAP HU length)
             if (hu.length >= 8) {
                 const match = sapMasterData.find(i => i.hu === hu);
                 if (match) {
@@ -148,14 +147,9 @@
                     document.getElementById('add-prod').value = match.product;
                     document.getElementById('add-batch').value = match.batch || "";
                     badge.classList.remove('hidden');
-                    // Auto-focus the quantity field to save time
                     setTimeout(() => document.getElementById('add-qty').focus(), 100);
-                } else {
-                    badge.classList.add('hidden');
                 }
-            } else {
-                badge.classList.add('hidden');
-            }
+            } else { badge.classList.add('hidden'); }
         }
 
         async function finalizeBin() {
@@ -169,24 +163,54 @@
                 else if (i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0")) type = 'inactive';
                 else if (i.sapBin && i.scannedBin !== i.sapBin) type = 'move';
                 else if (i.countQty !== i.sapQty) type = 'adj';
-                return {
-                    hu: i.hu, product: i.product, desc: i.desc, batch: i.batch,
-                    sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty,
-                    countQty: i.countQty, type: type
-                };
+                return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
             });
 
-            fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog })
-            });
+            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) });
 
             auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
             if (currentBinItems.length === 0) auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
             else auditLog.push(...currentBinItems);
             
-            showToast(); saveSession(); updateRowProgressUI(); stepBin(1);
+            showToast(); saveSession(); updateRowProgressUI(); 
+            stepBin(1); // AUTO-MOVE TO NEXT BIN
+        }
+
+        function stepBin(dir) {
+            if (!currentActiveBin) return;
+            let rows = "ABCDEFGHIJKLMNOP", levels = "ABC";
+            let rChar = currentActiveBin.charAt(1);
+            let rIdx = rows.indexOf(rChar);
+            let bNum = parseInt(currentActiveBin.substring(2, 4));
+            let lIdx = levels.indexOf(currentActiveBin.charAt(4));
+
+            if (dir > 0) {
+                lIdx++;
+                if (lIdx > 2) {
+                    lIdx = 0;
+                    bNum++;
+                    if (bNum > 39) { // AISLE FINISHED
+                        if (rIdx < rows.length - 1) {
+                            const nextRow = rows[rIdx + 1];
+                            if (confirm(`Aisle ${rChar} Complete! Move to Aisle ${nextRow}?`)) {
+                                selectBin(`W${nextRow}00A`);
+                            } else {
+                                document.getElementById('setup-screen').classList.remove('hidden');
+                                updateRowProgressUI();
+                            }
+                            return;
+                        } else {
+                            alert("Warehouse Audit Complete!");
+                            document.getElementById('setup-screen').classList.remove('hidden');
+                            return;
+                        }
+                    }
+                }
+            } else {
+                lIdx--;
+                if (lIdx < 0) { lIdx = 2; bNum--; if (bNum < 0) return; }
+            }
+            selectBin(`W${rows[rIdx]}${bNum.toString().padStart(2, '0')}${levels[lIdx]}`);
         }
 
         function selectBin(binName) {
@@ -198,15 +222,6 @@
             const expected = sapMasterData.filter(i => i.sapBin === currentActiveBin);
             currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin }));
             saveSession(); renderAuditList(); window.scrollTo(0,0);
-        }
-
-        function stepBin(dir) {
-            if (!currentActiveBin) return;
-            let rows = "ABCDEFGHIJKLMNOP", levels = "ABC";
-            let rIdx = rows.indexOf(currentActiveBin.charAt(1)), bNum = parseInt(currentActiveBin.substring(2, 4)), lIdx = levels.indexOf(currentActiveBin.charAt(4));
-            if (dir > 0) { lIdx++; if (lIdx > 2) { lIdx = 0; bNum++; if (bNum > 39) { bNum = 0; rIdx++; } } } 
-            else { lIdx--; if (lIdx < 0) { lIdx = 2; bNum--; if (bNum < 0) { bNum = 39; rIdx--; } } }
-            if (rIdx >= 0 && rIdx < rows.length) selectBin(`W${rows[rIdx]}${bNum.toString().padStart(2, '0')}${levels[lIdx]}`);
         }
 
         function renderAuditList() {
@@ -263,30 +278,9 @@
             }
         }
 
-        async function sendMobileMsg() {
-            const text = document.getElementById('mobile-msg').value;
-            const user = document.getElementById('email-user').value || "Floor";
-            if (!text) return;
-            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) });
-            document.getElementById('mobile-msg').value = "";
-        }
-
-        async function syncCloud() {
-            try {
-                const res = await fetch(API_URL);
-                const data = await res.json();
-                const box = document.getElementById('mobile-chat');
-                box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join('');
-                box.scrollTop = box.scrollHeight;
-            } catch(e){}
-        }
-
         function setReportTab(tab) {
             activeReportTab = tab;
-            document.querySelectorAll('#view-report button').forEach(b => {
-                b.classList.remove('tab-btn-active', 'text-blue-600');
-                if (b.id && b.id.startsWith('tab-')) b.classList.add('text-slate-400');
-            });
+            document.querySelectorAll('#view-report button').forEach(b => { b.classList.remove('tab-btn-active', 'text-blue-600'); if (b.id && b.id.startsWith('tab-')) b.classList.add('text-slate-400'); });
             document.getElementById(`tab-${tab}`).classList.add('tab-btn-active', 'text-blue-600');
             renderReport();
         }
@@ -296,14 +290,12 @@
             const allAudited = [...auditLog].filter(i => !i.isEmpty);
             const foundHUs = new Set(allAudited.filter(i => i.verified).map(i => i.hu));
             let displayList = [];
-
             if (activeReportTab === 'move') displayList = allAudited.filter(i => i.hu !== "0" && i.sapBin && i.scannedBin !== i.sapBin && !i.isMissing && i.verified);
             else if (activeReportTab === 'adj') displayList = allAudited.filter(i => i.verified && i.countQty !== i.sapQty && !i.isMissing);
             else if (activeReportTab === 'inactive') displayList = allAudited.filter(i => i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0"));
             else if (activeReportTab === 'miss') displayList = allAudited.filter(i => i.isMissing === true && !foundHUs.has(i.hu));
 
             if(displayList.length === 0) { container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Discrepancies</div>`; return; }
-
             displayList.forEach(i => {
                 const isMoved = i.sapBin && i.scannedBin !== i.sapBin && i.hu !== "0";
                 const isAdjusted = i.verified && i.countQty !== i.sapQty;
@@ -355,8 +347,7 @@
                 const badge = document.getElementById(`row-badge-${row}`);
                 if (badge) badge.innerText = Array.from(finalized).filter(b => b.charAt(1) === row).length;
             });
-            const total = finalized.size;
-            document.getElementById('total-progress').innerText = `${total} Bins Done`;
+            document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`;
         }
 
         function showToast(msg = "Synced to Cloud") {
@@ -364,17 +355,22 @@
             setTimeout(() => t.style.opacity = '0', 2000);
         }
 
-        function clearAllData() { if (confirm("Reset App?")) { localStorage.clear(); location.reload(); } }
-        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); document.getElementById('smart-fill-badge').classList.add('hidden'); }
-        function submitExtra() {
-            const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim();
-            const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0;
-            if(!hu || qty <= 0) return;
-            const sapMatch = sapMasterData.find(m => m.hu === hu);
-            currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : (hu === "0" ? "HU NOT VISIBLE / MISSING LABEL" : "PHYSICAL FIND") });
-            toggleAddForm(); saveSession(); renderAuditList();
-            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
-            document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
+        async function syncCloud() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                const box = document.getElementById('mobile-chat');
+                box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join('');
+                box.scrollTop = box.scrollHeight;
+            } catch(e){}
+        }
+
+        async function sendMobileMsg() {
+            const text = document.getElementById('mobile-msg').value;
+            const user = document.getElementById('email-user').value || "Floor";
+            if (!text) return;
+            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) });
+            document.getElementById('mobile-msg').value = "";
         }
 
         async function openSpyglass() {
@@ -389,6 +385,19 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 document.getElementById('camera-stream').srcObject = stream;
             } catch (err) { alert("Camera Error"); overlay.remove(); }
+        }
+
+        function clearAllData() { if (confirm("Reset App?")) { localStorage.clear(); location.reload(); } }
+        function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); document.getElementById('smart-fill-badge').classList.add('hidden'); }
+        function submitExtra() {
+            const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim();
+            const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0;
+            if(!hu || qty <= 0) return;
+            const sapMatch = sapMasterData.find(m => m.hu === hu);
+            currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : (hu === "0" ? "HU NOT VISIBLE / MISSING LABEL" : "PHYSICAL FIND") });
+            toggleAddForm(); saveSession(); renderAuditList();
+            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
+            document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
         }
 
         window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };

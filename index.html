@@ -122,6 +122,7 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
         
+        // --- UPDATED BIN LIST TO INCLUDE FLOOR 100 BINS ---
         const ALL_SAP_BINS = [
             "B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK",
             "FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B",
@@ -138,6 +139,8 @@
                 const bay = i.toString().padStart(2,'0');
                 ALL_SAP_BINS.push(`W${char}${bay}A`,`W${char}${bay}B`,`W${char}${bay}C`);
             }
+            // ADD FLOOR BIN 100
+            ALL_SAP_BINS.push(`W${char}100`);
         });
 
         let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
@@ -333,6 +336,14 @@
             document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
             document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
         }
+
+        async function openSpyglass() {
+            haptic(); const overlay = document.createElement('div'); overlay.className = "fixed inset-0 bg-black z-[200] flex flex-col";
+            overlay.innerHTML = `<video id="v" autoplay playsinline muted class="w-full h-full object-cover"></video><button onclick="this.parentElement.remove()" class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/20 text-white px-8 py-4 rounded-full">Close</button>`;
+            document.body.appendChild(overlay);
+            try { const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); document.querySelector('#v').srcObject = s; } catch (e) { overlay.remove(); }
+        }
+
         window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
         setInterval(syncCloud, 5000);
     </script>

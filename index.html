@@ -59,12 +59,12 @@
 
         <div class="px-4 py-4 bg-white border-b shrink-0">
             <div class="flex gap-2">
-                <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl">◀</button>
+                <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">◀</button>
                 <div class="flex-1 relative">
                     <input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-4 px-6 bg-slate-50 border-2 rounded-2xl text-xl mono text-blue-700 uppercase outline-none" onchange="selectBin(this.value)">
                     <span id="bin-status-badge" class="hidden absolute right-4 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">✅ DONE</span>
                 </div>
-                <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl">▶</button>
+                <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl font-black">▶</button>
             </div>
         </div>
 
@@ -104,7 +104,7 @@
                 <span id="smart-fill-badge" class="hidden bg-green-100 text-green-600 text-[8px] font-black px-2 py-1 rounded-full animate-pulse uppercase">Smart Filled</span>
             </div>
             <div class="space-y-4">
-                <input type="text" id="add-hu" placeholder="HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
+                <input type="text" id="add-hu" placeholder="HU (0 if Missing Label)" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mono font-bold outline-none" oninput="autoLookupExtra(this)">
                 <div class="grid grid-cols-2 gap-3">
                     <input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
                     <input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none">
@@ -125,7 +125,6 @@
         let currentBinItems = JSON.parse(localStorage.getItem('currentBinItems')) || [];
         let currentActiveBin = localStorage.getItem('currentActiveBin') || "";
         let activeReportTab = 'move';
-        let videoStream, videoTrack;
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
         function saveSession() {
@@ -135,7 +134,6 @@
             localStorage.setItem('currentActiveBin', currentActiveBin);
         }
 
-        // --- SMART FILL ---
         function autoLookupExtra(input) {
             const hu = input.value.trim();
             const badge = document.getElementById('smart-fill-badge');
@@ -143,11 +141,8 @@
             if (hu.length >= 8) {
                 const match = sapMasterData.find(i => i.hu === hu);
                 if (match) {
-                    haptic();
-                    document.getElementById('add-prod').value = match.product;
-                    document.getElementById('add-batch').value = match.batch || "";
-                    badge.classList.remove('hidden');
-                    setTimeout(() => document.getElementById('add-qty').focus(), 100);
+                    haptic(); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch || "";
+                    badge.classList.remove('hidden'); setTimeout(() => document.getElementById('add-qty').focus(), 100);
                 }
             } else { badge.classList.add('hidden'); }
         }
@@ -157,14 +152,19 @@
             haptic();
             if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Finish bin first."); return; }
             
-            const itemsToLog = currentBinItems.length === 0 ? [] : currentBinItems.map(i => {
-                let type = 'ok';
-                if (i.isMissing) type = 'miss';
-                else if (i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0")) type = 'inactive';
-                else if (i.sapBin && i.scannedBin !== i.sapBin) type = 'move';
-                else if (i.countQty !== i.sapQty) type = 'adj';
-                return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
-            });
+            let itemsToLog = [];
+            if (currentBinItems.length === 0) {
+                itemsToLog.push({ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok' });
+            } else {
+                itemsToLog = currentBinItems.map(i => {
+                    let type = 'ok';
+                    if (i.isMissing) type = 'miss';
+                    else if (i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0")) type = 'inactive';
+                    else if (i.sapBin && i.scannedBin !== i.sapBin) type = 'move';
+                    else if (i.countQty !== i.sapQty) type = 'adj';
+                    return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
+                });
+            }
 
             fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) });
 
@@ -172,44 +172,24 @@
             if (currentBinItems.length === 0) auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
             else auditLog.push(...currentBinItems);
             
-            showToast(); saveSession(); updateRowProgressUI(); 
-            stepBin(1); // AUTO-MOVE TO NEXT BIN
+            showToast(); saveSession(); updateRowProgressUI(); stepBin(1);
         }
 
         function stepBin(dir) {
             if (!currentActiveBin) return;
             let rows = "ABCDEFGHIJKLMNOP", levels = "ABC";
-            let rChar = currentActiveBin.charAt(1);
-            let rIdx = rows.indexOf(rChar);
-            let bNum = parseInt(currentActiveBin.substring(2, 4));
-            let lIdx = levels.indexOf(currentActiveBin.charAt(4));
+            let rChar = currentActiveBin.charAt(1); let rIdx = rows.indexOf(rChar);
+            let bNum = parseInt(currentActiveBin.substring(2, 4)); let lIdx = levels.indexOf(currentActiveBin.charAt(4));
 
             if (dir > 0) {
-                lIdx++;
-                if (lIdx > 2) {
-                    lIdx = 0;
-                    bNum++;
-                    if (bNum > 39) { // AISLE FINISHED
-                        if (rIdx < rows.length - 1) {
-                            const nextRow = rows[rIdx + 1];
-                            if (confirm(`Aisle ${rChar} Complete! Move to Aisle ${nextRow}?`)) {
-                                selectBin(`W${nextRow}00A`);
-                            } else {
-                                document.getElementById('setup-screen').classList.remove('hidden');
-                                updateRowProgressUI();
-                            }
-                            return;
-                        } else {
-                            alert("Warehouse Audit Complete!");
-                            document.getElementById('setup-screen').classList.remove('hidden');
-                            return;
-                        }
+                lIdx++; if (lIdx > 2) { lIdx = 0; bNum++; if (bNum > 39) {
+                    if (rIdx < rows.length - 1) {
+                        if (confirm(`Aisle ${rChar} Done! Move to ${rows[rIdx+1]}?`)) selectBin(`W${rows[rIdx+1]}00A`);
+                        else document.getElementById('setup-screen').classList.remove('hidden');
+                        return;
                     }
-                }
-            } else {
-                lIdx--;
-                if (lIdx < 0) { lIdx = 2; bNum--; if (bNum < 0) return; }
-            }
+                } }
+            } else { lIdx--; if (lIdx < 0) { lIdx = 2; bNum--; if (bNum < 0) return; } }
             selectBin(`W${rows[rIdx]}${bNum.toString().padStart(2, '0')}${levels[lIdx]}`);
         }
 
@@ -230,30 +210,7 @@
             currentBinItems.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.className = `p-5 rounded-[2rem] shadow-sm border bg-white transition-all ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex-1">
-                            <span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu}</span>
-                            <h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3>
-                            <p class="text-[11px] text-slate-600 font-semibold mb-1">${item.desc}</p>
-                            <p class="text-[10px] text-slate-500 font-bold uppercase">Batch: ${item.batch || 'N/A'}</p>
-                        </div>
-                        <div class="text-right bg-slate-50 p-2 rounded-xl border border-slate-100 min-w-[70px]">
-                            <p class="text-[7px] font-black text-slate-400 uppercase">SAP Qty</p>
-                            <p class="text-lg mono font-black text-slate-700">${item.isExtra ? '--' : item.sapQty}</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-col gap-3">
-                        <div class="flex gap-2">
-                            ${!item.isExtra ? `<button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Confirm ${item.sapQty}</button>` : ''}
-                            <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-lg' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button>
-                        </div>
-                        <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                            <button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300">－</button>
-                            <input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none">
-                            <button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600">＋</button>
-                        </div>
-                    </div>`;
+                card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="flex-1"><span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu}</span><h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3><p class="text-[11px] text-slate-600 font-semibold mb-1">${item.desc}</p><p class="text-[10px] text-slate-500 font-bold uppercase">Batch: ${item.batch || 'N/A'}</p></div><div class="text-right bg-slate-50 p-2 rounded-xl border border-slate-100 min-w-[70px]"><p class="text-[7px] font-black text-slate-400 uppercase">SAP Qty</p><p class="text-lg mono font-black text-slate-700">${item.isExtra ? '--' : item.sapQty}</p></div></div><div class="flex flex-col gap-3"><div class="flex gap-2">${!item.isExtra ? `<button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Confirm ${item.sapQty}</button>` : ''}<button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-lg' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button></div><div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100"><button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300">－</button><input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none"><button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600">＋</button></div></div>`;
                 container.appendChild(card);
             });
         }
@@ -264,25 +221,10 @@
         function toggleMissing(idx) { haptic(); currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } saveSession(); renderAuditList(); }
 
         function switchView(view) {
-            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit');
-            document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
-            const navAudit = document.getElementById('nav-audit');
-            const navReport = document.getElementById('nav-report');
-            if (view === 'audit') {
-                navAudit.classList.add('nav-active'); navAudit.classList.remove('text-slate-400', 'bg-slate-50');
-                navReport.classList.remove('nav-active'); navReport.classList.add('text-slate-400', 'bg-slate-50');
-            } else {
-                navReport.classList.add('nav-active'); navReport.classList.remove('text-slate-400', 'bg-slate-50');
-                navAudit.classList.remove('nav-active'); navAudit.classList.add('text-slate-400', 'bg-slate-50');
-                renderReport();
-            }
-        }
-
-        function setReportTab(tab) {
-            activeReportTab = tab;
-            document.querySelectorAll('#view-report button').forEach(b => { b.classList.remove('tab-btn-active', 'text-blue-600'); if (b.id && b.id.startsWith('tab-')) b.classList.add('text-slate-400'); });
-            document.getElementById(`tab-${tab}`).classList.add('tab-btn-active', 'text-blue-600');
-            renderReport();
+            document.getElementById('view-audit').classList.toggle('hidden', view !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
+            const na = document.getElementById('nav-audit'), nr = document.getElementById('nav-report');
+            if (view === 'audit') { na.classList.add('nav-active'); na.classList.remove('text-slate-400', 'bg-slate-50'); nr.classList.remove('nav-active'); nr.classList.add('text-slate-400', 'bg-slate-50'); } 
+            else { nr.classList.add('nav-active'); nr.classList.remove('text-slate-400', 'bg-slate-50'); na.classList.remove('nav-active'); na.classList.add('text-slate-400', 'bg-slate-50'); renderReport(); }
         }
 
         function renderReport() {
@@ -297,14 +239,11 @@
 
             if(displayList.length === 0) { container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Discrepancies</div>`; return; }
             displayList.forEach(i => {
-                const isMoved = i.sapBin && i.scannedBin !== i.sapBin && i.hu !== "0";
-                const isAdjusted = i.verified && i.countQty !== i.sapQty;
-                const div = document.createElement('div');
-                div.className = "p-4 bg-white rounded-2xl border border-slate-100 shadow-sm";
+                const isBoth = (i.sapBin && i.scannedBin !== i.sapBin && i.hu !== "0") && (i.verified && i.countQty !== i.sapQty);
+                const div = document.createElement('div'); div.className = "p-4 bg-white rounded-2xl border border-slate-100 shadow-sm";
                 let status = "";
-                let bothTag = (isMoved && isAdjusted) ? `<span class="tag-both ml-2">MOV+ADJ</span>` : "";
-                if (activeReportTab === 'move') status = `<p class="text-[10px] text-purple-600 font-black">MOVED: ${i.sapBin} ➔ ${i.scannedBin} ${bothTag}</p>`;
-                else if (activeReportTab === 'adj') status = `<p class="text-[10px] text-orange-600 font-black">ADJUSTED: ${i.countQty} (SAP: ${i.sapQty}) ${bothTag}</p>`;
+                if (activeReportTab === 'move') status = `<p class="text-[10px] text-purple-600 font-black">MOVED: ${i.sapBin} ➔ ${i.scannedBin} ${isBoth ? '<span class="tag-both ml-2">MOV+ADJ</span>' : ''}</p>`;
+                else if (activeReportTab === 'adj') status = `<p class="text-[10px] text-orange-600 font-black">ADJUSTED: ${i.countQty} (SAP: ${i.sapQty}) ${isBoth ? '<span class="tag-both ml-2">MOV+ADJ</span>' : ''}</p>`;
                 else if (activeReportTab === 'inactive') status = `<p class="text-[10px] text-blue-600 font-black">${i.hu === "0" ? 'MISSING LABEL / NOT VISIBLE' : 'HU NOT IN SAP'}</p>`;
                 else if (activeReportTab === 'miss') status = `<p class="text-[10px] text-red-600 font-black">MARKED MISSING AT ${i.scannedBin}</p>`;
                 div.innerHTML = `<p class="text-[10px] font-black mono text-blue-600">HU: ${i.hu}</p><p class="text-xs font-bold leading-tight">${i.product}</p><p class="text-[10px] text-slate-500 mb-1">${i.desc}</p>${status}`;
@@ -332,11 +271,9 @@
         function initSetupGrid() {
             const grid = document.getElementById('row-grid'); grid.innerHTML = "";
             "ABCDEFGHIJKLMNOP".split("").forEach(row => {
-                const btn = document.createElement('button');
-                btn.className = "relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white";
+                const btn = document.createElement('button'); btn.className = "relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white";
                 btn.innerHTML = `${row}<span id="row-badge-${row}" class="row-progress-badge">0</span>`;
-                btn.onclick = () => { haptic(); document.getElementById('setup-screen').classList.add('hidden'); selectBin(`W${row}00A`); };
-                grid.appendChild(btn);
+                btn.onclick = () => { haptic(); document.getElementById('setup-screen').classList.add('hidden'); selectBin(`W${row}00A`); }; grid.appendChild(btn);
             });
             updateRowProgressUI();
         }
@@ -350,56 +287,27 @@
             document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`;
         }
 
-        function showToast(msg = "Synced to Cloud") {
-            const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = '1';
-            setTimeout(() => t.style.opacity = '0', 2000);
-        }
-
-        async function syncCloud() {
-            try {
-                const res = await fetch(API_URL);
-                const data = await res.json();
-                const box = document.getElementById('mobile-chat');
-                box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join('');
-                box.scrollTop = box.scrollHeight;
-            } catch(e){}
-        }
-
-        async function sendMobileMsg() {
-            const text = document.getElementById('mobile-msg').value;
-            const user = document.getElementById('email-user').value || "Floor";
-            if (!text) return;
-            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) });
-            document.getElementById('mobile-msg').value = "";
-        }
-
-        async function openSpyglass() {
-            haptic();
-            const overlay = document.createElement('div');
-            overlay.id = "camera-overlay";
-            overlay.className = "fixed inset-0 bg-black z-[200] flex flex-col";
-            overlay.innerHTML = `<video id="camera-stream" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                <div class="absolute inset-x-0 bottom-0 p-8 flex justify-between"><button onclick="this.parentElement.parentElement.remove()" class="bg-white/20 text-white p-4 rounded-full">✕ Close</button></div>`;
-            document.body.appendChild(overlay);
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                document.getElementById('camera-stream').srcObject = stream;
-            } catch (err) { alert("Camera Error"); overlay.remove(); }
-        }
-
-        function clearAllData() { if (confirm("Reset App?")) { localStorage.clear(); location.reload(); } }
+        function showToast(msg = "Synced to Cloud") { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
+        async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; }
+        async function syncCloud() { try { const res = await fetch(API_URL); const data = await res.json(); const box = document.getElementById('mobile-chat'); box.innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join(''); box.scrollTop = box.scrollHeight; } catch(e){} }
+        function setReportTab(tab) { activeReportTab = tab; document.querySelectorAll('#view-report button').forEach(b => { b.classList.remove('tab-btn-active', 'text-blue-600'); if (b.id && b.id.startsWith('tab-')) b.classList.add('text-slate-400'); }); document.getElementById(`tab-${tab}`).classList.add('tab-btn-active', 'text-blue-600'); renderReport(); }
+        function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
         function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); document.getElementById('smart-fill-badge').classList.add('hidden'); }
         function submitExtra() {
             const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim();
             const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0;
             if(!hu || qty <= 0) return;
             const sapMatch = sapMasterData.find(m => m.hu === hu);
-            currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : (hu === "0" ? "HU NOT VISIBLE / MISSING LABEL" : "PHYSICAL FIND") });
+            currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : (hu === "0" ? "LABEL MISSING" : "PHYSICAL FIND") });
             toggleAddForm(); saveSession(); renderAuditList();
-            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = "";
-            document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
+            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = "";
         }
-
+        async function openSpyglass() {
+            haptic(); const overlay = document.createElement('div'); overlay.className = "fixed inset-0 bg-black z-[200] flex flex-col";
+            overlay.innerHTML = `<video id="v" autoplay playsinline muted class="w-full h-full object-cover"></video><button onclick="this.parentElement.remove()" class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/20 text-white px-8 py-4 rounded-full">Close</button>`;
+            document.body.appendChild(overlay);
+            try { const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); document.querySelector('#v').srcObject = s; } catch (e) { overlay.remove(); }
+        }
         window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } if (currentActiveBin) { document.getElementById('setup-screen').classList.add('hidden'); selectBin(currentActiveBin); } };
         setInterval(syncCloud, 5000);
     </script>

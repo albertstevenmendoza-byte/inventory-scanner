@@ -118,14 +118,14 @@
         Object.keys(aisleConfigs).forEach(char => { for(let i=0; i<=aisleConfigs[char]; i++){ const bay = i.toString().padStart(2,'0'); ALL_SAP_BINS.push(`W${char}${bay}A`,`W${char}${bay}B`,`W${char}${bay}C`); } ALL_SAP_BINS.push(`W${char}100`); });
 
         let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
-        let auditLog = JSON.parse(localStorage.getItem('auditLog')) || []; 
+        let auditLog = []; 
         let currentBinItems = [];
         let currentActiveBin = "";
         let activeReportTab = 'move';
-        let lastMsgTime = null;
+        let lastMsgTime = 0;
+        let cloudReport = [];
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
-        function saveSession() { localStorage.setItem('auditLog', JSON.stringify(auditLog)); localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData)); }
 
         function handleFileUpload(event) {
             const reader = new FileReader();
@@ -139,7 +139,10 @@
                     desc: row['Product Short Description'] || row['Product short description'] || row['Description'] || "",
                     sapQty: parseFloat(row['Quantity']) || 0
                 }));
-                saveSession(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid();
+                localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
+                document.getElementById('upload-prompt').classList.add('hidden'); 
+                document.getElementById('row-selection').classList.remove('hidden'); 
+                initSetupGrid();
             };
             reader.readAsArrayBuffer(event.target.files[0]);
         }
@@ -148,10 +151,12 @@
             try {
                 const res = await fetch(API_URL);
                 const data = await res.json();
+                cloudReport = data.report || [];
+                
                 if (data.chat && data.chat.length > 0) {
                     const latest = data.chat[data.chat.length - 1];
                     const currentUser = document.getElementById('email-user').value || "Floor";
-                    if (lastMsgTime && latest.time !== lastMsgTime && latest.user !== currentUser) {
+                    if (lastMsgTime !== 0 && latest.time > lastMsgTime && latest.user !== currentUser) {
                         haptic(); document.getElementById('msg-sender').innerText = latest.user; document.getElementById('msg-preview').innerText = latest.text;
                         document.getElementById('msg-notification').classList.add('show'); setTimeout(() => document.getElementById('msg-notification').classList.remove('show'), 5000);
                     }
@@ -159,6 +164,7 @@
                 }
                 document.getElementById('mobile-chat').innerHTML = data.chat.map(m => `<div><span class="font-black text-blue-600">${m.user}:</span> ${m.text}</div>`).join('');
                 updateRowProgressUI();
+                if(activeReportTab === 'move' || activeReportTab === 'adj' || activeReportTab === 'inactive' || activeReportTab === 'miss') renderReport();
             } catch(e){}
         }
 
@@ -174,11 +180,10 @@
                 else if (i.countQty !== i.sapQty) type = 'adj';
                 return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
             });
-            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) });
-            auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
-            if (currentBinItems.length === 0) auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
-            else auditLog.push(...currentBinItems);
-            saveSession(); stepBin(1);
+            
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) });
+            stepBin(1);
+            syncCloud();
         }
 
         function stepBin(dir) {
@@ -200,9 +205,11 @@
             if (!binName) return;
             currentActiveBin = binName.toUpperCase();
             document.getElementById('bin-input').value = currentActiveBin;
-            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'updatePosition', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin }) });
-            const alreadyDone = new Set(auditLog.map(i => i.scannedBin)).has(currentActiveBin);
+            fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'updatePosition', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin }) });
+            
+            const alreadyDone = new Set(cloudReport.map(i => i.scanBin)).has(currentActiveBin);
             document.getElementById('bin-status-badge').classList.toggle('hidden', !alreadyDone);
+            
             const expected = sapMasterData.filter(i => i.sapBin === currentActiveBin);
             currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin }));
             document.getElementById('setup-screen').classList.add('hidden');
@@ -227,12 +234,29 @@
         function leaveAisle() { haptic(); currentActiveBin = ""; document.getElementById('setup-screen').classList.remove('hidden'); }
         function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
         function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
-        async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; }
+        async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; syncCloud(); }
         function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); btn.className = "relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white"; btn.innerHTML = `${row}<span id="row-badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { haptic(); selectBin(`W${row}00A`); }; grid.appendChild(btn); }); }
-        function updateRowProgressUI() { const finalized = new Set(auditLog.map(i => i.scannedBin)); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const badge = document.getElementById(`row-badge-${row}`); if (badge) badge.innerText = Array.from(finalized).filter(b => b && b.charAt(1) === row).length; }); document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`; }
+        function updateRowProgressUI() { const finalized = new Set(cloudReport.map(i => i.scanBin)); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const badge = document.getElementById(`row-badge-${row}`); if (badge) badge.innerText = Array.from(finalized).filter(b => b && b.charAt(1) === row).length; }); document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`; }
         function autoLookupExtra(input) { const hu = input.value.trim(); if (hu === "0" || hu.length < 8) return; const match = sapMasterData.find(i => i.hu === hu); if (match) { haptic(); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch || ""; } }
         function submitExtra() { const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim(); const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0; if(!hu || qty <= 0) return; const sapMatch = sapMasterData.find(m => m.hu === hu); currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : (hu === "0" ? "LABEL MISSING" : "PHYSICAL FIND") }); toggleAddForm(); renderAuditList(); document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = ""; }
         
+        function renderReport() {
+            const container = document.getElementById('report-body'); container.innerHTML = "";
+            const foundHUs = new Set(cloudReport.filter(i => i.type !== 'miss').map(i => i.hu));
+            let displayList = [];
+            if (activeReportTab === 'move') displayList = cloudReport.filter(i => i.hu !== "0" && i.sapBin !== "null" && i.scanBin !== i.sapBin && i.type !== 'miss');
+            else if (activeReportTab === 'adj') displayList = cloudReport.filter(i => i.scanQty !== i.sapQty && i.type !== 'miss');
+            else if (activeReportTab === 'inactive') displayList = cloudReport.filter(i => i.type === 'inactive');
+            else if (activeReportTab === 'miss') displayList = cloudReport.filter(i => i.type === 'miss' && !foundHUs.has(i.hu));
+
+            if(displayList.length === 0) { container.innerHTML = `<div class="py-20 text-center font-black uppercase text-slate-300 tracking-widest text-[10px]">No Discrepancies</div>`; return; }
+            displayList.forEach(i => {
+                const div = document.createElement('div'); div.className = "p-4 bg-white rounded-2xl border border-slate-100 shadow-sm";
+                div.innerHTML = `<p class="text-[10px] font-black mono text-blue-600">HU: ${i.hu}</p><p class="text-xs font-bold leading-tight">${i.prod}</p><p class="text-[10px] text-slate-500 mb-1">${i.desc}</p><p class="text-[10px] uppercase font-black">${i.type === 'move' ? 'Moved: ' + i.sapBin + ' → ' + i.scanBin : 'Qty: ' + i.scanQty + ' (SAP: ' + i.sapQty + ')'}</p>`;
+                container.appendChild(div);
+            });
+        }
+
         window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } syncCloud(); setInterval(syncCloud, 5000); };
     </script>
 </body>

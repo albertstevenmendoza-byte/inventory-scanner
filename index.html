@@ -148,10 +148,11 @@
             } catch(e){}
         }
 
-        async function finalizeBin() {
+        function finalizeBin() {
             if(!currentActiveBin) return;
             haptic();
             if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Finish bin first."); return; }
+            
             let itemsToLog = currentBinItems.length === 0 ? [{ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok' }] : currentBinItems.map(i => {
                 let type = 'ok';
                 if (i.isMissing) type = 'miss';
@@ -160,8 +161,26 @@
                 else if (i.countQty !== i.sapQty) type = 'adj';
                 return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
             });
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) });
-            stepBin(1); syncCloud();
+
+            // FIX: Removed 'await' and moved stepBin(1) to top level. 
+            // This sends the data in the background without blocking the UI.
+            fetch(API_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ 
+                    action: 'logAudit', 
+                    user: document.getElementById('email-user').value || "Floor", 
+                    bin: currentActiveBin, 
+                    items: itemsToLog 
+                }) 
+            }).then(() => {
+                // Show visual confirmation once background sync finishes
+                const toast = document.getElementById('toast');
+                toast.style.opacity = "1";
+                setTimeout(() => toast.style.opacity = "0", 2000);
+            });
+
+            // Immediate Navigation
+            stepBin(1); 
         }
 
         function stepBin(dir) {

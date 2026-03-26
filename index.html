@@ -22,6 +22,19 @@
         .nav-active { background-color: #2563eb !important; color: white !important; }
         .tag-both { background: #1e293b; color: #f8fafc; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 900; }
         .row-progress-badge { font-size: 8px; background: #e2e8f0; padding: 2px 6px; border-radius: 99px; position: absolute; top: -5px; right: -5px; }
+
+        /* Animation Map Styles */
+        #map-viewport { height: 100px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; position: relative; overflow: hidden; }
+        .aisle-line { position: absolute; top: 10px; bottom: 10px; width: 2px; background: #cbd5e1; border-radius: 2px; }
+        .aisle-label { position: absolute; bottom: 2px; font-size: 7px; font-weight: 900; color: #94a3b8; transform: translateX(-50%); }
+        #worker-char { 
+            position: absolute; width: 24px; height: 24px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 18px; z-index: 50;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+        .bay-marker { position: absolute; width: 4px; height: 4px; background: #e2e8f0; border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 flex flex-col h-screen overflow-hidden">
@@ -45,12 +58,19 @@
     </nav>
 
     <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
+        <!-- SETUP SCREEN -->
         <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col p-6 overflow-y-auto">
             <div class="flex justify-between items-end mb-6">
                 <h2 class="text-2xl font-black uppercase text-slate-900">Select Row</h2>
                 <span id="total-progress" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">Syncing...</span>
             </div>
             <div class="grid grid-cols-4 gap-4" id="row-grid"></div>
+        </div>
+
+        <!-- NEW: ANIMATION MINI-MAP -->
+        <div id="map-viewport">
+            <!-- Aisle lines and labels will be generated here -->
+            <div id="worker-char">👷</div>
         </div>
 
         <div class="px-4 py-4 bg-white border-b shrink-0">
@@ -107,7 +127,7 @@
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
-        const ALL_SAP_BINS = ["B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK","FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B","FB01A","FB01B","FB02A","FB02B","FB03A","FB03B","FB04A","FB04B","FB05A","FB05B","FB06A","FB06B","FB07A","FB07B","FB08A","FB08B","FC01A","FC01B","FC02A","FC02B","FC03A","FC03B","FC04A","FC04B","FC05A","FC05B","FC06A","FC06B","FC07A","FC07B","FC08A","FC08B","FD01A","FD01B","FD02A","FD02B","FD03A","FD03B","FD04A","FD04B","FD05A","FD05B","FD06A","FD06B","FD07A","FD07B","FD08A","FD08B","FD09A","FD09B","FD10A","FD10B","GR-PRODUCTION","GR-ZONE","GR-ZONE-SMALLPARC","KITS-FLOOR","MIXAREA1_HU_FIX","MIXAREA2_HU_FIX","PACKRM1_NHU","PACKRM2_NHU","PACKRM2_HU_FIX","PKG_RETURN","PRFL-01-02","PRFL-01-04","PSA-INTERMEDIATE","RECV-HOLD","RECV01","RECV02","RECV03","RECV04","RETURN-BLND-FLOOR","SIG-INSIDE-01","SIG-INSIDE-02","STG01","STG02","STG03","STG04","STG05","STG06","STG07","STG08","STG09","STG10","STG11","STG12","STG13","STG14","STG_RTN","VIRTUAL_BIN","VIRTUAL_FLUID_LOAD","VIRTUAL_RET_BIN"];
+        const ALL_SAP_BINS = ["B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK","FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B","FB01A","FB01B","FB02A","FB02B","FB03A","FB03B","FB04A","FB04B","FB05A","FB05B","FB06A","FB06B","FB07A","FB07B","FB08A","FB08B","FC01A","FC01B","FC02A","FC02B","FC03A","FC03B","FC04A","FC04B","FC05A","FC05B","FC06A","FC06B","FC07A","FC07B","FB08A","FB08B","FD01A","FD01B","FD02A","FD02B","FD03A","FD03B","FD04A","FD04B","FD05A","FD05B","FD06A","FD06B","FD07A","FD07B","FD08A","FD08B","FD09A","FD09B","FD10A","FD10B","GR-PRODUCTION","GR-ZONE","GR-ZONE-SMALLPARC","KITS-FLOOR","MIXAREA1_HU_FIX","MIXAREA2_HU_FIX","PACKRM1_NHU","PACKRM2_NHU","PACKRM2_HU_FIX","PKG_RETURN","PRFL-01-02","PRFL-01-04","PSA-INTERMEDIATE","RECV-HOLD","RECV01","RECV02","RECV03","RECV04","RETURN-BLND-FLOOR","SIG-INSIDE-01","SIG-INSIDE-02","STG01","STG02","STG03","STG04","STG05","STG06","STG07","STG08","STG09","STG10","STG11","STG12","STG13","STG14","STG_RTN","VIRTUAL_BIN","VIRTUAL_FLUID_LOAD","VIRTUAL_RET_BIN"];
         const aisleConfigs = {A:36, B:38, C:38, D:38, E:38, F:38, G:38, H:38, J:37, K:12, L:34, M:35, N:24, P:6};
         Object.keys(aisleConfigs).forEach(char => { for(let i=0; i<=aisleConfigs[char]; i++){ const bay = i.toString().padStart(2,'0'); ALL_SAP_BINS.push(`W${char}${bay}A`,`W${char}${bay}B`,`W${char}${bay}C`); } ALL_SAP_BINS.push(`W${char}100`); });
 
@@ -117,6 +137,51 @@
         let currentActiveBin = "";
         let activeReportTab = 'move';
         let lastMsgTime = null;
+
+        // --- MINI-MAP LOGIC ---
+        function initMiniMap() {
+            const map = document.getElementById('map-viewport');
+            const aisles = "P N M L K J H G F E D C B A".split(" ");
+            const width = map.clientWidth;
+            const step = width / (aisles.length + 1);
+
+            aisles.forEach((char, i) => {
+                const x = (i + 1) * step;
+                const line = document.createElement('div');
+                line.className = "aisle-line";
+                line.style.left = x + "px";
+                map.appendChild(line);
+
+                const label = document.createElement('div');
+                label.className = "aisle-label";
+                label.style.left = x + "px";
+                label.innerText = char;
+                map.appendChild(label);
+            });
+        }
+
+        function updateMapPosition(binName) {
+            if (!binName || !binName.startsWith('W')) return;
+            const aisleChar = binName.charAt(1);
+            const bayNum = binName.substring(2, 4) === "10" ? 0 : parseInt(binName.substring(2, 4)); // Floor 100 counts as 0 height
+            
+            const aisles = "P N M L K J H G F E D C B A".split(" ");
+            const aisleIndex = aisles.indexOf(aisleChar);
+            if (aisleIndex === -1) return;
+
+            const map = document.getElementById('map-viewport');
+            const worker = document.getElementById('worker-char');
+            
+            const stepX = map.clientWidth / (aisles.length + 1);
+            const targetX = (aisleIndex + 1) * stepX - 12; // Center worker
+            
+            // Map bays 00-39 to Y percentage (Top 10px to Bottom 10px)
+            // 39 is Top, 00 is Bottom
+            const targetY = 10 + (1 - (bayNum / 40)) * 60; 
+
+            worker.style.left = targetX + "px";
+            worker.style.top = targetY + "px";
+        }
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
         function saveSession() { localStorage.setItem('auditLog', JSON.stringify(auditLog)); }
@@ -154,13 +219,7 @@
                 else if (i.countQty !== i.sapQty) type = 'adj';
                 return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
             });
-            
-            // Fixed Fetch for CORS
-            fetch(API_URL, { 
-                method: 'POST', 
-                body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) 
-            }).catch(e => console.log("Sync delay..."));
-
+            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) }).catch(e => {});
             auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
             if (currentBinItems.length === 0) auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
             else auditLog.push(...currentBinItems);
@@ -191,6 +250,7 @@
             const expected = sapMasterData.filter(i => i.sapBin === currentActiveBin);
             currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin }));
             document.getElementById('setup-screen').classList.add('hidden');
+            updateMapPosition(currentActiveBin); // UPDATE CHARACTER MAP
             renderAuditList(); window.scrollTo(0,0);
         }
 
@@ -212,14 +272,13 @@
         function leaveAisle() { haptic(); currentActiveBin = ""; document.getElementById('setup-screen').classList.remove('hidden'); }
         function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
         function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
-        async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; }
+        async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; }
         function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); btn.className = "relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white"; btn.innerHTML = `${row}<span id="row-badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { haptic(); selectBin(`W${row}00A`); }; grid.appendChild(btn); }); }
-        function updateRowProgressUI() { const finalized = new Set(auditLog.map(i => i.scannedBin)); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const badge = document.getElementById(`row-badge-${row}`); if (badge) badge.innerText = Array.from(finalized).filter(b => b.charAt(1) === row).length; }); document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`; }
+        function updateRowProgressUI() { const finalized = new Set(auditLog.map(i => i.scannedBin)); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const badge = document.getElementById(`row-badge-${row}`); if (badge) badge.innerText = Array.from(finalized).filter(b => b && b.charAt(1) === row).length; }); document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`; }
         function submitExtra() { const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim(); const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0; if(!hu || qty <= 0) return; const sapMatch = sapMasterData.find(m => m.hu === hu); currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : "PHYSICAL FIND" }); toggleAddForm(); renderAuditList(); document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = ""; }
         
-        window.onload = () => { initSetupGrid(); syncCloud(); setInterval(syncCloud, 5000); };
+        window.onload = () => { initSetupGrid(); initMiniMap(); syncCloud(); setInterval(syncCloud, 5000); };
         function showToast(msg = "Synced") { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
-        async function openSpyglass() { alert("Spyglass replaced by Leave Aisle"); }
     </script>
 </body>
 </html>

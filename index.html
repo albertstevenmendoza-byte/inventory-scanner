@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SAP Auditor | Pro Smart-Fill</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -124,7 +125,7 @@
             try {
                 const res = await fetch(API_URL);
                 const data = await res.json();
-                sapMasterData = data.master; // Cloud Master Data
+                sapMasterData = data.master || [];
                 if (data.chat && data.chat.length > 0) {
                     const latest = data.chat[data.chat.length - 1];
                     const currentUser = document.getElementById('email-user').value || "Floor";
@@ -153,7 +154,13 @@
                 else if (i.countQty !== i.sapQty) type = 'adj';
                 return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
             });
-            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) });
+            
+            // Fixed Fetch for CORS
+            fetch(API_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog }) 
+            }).catch(e => console.log("Sync delay..."));
+
             auditLog = auditLog.filter(item => item.scannedBin !== currentActiveBin);
             if (currentBinItems.length === 0) auditLog.push({ scannedBin: currentActiveBin, isEmpty: true, verified: true });
             else auditLog.push(...currentBinItems);
@@ -205,12 +212,14 @@
         function leaveAisle() { haptic(); currentActiveBin = ""; document.getElementById('setup-screen').classList.remove('hidden'); }
         function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
         function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
-        async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; }
+        async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; }
         function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); btn.className = "relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white"; btn.innerHTML = `${row}<span id="row-badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { haptic(); selectBin(`W${row}00A`); }; grid.appendChild(btn); }); }
         function updateRowProgressUI() { const finalized = new Set(auditLog.map(i => i.scannedBin)); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const badge = document.getElementById(`row-badge-${row}`); if (badge) badge.innerText = Array.from(finalized).filter(b => b.charAt(1) === row).length; }); document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`; }
         function submitExtra() { const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim(); const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0; if(!hu || qty <= 0) return; const sapMatch = sapMasterData.find(m => m.hu === hu); currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : "PHYSICAL FIND" }); toggleAddForm(); renderAuditList(); document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = ""; }
         
         window.onload = () => { initSetupGrid(); syncCloud(); setInterval(syncCloud, 5000); };
+        function showToast(msg = "Synced") { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 2000); }
+        async function openSpyglass() { alert("Spyglass replaced by Leave Aisle"); }
     </script>
 </body>
 </html>

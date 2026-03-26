@@ -107,9 +107,23 @@
         Object.keys(aisleConfigs).forEach(char => { for(let i=0; i<=aisleConfigs[char]; i++){ const bay = i.toString().padStart(2,'0'); ALL_SAP_BINS.push(`W${char}${bay}A`,`W${char}${bay}B`,`W${char}${bay}C`); } ALL_SAP_BINS.push(`W${char}100`); });
 
         let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
+        // Performance Indexes
+        let sapBinIndex = {}; 
+        let sapHUIndex = new Map();
+
         let auditLog = []; let currentBinItems = []; let currentActiveBin = ""; let lastMsgTime = 0; let cloudReport = [];
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
+
+        function rebuildIndexes() {
+            sapBinIndex = {};
+            sapHUIndex = new Map();
+            sapMasterData.forEach(item => {
+                if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = [];
+                sapBinIndex[item.sapBin].push(item);
+                sapHUIndex.set(item.hu, item);
+            });
+        }
 
         function handleFileUpload(event) {
             const reader = new FileReader();
@@ -124,6 +138,7 @@
                     sapQty: parseFloat(row['Quantity']) || 0
                 }));
                 localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
+                rebuildIndexes();
                 document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid();
             };
             reader.readAsArrayBuffer(event.target.files[0]);
@@ -153,33 +168,21 @@
             haptic();
             if (currentBinItems.some(i => !i.verified && !i.isMissing)) { alert("Finish bin first."); return; }
             
+            // PRE-CALCULATE LOG (Optimized with Index)
             let itemsToLog = currentBinItems.length === 0 ? [{ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok' }] : currentBinItems.map(i => {
                 let type = 'ok';
                 if (i.isMissing) type = 'miss';
-                else if (i.isExtra && (!sapMasterData.some(m => m.hu === i.hu) || i.hu === "0")) type = 'inactive';
+                else if (i.isExtra && (!sapHUIndex.has(i.hu) || i.hu === "0")) type = 'inactive';
                 else if (i.sapBin && i.scannedBin !== i.sapBin) type = 'move';
                 else if (i.countQty !== i.sapQty) type = 'adj';
                 return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.scannedBin, sapQty: i.sapQty, countQty: i.countQty, type: type };
             });
 
-            // FIX: Removed 'await' and moved stepBin(1) to top level. 
-            // This sends the data in the background without blocking the UI.
-            fetch(API_URL, { 
-                method: 'POST', 
-                body: JSON.stringify({ 
-                    action: 'logAudit', 
-                    user: document.getElementById('email-user').value || "Floor", 
-                    bin: currentActiveBin, 
-                    items: itemsToLog 
-                }) 
-            }).then(() => {
-                // Show visual confirmation once background sync finishes
-                const toast = document.getElementById('toast');
-                toast.style.opacity = "1";
-                setTimeout(() => toast.style.opacity = "0", 2000);
-            });
+            // Fire and forget network call
+            const payload = { action: 'logAudit', user: document.getElementById('email-user').value || "Floor", bin: currentActiveBin, items: itemsToLog };
+            fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(e => console.error(e));
 
-            // Immediate Navigation
+            // IMMEDIATE NAVIGATION
             stepBin(1); 
         }
 
@@ -192,32 +195,49 @@
             const nextBin = ALL_SAP_BINS[nextIdx];
             const currentAisle = currentActiveBin.startsWith('W') ? currentActiveBin.charAt(1) : 'OTHER';
             const nextAisle = nextBin.startsWith('W') ? nextBin.charAt(1) : 'OTHER';
+            
             if (dir > 0 && currentAisle !== nextAisle && currentAisle !== 'OTHER') {
                 if (confirm(`Aisle ${currentAisle} Done! Move to ${nextAisle}?`)) selectBin(nextBin);
                 else leaveAisle();
-            } else { selectBin(nextBin); }
+            } else { 
+                selectBin(nextBin); 
+            }
         }
 
         function selectBin(binName) {
             if (!binName) return;
             currentActiveBin = binName.toUpperCase();
             document.getElementById('bin-input').value = currentActiveBin;
-            const alreadyDone = new Set(cloudReport.map(i => i.scanBin)).has(currentActiveBin);
+            
+            // Fast Done Check
+            const alreadyDone = cloudReport.some(i => i.scanBin === currentActiveBin);
             document.getElementById('bin-status-badge').classList.toggle('hidden', !alreadyDone);
-            const expected = sapMasterData.filter(i => i.sapBin === currentActiveBin);
+            
+            // Fast Index Lookup (Instant)
+            const expected = sapBinIndex[currentActiveBin] || [];
             currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, isExtra: false, scannedBin: currentActiveBin }));
+            
             document.getElementById('setup-screen').classList.add('hidden');
-            renderAuditList(); window.scrollTo(0,0);
+            renderAuditList(); 
+            window.scrollTo(0,0);
         }
 
         function renderAuditList() {
-            const container = document.getElementById('audit-list'); container.innerHTML = "";
-            if (currentBinItems.length === 0 && currentActiveBin !== "") { container.innerHTML = `<div class="py-20 text-center text-slate-300 font-black uppercase text-xs">Empty Bin</div>`; return; }
+            const container = document.getElementById('audit-list'); 
+            container.innerHTML = "";
+            if (currentBinItems.length === 0 && currentActiveBin !== "") { 
+                container.innerHTML = `<div class="py-20 text-center text-slate-300 font-black uppercase text-xs">Empty Bin</div>`; 
+                return; 
+            }
+            // Use a document fragment for faster DOM insertion
+            const fragment = document.createDocumentFragment();
             currentBinItems.forEach((item, index) => {
-                const card = document.createElement('div'); card.className = `p-5 rounded-[2rem] shadow-sm border bg-white transition-all ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
+                const card = document.createElement('div'); 
+                card.className = `p-5 rounded-[2rem] shadow-sm border bg-white transition-all ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : ''))}`;
                 card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="flex-1"><span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu}</span><h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3><p class="text-[11px] text-slate-600 font-semibold mb-1">${item.desc}</p><p class="text-[10px] text-slate-500 font-bold uppercase">Batch: ${item.batch || 'N/A'}</p></div><div class="text-right bg-slate-50 p-2 rounded-xl border border-slate-100 min-w-[70px]"><p class="text-[7px] font-black text-slate-400 uppercase">SAP Qty</p><p class="text-lg mono font-black text-slate-700">${item.isExtra ? '--' : item.sapQty}</p></div></div><div class="flex flex-col gap-3"><div class="flex gap-2">${!item.isExtra ? `<button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Confirm ${item.sapQty}</button>` : ''}<button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white shadow-lg' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button></div><div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100"><button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300">－</button><input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none"><button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600">＋</button></div></div>`;
-                container.appendChild(card);
+                fragment.appendChild(card);
             });
+            container.appendChild(fragment);
         }
 
         function quickConfirm(idx) { haptic(); currentBinItems[idx].countQty = currentBinItems[idx].sapQty; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
@@ -230,11 +250,43 @@
         async function sendMobileMsg() { const text = document.getElementById('mobile-msg').value; const user = document.getElementById('email-user').value || "Floor"; if (!text) return; await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'sendMessage', user, text }) }); document.getElementById('mobile-msg').value = ""; syncCloud(); }
         function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); btn.className = "relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white"; btn.innerHTML = `${row}<span id="row-badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { haptic(); selectBin(`W${row}00A`); }; grid.appendChild(btn); }); }
         function updateRowProgressUI() { const finalized = new Set(cloudReport.map(i => i.scanBin)); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const badge = document.getElementById(`row-badge-${row}`); if (badge) badge.innerText = Array.from(finalized).filter(b => b && b.charAt(1) === row).length; }); document.getElementById('total-progress').innerText = `${finalized.size} Bins Done`; }
-        function autoLookupExtra(input) { const hu = input.value.trim(); if (hu === "0" || hu.length < 8) return; const match = sapMasterData.find(i => i.hu === hu); if (match) { haptic(); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch || ""; setTimeout(() => document.getElementById('add-qty').focus(), 100); } }
-        function submitExtra() { const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim(); const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0; if(!hu || qty <= 0) return; const sapMatch = sapMasterData.find(m => m.hu === hu); currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : "PHYSICAL FIND" }); toggleAddForm(); renderAuditList(); document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = ""; }
+        
+        function autoLookupExtra(input) { 
+            const hu = input.value.trim(); 
+            if (hu === "0" || hu.length < 8) return; 
+            const match = sapHUIndex.get(hu); // Instant Lookup
+            if (match) { 
+                haptic(); 
+                document.getElementById('add-prod').value = match.product; 
+                document.getElementById('add-batch').value = match.batch || ""; 
+                setTimeout(() => document.getElementById('add-qty').focus(), 100); 
+            } 
+        }
+
+        function submitExtra() { 
+            const hu = document.getElementById('add-hu').value.trim(); 
+            const prod = document.getElementById('add-prod').value.trim(); 
+            const batch = document.getElementById('add-batch').value.trim(); 
+            const qty = parseFloat(document.getElementById('add-qty').value) || 0; 
+            if(!hu || qty <= 0) return; 
+            const sapMatch = sapHUIndex.get(hu); // Instant Lookup
+            currentBinItems.push({ hu, product: prod, batch, sapQty: sapMatch ? sapMatch.sapQty : 0, sapBin: sapMatch ? sapMatch.sapBin : null, scannedBin: currentActiveBin, countQty: qty, verified: true, isMissing: false, isExtra: true, desc: sapMatch ? sapMatch.desc : "PHYSICAL FIND" }); 
+            toggleAddForm(); renderAuditList(); 
+            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = ""; 
+        }
+
         function switchView(v) { document.getElementById('view-audit').classList.toggle('hidden', v !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', v !== 'report'); const na = document.getElementById('nav-audit'), nr = document.getElementById('nav-report'); if(v==='audit'){ na.classList.add('nav-active'); nr.classList.remove('nav-active'); }else{ nr.classList.add('nav-active'); na.classList.remove('nav-active'); syncCloud(); } }
 
-        window.onload = () => { if (sapMasterData.length > 0) { document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } syncCloud(); setInterval(syncCloud, 5000); };
+        window.onload = () => { 
+            if (sapMasterData.length > 0) { 
+                rebuildIndexes();
+                document.getElementById('upload-prompt').classList.add('hidden'); 
+                document.getElementById('row-selection').classList.remove('hidden'); 
+                initSetupGrid(); 
+            } 
+            syncCloud(); 
+            setInterval(syncCloud, 5000); 
+        };
     </script>
 </body>
 </html>

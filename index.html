@@ -91,7 +91,7 @@
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
             <div class="flex justify-between items-center"><h2 class="text-2xl font-black uppercase">Physical Find</h2><span id="smart-fill-badge" class="hidden bg-green-100 text-green-600 text-[8px] font-black px-2 py-1 rounded-full animate-pulse uppercase">Smart Filled</span></div>
             <div class="space-y-4">
-                <input type="text" id="add-hu" placeholder="HU Number" class="w-full p-4 bg-slate-50 border-2 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
+                <input type="text" id="add-hu" placeholder="HU Number (0 if missing)" class="w-full p-4 bg-slate-50 border-2 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
                 <div class="grid grid-cols-2 gap-3"><input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none"><input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none"></div>
                 <input type="number" id="add-qty" placeholder="Count" class="w-full p-6 bg-blue-50 rounded-2xl font-black text-center text-3xl text-blue-700 outline-none">
             </div>
@@ -112,46 +112,6 @@
 
         function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
 
-        // --- SCHEDULE LOGIC ---
-        function getScheduleContext() {
-            const now = new Date();
-            const startRef = new Date("2026-03-30T00:00:00");
-            const msInWeek = 7 * 24 * 60 * 60 * 1000;
-            const weeksDiff = Math.floor((now - startRef) / msInWeek);
-            return { week: ((weeksDiff % 4) + 4) % 4 + 1, day: now.getDay(), dayName: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()] };
-        }
-
-        function getTodaysSchedule() {
-            const ctx = getScheduleContext();
-            const sched = [];
-            const isW13 = (ctx.week === 1 || ctx.week === 3);
-            if ([1, 3, 5].includes(ctx.day)) sched.push({ aisle: "FRESH", desc: "14 Items (Click to Count)", isFresh: true }, { aisle: "H", desc: "Bins 23-End" }, { aisle: "J", desc: "Bins 23-End" });
-            if (ctx.day === 1) sched.push({ aisle: "WA", desc: "Entire Row" }, { aisle: "WK", desc: "Entire Row" });
-            else if (ctx.day === 2) {
-                sched.push({ aisle: "WB", desc: "Bins 00-25" }, { aisle: "WC", desc: "Entire Row" }, { aisle: "WD", desc: "Entire Row" }, { aisle: "WL", desc: "Entire Row" });
-                if (isW13) sched.push({ aisle: "WG", desc: "Bins 23-End" }); else sched.push({ aisle: "WF", desc: "Bins 23-End" }, { aisle: "WG", desc: "Bins 23-End" });
-            } else if (ctx.day === 3) sched.push({ aisle: "WE", desc: "Entire Row" }, { aisle: "WM", desc: "Entire Row" });
-            else if (ctx.day === 4) {
-                sched.push({ aisle: "WB", desc: "Bins 00-25" }, { aisle: "WN", desc: "Entire Row" });
-                if (isW13) sched.push({ aisle: "WF", desc: "Bins 23-End" }, { aisle: "WG", desc: "Entire Row" }); else sched.push({ aisle: "WF", desc: "Bins 23-End" }, { aisle: "WG", desc: "Bins 23-End" });
-            } else if (ctx.day === 5) sched.push({ aisle: "WB", desc: "Bins 23-End (SR)" }, { aisle: "WC", desc: "Bins 23-End (SR)" }, { aisle: "WP", desc: "Entire Row" });
-            return sched;
-        }
-
-        function isBinAllowed(binName) {
-            if (binName.startsWith("PRODUCT:")) return true;
-            if (!binName.startsWith("W")) return false;
-            const aisleLetter = binName.charAt(1);
-            const bayNum = parseInt(binName.substring(2,4));
-            const sched = getTodaysSchedule();
-            const match = sched.find(s => s.aisle === aisleLetter || s.aisle === "W" + aisleLetter);
-            if (!match) return false;
-            if (match.desc.includes("00-25") && bayNum > 25) return false;
-            if (match.desc.includes("23-End") && bayNum < 23) return false;
-            return true;
-        }
-
-        // --- CORE FUNCTIONS ---
         async function syncCloud() {
             try { const res = await fetch(API_URL); const data = await res.json(); cloudReport = data.report || []; updateProgressUI(); } catch(e){}
         }
@@ -169,35 +129,46 @@
             if(!currentActiveBin) return;
             if (currentBinItems.length > 0 && currentBinItems.some(i => !i.verified && !i.isMissing)) return alert("Verify all items first.");
             haptic();
-            let itemsToLog = currentBinItems.length === 0 ? [{ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok' }] : currentBinItems.map(i => ({ hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: currentActiveBin, sapQty: i.sapQty, countQty: i.countQty, type: i.isMissing ? 'miss' : (i.sapBin && currentActiveBin !== i.sapBin ? 'move' : (i.countQty !== i.sapQty ? 'adj' : 'ok')), unit: i.unit, stockType: i.stockType, grDate: i.grDate, sled: i.sled }));
+            
+            let itemsToLog = currentBinItems.length === 0 ? [{ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok' }] : currentBinItems.map(i => {
+                let type = 'ok';
+                if (i.isMissing) type = 'miss';
+                else if (i.isExtra) {
+                    // NEW: Categorize non-system HUs or HU "0" as Inactive
+                    if (!sapHUIndex.has(i.hu) || i.hu === "0") type = 'inactive';
+                    else if (i.sapBin && currentActiveBin !== i.sapBin) type = 'move';
+                    else if (i.countQty !== i.sapQty) type = 'adj';
+                }
+                else if (i.sapBin && currentActiveBin !== i.sapBin) type = 'move';
+                else if (i.countQty !== i.sapQty) type = 'adj';
+
+                return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: currentActiveBin, sapQty: i.sapQty, countQty: i.countQty, type: type, unit: i.unit, stockType: i.stockType, grDate: i.grDate, sled: i.sled };
+            });
+
             itemsToLog.forEach(item => cloudReport.push({ scanBin: currentActiveBin, ...item }));
             updateProgressUI();
             fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'logAudit', user: "Floor", bin: currentActiveBin, items: itemsToLog }) });
             if(currentActiveBin.startsWith("PRODUCT:")) leaveAisle(); else stepBin(1);
         }
 
-        function selectBin(binName) { 
-            if (!binName) return;
-            const upperBin = binName.toUpperCase();
-            if (!isBinAllowed(upperBin)) return alert("This bin/aisle is not on today's schedule.");
-            currentActiveBin = upperBin;
-            document.getElementById('bin-input').value = currentActiveBin;
-            const expected = sapBinIndex[currentActiveBin] || [];
-            currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0 }));
-            document.getElementById('setup-screen').classList.add('hidden');
-            renderAuditList(); window.scrollTo(0,0); updateProgressUI();
-        }
-
         function renderAuditList() {
             const container = document.getElementById('audit-list'); container.innerHTML = "";
-            if (currentActiveBin.startsWith("PRODUCT:")) {
+            const isFresh = currentActiveBin === "PRODUCT: FRESH";
+            const isSingle = currentActiveBin.startsWith("PRODUCT:") && !isFresh;
+
+            if (isFresh || isSingle) {
                 const groups = {};
-                currentBinItems.forEach((item, idx) => { if (!groups[item.sapBin]) groups[item.sapBin] = []; groups[item.sapBin].push({ item, idx }); });
-                Object.keys(groups).forEach(bin => {
-                    const isExp = expandedBins.has(bin);
+                currentBinItems.forEach((item, idx) => { 
+                    const key = isFresh ? item.product : item.sapBin;
+                    if (!groups[key]) groups[key] = []; 
+                    groups[key].push({ item, idx }); 
+                });
+                Object.keys(groups).forEach(key => {
+                    const isExp = expandedBins.has(key);
                     const div = document.createElement('div'); div.className = "bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden mb-3 shadow-sm";
-                    div.innerHTML = `<div onclick="toggleBinAccordion('${bin}')" class="flex justify-between items-center p-6 active:bg-slate-50 cursor-pointer"><span class="mono font-black text-slate-800 tracking-tighter">/ ${bin}</span><span class="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">${groups[bin].length} Items</span></div><div id="content-${bin}" class="${isExp ? 'p-5 space-y-5 border-t-2 border-slate-50' : 'hidden'}"></div>`;
-                    if (isExp) groups[bin].forEach(obj => div.querySelector(`#content-${bin}`).appendChild(createItemCard(obj.item, obj.idx)));
+                    let headerLabel = isFresh ? `SKU: ${key}` : `/ ${key}`;
+                    div.innerHTML = `<div onclick="toggleBinAccordion('${key}')" class="flex justify-between items-center p-6 active:bg-slate-50 cursor-pointer"><div><span class="mono font-black text-slate-800 block">${headerLabel}</span><span class="text-[10px] text-slate-400 font-bold truncate max-w-[200px] block">${isFresh ? groups[key][0].item.desc : groups[key].length + ' Items'}</span></div><span class="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">${isFresh ? groups[key].length + ' Pallets' : ''}</span></div><div id="content-${key}" class="${isExp ? 'p-5 space-y-5 border-t-2 border-slate-50' : 'hidden'}"></div>`;
+                    if (isExp) groups[key].forEach(obj => div.querySelector(`#content-${key}`).appendChild(createItemCard(obj.item, obj.idx)));
                     container.appendChild(div);
                 });
             } else { 
@@ -209,73 +180,52 @@
         function createItemCard(item, index) {
             const card = document.createElement('div'); 
             card.className = `p-5 rounded-[2.5rem] border bg-white transition-all shadow-sm ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : '')}`;
-            card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="flex-1"><span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu}</span><h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3><p class="text-[11px] text-slate-600 font-semibold">${item.desc}</p></div><div class="text-right bg-slate-50 p-2 rounded-xl border min-w-[70px]"><p class="text-[7px] font-black text-slate-400 uppercase">SAP QTY</p><p class="text-lg mono font-black text-slate-700">${item.sapQty}</p></div></div><div class="flex flex-col gap-3"><div class="flex gap-2"><button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Confirm ${item.sapQty}</button><button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button></div><div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100"><button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300 active:bg-slate-100">－</button><input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none"><button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-100">＋</button></div></div>`;
+            card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="flex-1"><span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu || 'N/A'}</span><h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3><p class="text-[11px] text-slate-600 font-semibold uppercase">Bin: ${item.sapBin}</p></div><div class="text-right bg-slate-50 p-2 rounded-xl border min-w-[70px]"><p class="text-[7px] font-black text-slate-400 uppercase">SAP QTY</p><p class="text-lg mono font-black text-slate-700">${item.sapQty}</p></div></div><div class="flex flex-col gap-3"><div class="flex gap-2"><button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Confirm ${item.sapQty}</button><button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button></div><div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100"><button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300 active:bg-slate-100">－</button><input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none"><button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-100">＋</button></div></div>`;
             return card;
         }
 
-        // --- HELPERS ---
-        function autoLookupExtra(input) { const hu = input.value.trim(); if (hu.length < 8) return; const match = sapHUIndex.get(hu); if (match) { haptic(); document.getElementById('smart-fill-badge').classList.remove('hidden'); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch || ""; document.getElementById('add-qty').focus(); } }
-        function submitExtra() { const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim(); const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0; if(!hu || qty <= 0) return; const match = sapHUIndex.get(hu) || {}; currentBinItems.push({ hu, product: prod, batch, desc: match.desc || "PHYSICAL FIND", sapQty: match.sapQty || 0, sapBin: match.sapBin || null, unit: match.unit || "", stockType: match.stockType || "", grDate: match.grDate || "", sled: match.sled || "", countQty: qty, verified: true, isMissing: false, isExtra: true }); toggleAddForm(); renderAuditList(); document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = ""; document.getElementById('smart-fill-badge').classList.add('hidden'); }
+        function autoLookupExtra(input) {
+            const hu = input.value.trim();
+            if (hu === "0" || hu.length < 8) return; // Skip lookup for "0"
+            const match = sapHUIndex.get(hu);
+            if (match) {
+                haptic(); document.getElementById('smart-fill-badge').classList.remove('hidden');
+                document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch || ""; document.getElementById('add-qty').focus();
+            }
+        }
+
+        function submitExtra() {
+            const hu = document.getElementById('add-hu').value.trim();
+            const prod = document.getElementById('add-prod').value.trim();
+            const batch = document.getElementById('add-batch').value.trim();
+            const qty = parseFloat(document.getElementById('add-qty').value) || 0;
+            if(!hu || qty <= 0) return;
+            const match = sapHUIndex.get(hu) || {};
+            currentBinItems.push({ hu, product: prod, batch, desc: match.desc || "PHYSICAL FIND", sapQty: match.sapQty || 0, sapBin: match.sapBin || null, unit: match.unit || "", stockType: match.stockType || "", grDate: match.grDate || "", sled: match.sled || "", countQty: qty, verified: true, isMissing: false, isExtra: true });
+            toggleAddForm(); renderAuditList();
+            document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = ""; document.getElementById('smart-fill-badge').classList.add('hidden');
+        }
+
         function adjustQty(idx, delta) { haptic(); let c = currentBinItems[idx].countQty || 0; currentBinItems[idx].countQty = Math.max(0, c + delta); currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
         function updateCount(idx, val) { currentBinItems[idx].countQty = parseFloat(val) || 0; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; }
         function quickConfirm(idx) { haptic(); currentBinItems[idx].countQty = currentBinItems[idx].sapQty; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
         function toggleMissing(idx) { haptic(); currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } renderAuditList(); }
+        
+        function getScheduleContext() { const now = new Date(); const startRef = new Date("2026-03-30T00:00:00"); const msInWeek = 7 * 24 * 60 * 60 * 1000; const weeksDiff = Math.floor((now - startRef) / msInWeek); return { week: ((weeksDiff % 4) + 4) % 4 + 1, day: now.getDay(), dayName: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()] }; }
+        function getTodaysSchedule() { const ctx = getScheduleContext(); const sched = []; const isW13 = (ctx.week === 1 || ctx.week === 3); if ([1, 3, 5].includes(ctx.day)) sched.push({ aisle: "FRESH", desc: "14 Items (Click to Count)", isFresh: true }, { aisle: "H", desc: "Bins 23-End" }, { aisle: "J", desc: "Bins 23-End" }); if (ctx.day === 1) sched.push({ aisle: "WA", desc: "Entire Row" }, { aisle: "WK", desc: "Entire Row" }); else if (ctx.day === 2) { sched.push({ aisle: "WB", desc: "Bins 00-25" }, { aisle: "WC", desc: "Entire Row" }, { aisle: "WD", desc: "Entire Row" }, { aisle: "WL", desc: "Entire Row" }); if (isW13) sched.push({ aisle: "WG", desc: "Bins 23-End" }); else sched.push({ aisle: "WF", desc: "Bins 23-End" }, { aisle: "WG", desc: "Bins 23-End" }); } else if (ctx.day === 3) sched.push({ aisle: "WE", desc: "Entire Row" }, { aisle: "WM", desc: "Entire Row" }); else if (ctx.day === 4) { sched.push({ aisle: "WB", desc: "Bins 00-25" }, { aisle: "WN", desc: "Entire Row" }); if (isW13) sched.push({ aisle: "WF", desc: "Bins 23-End" }, { aisle: "WG", desc: "Entire Row" }); else sched.push({ aisle: "WF", desc: "Bins 23-End" }, { aisle: "WG", desc: "Bins 23-End" }); } else if (ctx.day === 5) sched.push({ aisle: "WB", desc: "Bins 23-End (SR)" }, { aisle: "WC", desc: "Bins 23-End (SR)" }, { aisle: "WP", desc: "Entire Row" }); return sched; }
+        function isBinAllowed(binName) { if (binName.startsWith("PRODUCT:")) return true; if (!binName.startsWith("W")) return false; const aisleLetter = binName.charAt(1); const bayNum = parseInt(binName.substring(2,4)); const sched = getTodaysSchedule(); const match = sched.find(s => s.aisle === aisleLetter || s.aisle === "W" + aisleLetter); if (!match) return false; if (match.desc.includes("00-25") && bayNum > 25) return false; if (match.desc.includes("23-End") && bayNum < 23) return false; return true; }
         function startProductCycle() { const sku = document.getElementById('prod-cycle-input').value.trim(); const matches = sapMasterData.filter(item => item.product === sku); if (matches.length === 0) return alert("Product not found"); haptic(); currentActiveBin = "PRODUCT: " + sku; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0 })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
         function startFreshCycle() { const matches = sapMasterData.filter(item => FRESH_SKUS.includes(item.product)); if (matches.length === 0) return alert("No Fresh items found."); haptic(); currentActiveBin = "PRODUCT: FRESH"; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0 })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
         function toggleBinAccordion(bin) { if (expandedBins.has(bin)) expandedBins.delete(bin); else expandedBins.add(bin); renderAuditList(); }
         function leaveAisle() { currentActiveBin = ""; expandedBins.clear(); document.getElementById('setup-screen').classList.remove('hidden'); }
+        function selectBin(binName) { if (!binName) return; const upperBin = binName.toUpperCase(); if (!isBinAllowed(upperBin)) return alert("This bin/aisle is not on today's schedule."); currentActiveBin = upperBin; document.getElementById('bin-input').value = currentActiveBin; const expected = sapBinIndex[currentActiveBin] || []; currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0 })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); window.scrollTo(0,0); updateProgressUI(); }
         function stepBin(dir) { const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin); if (currentIdx !== -1 && ALL_SAP_BINS[currentIdx + dir]) selectBin(ALL_SAP_BINS[currentIdx + dir]); }
         function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
         function rebuildIndexes() { sapBinIndex = {}; sapHUIndex = new Map(); sapMasterData.forEach(item => { if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = []; sapBinIndex[item.sapBin].push(item); sapHUIndex.set(item.hu, item); }); }
         function clearAllData() { if (confirm("Reset everything?")) { localStorage.clear(); location.reload(); } }
         function switchView(v) { document.getElementById('view-audit').classList.toggle('hidden', v !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', v !== 'report'); if(v==='audit') syncCloud(); }
-
-        function initSetupGrid() { 
-            const grid = document.getElementById('row-grid'); grid.innerHTML = ""; 
-            const ctx = getScheduleContext(); const sched = getTodaysSchedule();
-            const scheduledAisles = new Set(sched.map(s => s.aisle.length === 1 ? s.aisle : s.aisle.charAt(1)));
-            document.getElementById('week-display').innerText = `Week ${ctx.week}`;
-            document.getElementById('day-display').innerText = ctx.dayName;
-            document.getElementById('schedule-list').innerHTML = `<div class="mb-2 pb-2 border-b border-white/10"><span class="text-orange-400 font-black tracking-widest">⭐ DAILY:</span> Finished Goods</div>` + sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white shadow-lg active:scale-95 transition-all font-bold tracking-tight">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join('');
-            "ABCDEFGHIJKLMNOP".split("").forEach(row => { 
-                const btn = document.createElement('button'); 
-                const match = sched.find(s => s.aisle === row || s.aisle === "W" + row);
-                btn.className = `relative bg-white border-2 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white transition-all shadow-sm ${!match ? 'opacity-20 grayscale cursor-not-allowed' : 'border-slate-100'}`; 
-                btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; 
-                btn.onclick = () => {
-                    if (!match) return alert("Not on schedule.");
-                    let startBin = `W${row}00A`;
-                    if (match.desc.includes("23-End")) startBin = `W${row}23A`;
-                    selectBin(startBin);
-                }; 
-                grid.appendChild(btn); 
-            }); 
-            syncCloud();
-        }
-
-        function handleFileUpload(event) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({
-                    sapBin: String(row['Storage Bin'] || row['Storage bin'] || "").trim().toUpperCase(),
-                    hu: String(row['Handling Unit'] || row['HU'] || "").trim(),
-                    product: String(row['Product'] || ""),
-                    batch: String(row['Batch'] || row['Batch Number'] || "").trim(),
-                    desc: row['Product Short Description'] || row['Description'] || "",
-                    sapQty: parseFloat(row['Quantity']) || 0,
-                    unit: row['Unit'] || row['Base Unit of Measure'] || "",
-                    stockType: row['Stock Type'] || "",
-                    grDate: row['Goods Receipt Date'] || "",
-                    sled: row['Shelf Life Expiration Date'] || row['SLED'] || ""
-                }));
-                localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
-                rebuildIndexes();
-                document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid();
-            };
-            reader.readAsArrayBuffer(event.target.files[0]);
-        }
-
+        function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; const ctx = getScheduleContext(); const sched = getTodaysSchedule(); document.getElementById('week-display').innerText = `Week ${ctx.week}`; document.getElementById('day-display').innerText = ctx.dayName; document.getElementById('schedule-list').innerHTML = `<div class="mb-2 pb-2 border-b border-white/10"><span class="text-orange-400 font-black tracking-widest">⭐ DAILY:</span> Finished Goods</div>` + sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white shadow-lg active:scale-95 transition-all font-bold tracking-tight">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); const match = sched.find(s => s.aisle === row || s.aisle === "W" + row); btn.className = `relative bg-white border-2 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white transition-all shadow-sm ${!match ? 'opacity-20 grayscale cursor-not-allowed' : 'border-slate-100'}`; btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { if (!match) return alert("Not on schedule."); let startBin = `W${row}00A`; if (match.desc.includes("23-End")) startBin = `W${row}23A`; selectBin(startBin); }; grid.appendChild(btn); }); syncCloud(); }
+        function handleFileUpload(event) { const reader = new FileReader(); reader.onload = (e) => { const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({ sapBin: String(row['Storage Bin'] || row['Storage bin'] || "").trim().toUpperCase(), hu: String(row['Handling Unit'] || row['HU'] || "").trim(), product: String(row['Product'] || ""), batch: String(row['Batch'] || row['Batch Number'] || "").trim(), desc: row['Product Short Description'] || row['Description'] || "", sapQty: parseFloat(row['Quantity']) || 0, unit: row['Unit'] || row['Base Unit of Measure'] || "", stockType: row['Stock Type'] || "", grDate: row['Goods Receipt Date'] || "", sled: row['Shelf Life Expiration Date'] || row['SLED'] || "" })); localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData)); rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); }; reader.readAsArrayBuffer(event.target.files[0]); }
         window.onload = () => { if (sapMasterData.length > 0) { rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } setInterval(syncCloud, 5000); };
     </script>
 </body>

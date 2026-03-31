@@ -115,8 +115,7 @@
         function getScheduleContext() {
             const now = new Date();
             const startRef = new Date("2026-03-30T00:00:00");
-            const msInWeek = 7 * 24 * 60 * 60 * 1000;
-            const weeksDiff = Math.floor((now - startRef) / msInWeek);
+            const weeksDiff = Math.floor((now - startRef) / (7 * 24 * 60 * 60 * 1000));
             return { week: ((weeksDiff % 4) + 4) % 4 + 1, day: now.getDay(), dayName: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()] };
         }
 
@@ -167,7 +166,6 @@
             if(!currentActiveBin) return;
             if (currentBinItems.length > 0 && currentBinItems.some(i => !i.verified && !i.isMissing)) return alert("Verify all items first.");
             haptic();
-            
             let itemsToLog = currentBinItems.length === 0 ? [{ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok' }] : currentBinItems.map(i => {
                 let type = 'ok';
                 if (i.isMissing) type = 'miss';
@@ -180,7 +178,6 @@
                 else if (i.countQty !== i.sapQty) type = 'adj';
                 return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: currentActiveBin, sapQty: i.sapQty, countQty: i.countQty, type: type, unit: i.unit, stockType: i.stockType, grDate: i.grDate, sled: i.sled };
             });
-
             itemsToLog.forEach(item => cloudReport.push({ scanBin: currentActiveBin, ...item }));
             updateProgressUI();
             fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'logAudit', user: "Floor", bin: currentActiveBin, items: itemsToLog }) });
@@ -210,7 +207,30 @@
         function createItemCard(item, index) {
             const card = document.createElement('div'); 
             card.className = `p-5 rounded-[2.5rem] border bg-white transition-all shadow-sm ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : '')}`;
-            card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="flex-1"><span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu || 'N/A'}</span><h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3><p class="text-[11px] text-slate-600 font-semibold uppercase">Bin: ${item.sapBin}</p></div><div class="text-right bg-slate-50 p-2 rounded-xl border min-w-[70px]"><p class="text-[7px] font-black text-slate-400 uppercase">SAP QTY</p><p class="text-lg mono font-black text-slate-700">${item.sapQty}</p></div></div><div class="flex flex-col gap-3"><div class="flex gap-2"><button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Confirm ${item.sapQty}</button><button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button></div><div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100"><button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300 active:bg-slate-100">－</button><input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none"><button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-100">＋</button></div></div>`;
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu || 'N/A'}</span>
+                        <h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3>
+                        <p class="text-[11px] text-blue-600 font-bold mb-1 italic">${item.desc || 'No Description'}</p>
+                        <p class="text-[10px] text-slate-500 font-semibold uppercase">Bin: ${item.sapBin}</p>
+                    </div>
+                    <div class="text-right bg-slate-50 p-2 rounded-xl border min-w-[70px]">
+                        <p class="text-[7px] font-black text-slate-400 uppercase">SAP QTY</p>
+                        <p class="text-lg mono font-black text-slate-700">${item.sapQty}</p>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <div class="flex gap-2">
+                        <button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Confirm ${item.sapQty}</button>
+                        <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                        <button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300 active:bg-slate-100">－</button>
+                        <input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none">
+                        <button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-100">＋</button>
+                    </div>
+                </div>`;
             return card;
         }
 

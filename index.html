@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -14,7 +13,8 @@
         .card-verified { border-left: 10px solid #10b981; background: linear-gradient(to right, #f0fdf4, #ffffff); }
         .card-missing { border-left: 10px solid #ef4444; background: #fef2f2; opacity: 0.7; }
         .card-extra { border-left: 10px solid #8b5cf6; background: #f5f3ff; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        #audit-list { -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        #audit-list::-webkit-scrollbar { display: none; }
         .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); }
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 400; pointer-events: none; opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .nav-active { background-color: #2563eb !important; color: white !important; }
@@ -23,7 +23,6 @@
 </head>
 <body class="bg-slate-50 flex flex-col h-screen overflow-hidden">
 
-```
 <div id="toast" class="bg-green-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase shadow-2xl">Synced</div>
 
 <header class="bg-slate-900 text-white px-4 py-3 shadow-2xl shrink-0 z-50 flex justify-between items-center">
@@ -78,7 +77,8 @@
         </div>
     </div>
 
-    <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-264 no-scrollbar"></div>
+    <!-- Fixed scrolling container with internal scroll -->
+    <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-[280px]"></div>
 
     <div class="fixed bottom-0 left-0 right-0 glass p-4 shadow-2xl z-50">
         <div class="flex gap-3 mb-4">
@@ -102,12 +102,12 @@
     </div>
 </div>
 
-<!-- Note Modal (for items without HUs) -->
+<!-- Note Modal -->
 <div id="note-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
     <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
         <h2 class="text-xl font-black uppercase text-slate-800">Add Note</h2>
         <p id="note-modal-context" class="text-[11px] text-slate-500 font-semibold"></p>
-        <textarea id="note-text" rows="4" placeholder="Enter note (e.g. loose product on floor, no label, partial pallet...)" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none text-sm resize-none focus:border-blue-500"></textarea>
+        <textarea id="note-text" rows="4" placeholder="Enter note..." class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none text-sm resize-none focus:border-blue-500"></textarea>
         <div class="flex gap-3 pt-2">
             <button onclick="closeNoteModal()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
             <button onclick="saveNote()" class="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Save Note</button>
@@ -115,7 +115,7 @@
     </div>
 </div>
 
-<!-- Bin Move Modal (for product cycle count mode) -->
+<!-- Bin Move Modal -->
 <div id="bin-move-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
     <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
         <h2 class="text-xl font-black uppercase text-slate-800">Record Bin Move</h2>
@@ -142,10 +142,7 @@
     let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
     let sapBinIndex = {}; let sapHUIndex = new Map(); let expandedBins = new Set();
     let currentBinItems = []; let currentActiveBin = ""; let cloudReport = [];
-
-    // State for note & bin-move modals
-    let noteTargetIndex = null;
-    let binMoveTargetIndex = null;
+    let noteTargetIndex = null; let binMoveTargetIndex = null;
 
     function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
 
@@ -245,117 +242,43 @@
     function createItemCard(item, index) {
         const card = document.createElement('div'); 
         card.className = `p-5 rounded-[2.5rem] border bg-white transition-all shadow-sm ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : '')}`;
-
         const isProductMode = currentActiveBin.startsWith("PRODUCT:");
         const isNoHU = (!item.hu || item.hu === "0" || item.hu.trim() === "");
         const hasNote = item.note && item.note.trim() !== "";
         const hasActualBin = item.actualBin && item.actualBin !== item.sapBin;
 
-        let noteHTML = '';
-        if (isNoHU) {
-            noteHTML = `<button onclick="openNoteModal(${index})" class="w-full mt-3 py-2.5 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${hasNote ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-dashed border-slate-200 text-slate-300 bg-white'}">
-                ${hasNote ? '📝 ' + item.note.substring(0, 40) + (item.note.length > 40 ? '…' : '') : '📝 Add Note (No HU)'}
-            </button>`;
-        }
+        let noteHTML = isNoHU ? `<button onclick="openNoteModal(${index})" class="w-full mt-3 py-2.5 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${hasNote ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-dashed border-slate-200 text-slate-300 bg-white'}">${hasNote ? '📝 ' + item.note.substring(0, 40) : '📝 Add Note (No HU)'}</button>` : '';
+        let binMoveHTML = isProductMode ? `<button onclick="openBinMoveModal(${index})" class="w-full mt-2 py-2.5 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${hasActualBin ? 'bg-purple-50 border-purple-400 text-purple-700' : 'border-dashed border-slate-200 text-slate-300 bg-white'}">${hasActualBin ? '📍 Actual: ' + item.actualBin : '📍 Record Bin Move'}</button>` : '';
 
-        let binMoveHTML = '';
-        if (isProductMode) {
-            binMoveHTML = `<button onclick="openBinMoveModal(${index})" class="w-full mt-2 py-2.5 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${hasActualBin ? 'bg-purple-50 border-purple-400 text-purple-700' : 'border-dashed border-slate-200 text-slate-300 bg-white'}">
-                ${hasActualBin ? '📍 Actual: ' + item.actualBin : '📍 Record Bin Move'}
-            </button>`;
-        }
-
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-4">
-                <div class="flex-1">
-                    <span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu || 'N/A'}</span>
-                    <h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3>
-                    <p class="text-[11px] text-blue-600 font-bold mb-1 italic">${item.desc || 'No Description'}</p>
-                    <p class="text-[10px] text-slate-500 font-semibold uppercase">Bin: ${item.sapBin}${hasActualBin ? ' <span class="text-purple-600">➔ ' + item.actualBin + '</span>' : ''}</p>
-                </div>
-                <div class="text-right bg-slate-50 p-2 rounded-xl border min-w-[70px]">
-                    <p class="text-[7px] font-black text-slate-400 uppercase">SAP QTY</p>
-                    <p class="text-lg mono font-black text-slate-700">${item.sapQty}</p>
-                </div>
-            </div>
-            <div class="flex flex-col gap-3">
-                <div class="flex gap-2">
-                    <button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Confirm ${item.sapQty}</button>
-                    <button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button>
-                </div>
-                <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                    <button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300 active:bg-slate-100">－</button>
-                    <input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none">
-                    <button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-100">＋</button>
-                </div>
-                ${noteHTML}
-                ${binMoveHTML}
-            </div>`;
+        card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="flex-1"><span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu || 'N/A'}</span><h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3><p class="text-[11px] text-blue-600 font-bold mb-1 italic">${item.desc || 'No Description'}</p><p class="text-[10px] text-slate-500 font-semibold uppercase">Bin: ${item.sapBin}${hasActualBin ? ' <span class="text-purple-600">➔ ' + item.actualBin + '</span>' : ''}</p></div><div class="text-right bg-slate-50 p-2 rounded-xl border min-w-[70px]"><p class="text-[7px] font-black text-slate-400 uppercase">SAP QTY</p><p class="text-lg mono font-black text-slate-700">${item.sapQty}</p></div></div><div class="flex flex-col gap-3"><div class="flex gap-2"><button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Confirm ${item.sapQty}</button><button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button></div><div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100"><button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300 active:bg-slate-100">－</button><input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none"><button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-100">＋</button></div>${noteHTML}${binMoveHTML}</div>`;
         return card;
     }
 
-    // --- Note Modal Functions ---
-    function openNoteModal(idx) {
-        haptic();
-        noteTargetIndex = idx;
-        const item = currentBinItems[idx];
-        document.getElementById('note-modal-context').innerText = `${item.product} — ${item.desc || 'No Description'} — Bin: ${item.sapBin}`;
-        document.getElementById('note-text').value = item.note || "";
-        document.getElementById('note-modal').classList.remove('hidden');
-        setTimeout(() => document.getElementById('note-text').focus(), 100);
-    }
-    function closeNoteModal() { document.getElementById('note-modal').classList.add('hidden'); noteTargetIndex = null; }
-    function saveNote() {
-        if (noteTargetIndex === null) return;
-        haptic();
-        currentBinItems[noteTargetIndex].note = document.getElementById('note-text').value.trim();
-        closeNoteModal();
-        renderAuditList();
-    }
-
-    // --- Bin Move Modal Functions ---
-    function openBinMoveModal(idx) {
-        haptic();
-        binMoveTargetIndex = idx;
-        const item = currentBinItems[idx];
-        document.getElementById('move-modal-context').innerText = `${item.product} — HU: ${item.hu || 'N/A'}`;
-        document.getElementById('move-sap-bin').innerText = item.sapBin || '(none)';
-        document.getElementById('move-actual-bin').value = item.actualBin || "";
-        document.getElementById('bin-move-modal').classList.remove('hidden');
-        setTimeout(() => document.getElementById('move-actual-bin').focus(), 100);
-    }
-    function closeBinMoveModal() { document.getElementById('bin-move-modal').classList.add('hidden'); binMoveTargetIndex = null; }
-    function saveBinMove() {
-        if (binMoveTargetIndex === null) return;
-        const actualBin = document.getElementById('move-actual-bin').value.trim().toUpperCase();
-        if (!actualBin) return;
-        haptic();
-        currentBinItems[binMoveTargetIndex].actualBin = actualBin;
-        closeBinMoveModal();
-        renderAuditList();
-    }
-
-    function autoLookupExtra(input) { const hu = input.value.trim(); if (hu === "0" || hu.length < 8) return; const match = sapHUIndex.get(hu); if (match) { haptic(); document.getElementById('smart-fill-badge').classList.remove('hidden'); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch || ""; document.getElementById('add-qty').focus(); } }
-    function submitExtra() { const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim(); const batch = document.getElementById('add-batch').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0; if(!hu || qty <= 0) return; const match = sapHUIndex.get(hu) || {}; currentBinItems.push({ hu, product: prod, batch, desc: match.desc || "PHYSICAL FIND", sapQty: match.sapQty || 0, sapBin: match.sapBin || null, unit: match.unit || "", stockType: match.stockType || "", grDate: match.grDate || "", sled: match.sled || "", countQty: qty, verified: true, isMissing: false, isExtra: true, note: "", actualBin: null }); toggleAddForm(); renderAuditList(); document.getElementById('add-hu').value = ""; document.getElementById('add-prod').value = ""; document.getElementById('add-batch').value = ""; document.getElementById('add-qty').value = ""; document.getElementById('smart-fill-badge').classList.add('hidden'); }
+    function openNoteModal(idx) { haptic(); noteTargetIndex = idx; const item = currentBinItems[idx]; document.getElementById('note-modal-context').innerText = `${item.product} — Bin: ${item.sapBin}`; document.getElementById('note-text').value = item.note || ""; document.getElementById('note-modal').classList.remove('hidden'); }
+    function closeNoteModal() { document.getElementById('note-modal').classList.add('hidden'); }
+    function saveNote() { currentBinItems[noteTargetIndex].note = document.getElementById('note-text').value.trim(); closeNoteModal(); renderAuditList(); }
+    function openBinMoveModal(idx) { haptic(); binMoveTargetIndex = idx; const item = currentBinItems[idx]; document.getElementById('move-modal-context').innerText = `${item.product}`; document.getElementById('move-sap-bin').innerText = item.sapBin; document.getElementById('move-actual-bin').value = item.actualBin || ""; document.getElementById('bin-move-modal').classList.remove('hidden'); }
+    function closeBinMoveModal() { document.getElementById('bin-move-modal').classList.add('hidden'); }
+    function saveBinMove() { const b = document.getElementById('move-actual-bin').value.trim().toUpperCase(); if (b) currentBinItems[binMoveTargetIndex].actualBin = b; closeBinMoveModal(); renderAuditList(); }
+    function autoLookupExtra(input) { const hu = input.value.trim(); if (hu.length < 8) return; const match = sapHUIndex.get(hu); if (match) { document.getElementById('smart-fill-badge').classList.remove('hidden'); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch; document.getElementById('add-qty').focus(); } }
+    function submitExtra() { const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0; if(!hu || qty <= 0) return; const match = sapHUIndex.get(hu) || {}; currentBinItems.push({ hu, product: prod, batch: document.getElementById('add-batch').value, desc: match.desc || "FIND", sapQty: match.sapQty || 0, sapBin: match.sapBin || null, countQty: qty, verified: true, isMissing: false, isExtra: true, note: "", actualBin: null }); toggleAddForm(); renderAuditList(); }
     function adjustQty(idx, delta) { haptic(); let c = currentBinItems[idx].countQty || 0; currentBinItems[idx].countQty = Math.max(0, c + delta); currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
     function updateCount(idx, val) { currentBinItems[idx].countQty = parseFloat(val) || 0; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; }
     function quickConfirm(idx) { haptic(); currentBinItems[idx].countQty = currentBinItems[idx].sapQty; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
     function toggleMissing(idx) { haptic(); currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } renderAuditList(); }
-    function startProductCycle() { const sku = document.getElementById('prod-cycle-input').value.trim(); const matches = sapMasterData.filter(item => item.product === sku); if (matches.length === 0) return alert("Product not found"); haptic(); currentActiveBin = "PRODUCT: " + sku; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
-    function startFreshCycle() { const matches = sapMasterData.filter(item => FRESH_SKUS.includes(item.product)); if (matches.length === 0) return alert("No Fresh items found."); haptic(); currentActiveBin = "PRODUCT: FRESH"; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
+    function startProductCycle() { const sku = document.getElementById('prod-cycle-input').value.trim(); const matches = sapMasterData.filter(item => item.product === sku); if (matches.length === 0) return alert("Not found"); currentActiveBin = "PRODUCT: " + sku; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
+    function startFreshCycle() { const matches = sapMasterData.filter(item => FRESH_SKUS.includes(item.product)); currentActiveBin = "PRODUCT: FRESH"; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
     function toggleBinAccordion(bin) { if (expandedBins.has(bin)) expandedBins.delete(bin); else expandedBins.add(bin); renderAuditList(); }
-    function leaveAisle() { currentActiveBin = ""; expandedBins.clear(); document.getElementById('setup-screen').classList.remove('hidden'); }
-    function selectBin(binName) { if (!binName) return; const upperBin = binName.toUpperCase(); if (!isBinAllowed(upperBin)) return alert("This bin/aisle is not on today's schedule."); currentActiveBin = upperBin; document.getElementById('bin-input').value = currentActiveBin; const expected = sapBinIndex[currentActiveBin] || []; currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); window.scrollTo(0,0); updateProgressUI(); }
+    function leaveAisle() { currentActiveBin = ""; document.getElementById('setup-screen').classList.remove('hidden'); }
+    function selectBin(binName) { if (!binName) return; const upperBin = binName.toUpperCase(); if (!isBinAllowed(upperBin)) return alert("Not on schedule."); currentActiveBin = upperBin; document.getElementById('bin-input').value = currentActiveBin; const expected = sapBinIndex[currentActiveBin] || []; currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); window.scrollTo(0,0); updateProgressUI(); }
     function stepBin(dir) { const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin); if (currentIdx !== -1 && ALL_SAP_BINS[currentIdx + dir]) selectBin(ALL_SAP_BINS[currentIdx + dir]); }
     function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
     function rebuildIndexes() { sapBinIndex = {}; sapHUIndex = new Map(); sapMasterData.forEach(item => { if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = []; sapBinIndex[item.sapBin].push(item); sapHUIndex.set(item.hu, item); }); }
-    function clearAllData() { if (confirm("Reset everything?")) { localStorage.clear(); location.reload(); } }
+    function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
     function switchView(v) { document.getElementById('view-audit').classList.toggle('hidden', v !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', v !== 'report'); if(v==='audit') syncCloud(); }
-    function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; const ctx = getScheduleContext(); const sched = getTodaysSchedule(); document.getElementById('week-display').innerText = `Week ${ctx.week}`; document.getElementById('day-display').innerText = ctx.dayName; document.getElementById('schedule-list').innerHTML = `<div class="mb-2 pb-2 border-b border-white/10"><span class="text-orange-400 font-black tracking-widest">⭐ DAILY:</span> Finished Goods</div>` + sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white shadow-lg active:scale-95 transition-all font-bold tracking-tight">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); const match = sched.find(s => s.aisle === row || s.aisle === "W" + row); btn.className = `relative bg-white border-2 p-5 rounded-2xl font-black text-xl active:bg-blue-600 active:text-white transition-all shadow-sm ${!match ? 'opacity-20 grayscale cursor-not-allowed' : 'border-slate-100'}`; btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { if (!match) return alert("Not on schedule."); let startBin = `W${row}00A`; if (match.desc.includes("23-End")) startBin = `W${row}23A`; selectBin(startBin); }; grid.appendChild(btn); }); syncCloud(); }
-    function handleFileUpload(event) { const reader = new FileReader(); reader.onload = (e) => { const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({ sapBin: String(row['Storage Bin'] || row['Storage bin'] || "").trim().toUpperCase(), hu: String(row['Handling Unit'] || row['HU'] || "").trim(), product: String(row['Product'] || ""), batch: String(row['Batch'] || row['Batch Number'] || "").trim(), desc: row['Product Short Description'] || row['Description'] || "", sapQty: parseFloat(row['Quantity']) || 0, unit: row['Unit'] || row['Base Unit of Measure'] || "", stockType: row['Stock Type'] || "", grDate: row['Goods Receipt Date'] || "", sled: row['Shelf Life Expiration Date'] || row['SLED'] || "" })); localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData)); rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); }; reader.readAsArrayBuffer(event.target.files[0]); }
+    function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; const ctx = getScheduleContext(); const sched = getTodaysSchedule(); document.getElementById('week-display').innerText = `Week ${ctx.week}`; document.getElementById('day-display').innerText = ctx.dayName; document.getElementById('schedule-list').innerHTML = sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white font-bold">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); const match = sched.find(s => s.aisle === row || s.aisle === "W" + row); btn.className = `relative bg-white border-2 p-5 rounded-2xl font-black text-xl ${!match ? 'opacity-20 grayscale' : 'border-slate-100'}`; btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { if (!match) return; let startBin = `W${row}00A`; if (match.desc.includes("23-End")) startBin = `W${row}23A`; selectBin(startBin); }; grid.appendChild(btn); }); syncCloud(); }
+    function handleFileUpload(event) { const reader = new FileReader(); reader.onload = (e) => { const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({ sapBin: String(row['Storage Bin'] || "").trim().toUpperCase(), hu: String(row['Handling Unit'] || "").trim(), product: String(row['Product'] || ""), batch: String(row['Batch'] || "").trim(), desc: row['Product Short Description'] || "", sapQty: parseFloat(row['Quantity']) || 0 })); localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData)); rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); }; reader.readAsArrayBuffer(event.target.files[0]); }
     window.onload = () => { if (sapMasterData.length > 0) { rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } setInterval(syncCloud, 5000); };
 </script>
-```
-
 </body>
 </html>

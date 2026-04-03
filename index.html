@@ -6,337 +6,841 @@
     <title>SAP Auditor | Floor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --blue: #2563eb;
+            --blue-dark: #1d4ed8;
+            --green: #059669;
+            --red: #dc2626;
+            --purple: #7c3aed;
+            --orange: #ea580c;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-50: #f8fafc;
+            --radius: 1.25rem;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'DM Sans', sans-serif; overscroll-behavior: none; }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        .card-verified { border-left: 10px solid #10b981; background: linear-gradient(to right, #f0fdf4, #ffffff); }
-        .card-missing { border-left: 10px solid #ef4444; background: #fef2f2; opacity: 0.7; }
-        .card-extra { border-left: 10px solid #8b5cf6; background: #f5f3ff; }
-        #audit-list { -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        
+        /* Status Cards */
+        .card-verified { border-left: 6px solid var(--green); background: linear-gradient(135deg, #ecfdf5 0%, #fff 60%); }
+        .card-missing { border-left: 6px solid var(--red); background: #fef2f2; opacity: 0.65; }
+        .card-extra { border-left: 6px solid var(--purple); background: #f5f3ff; }
+        .card-default { border-left: 6px solid #cbd5e1; }
+
+        /* Smooth scroll list */
+        #audit-list { -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-behavior: smooth; }
         #audit-list::-webkit-scrollbar { display: none; }
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); }
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 400; pointer-events: none; opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .nav-active { background-color: #2563eb !important; color: white !important; }
-        .row-progress-badge { font-size: 9px; background: #2563eb; color: white; padding: 2px 6px; border-radius: 99px; position: absolute; top: -8px; right: -8px; font-weight: 900; border: 2px solid white; }
+
+        /* Toast */
+        #toast { position: fixed; top: env(safe-area-inset-top, 16px); left: 50%; transform: translateX(-50%) translateY(-120%); z-index: 9999; pointer-events: none; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s; opacity: 0; }
+        #toast.show { transform: translateX(-50%) translateY(16px); opacity: 1; }
+
+        /* Offline queue badge */
+        .queue-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; background: var(--orange); color: white; border-radius: 99px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 2px solid var(--slate-900); }
+
+        /* Sync indicator */
+        @keyframes pulse-sync { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .sync-active { animation: pulse-sync 1.2s infinite; }
+
+        /* Nav pill */
+        .nav-pill { transition: all 0.2s ease; }
+        .nav-pill.active { background: var(--blue); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+
+        /* Row grid buttons */
+        .row-btn { position: relative; transition: all 0.15s ease; }
+        .row-btn:active { transform: scale(0.93); }
+        .row-btn .fill-bar { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(37, 99, 235, 0.15), transparent); transition: height 0.5s ease; border-radius: 0 0 var(--radius) var(--radius); }
+
+        /* Swipe hint */
+        @keyframes swipe-hint { 0% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-8px); opacity: 1; } 100% { transform: translateX(0); opacity: 0.6; } }
+        .swipe-hint { animation: swipe-hint 2s ease-in-out infinite; }
+
+        /* Bottom bar glass */
+        .bottom-bar { background: rgba(255,255,255,0.92); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-top: 1px solid rgba(0,0,0,0.06); }
+
+        /* Progress ring */
+        .progress-ring { transform: rotate(-90deg); }
+
+        /* Item count stepper */
+        .stepper-btn { min-width: 56px; min-height: 56px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 900; border-radius: 16px; transition: all 0.1s; }
+        .stepper-btn:active { transform: scale(0.9); }
+
+        /* Schedule item */
+        .sched-item { transition: all 0.15s; }
+        .sched-item:active { transform: scale(0.97); }
+
+        /* Bin navigator */
+        .bin-nav-btn { min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 16px; font-weight: 900; transition: all 0.1s; }
+        .bin-nav-btn:active { transform: scale(0.9); }
+
+        /* Modal backdrop */
+        .modal-backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); }
+
+        /* Skeleton loading */
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; height: 60px; }
+
+        /* Quick action chips */
+        .chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 99px; font-size: 11px; font-weight: 700; transition: all 0.15s; cursor: pointer; }
+        .chip:active { transform: scale(0.95); }
     </style>
 </head>
-<body class="bg-slate-50 flex flex-col h-screen overflow-hidden">
+<body class="bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
 
-<div id="toast" class="bg-green-600 text-white px-6 py-3 rounded-full font-black text-xs uppercase shadow-2xl">Synced</div>
+<!-- Toast -->
+<div id="toast" class="px-5 py-3 rounded-2xl font-black text-xs uppercase shadow-2xl flex items-center gap-2">
+    <span id="toast-icon">✓</span>
+    <span id="toast-text">Synced</span>
+</div>
 
-<header class="bg-slate-900 text-white px-4 py-3 shadow-2xl shrink-0 z-50 flex justify-between items-center">
-    <div class="flex items-center gap-3"><div class="bg-blue-600 p-2 rounded-xl text-lg">📦</div><h1 class="text-sm font-black uppercase tracking-tighter">SAP Auditor</h1></div>
-    <button onclick="clearAllData()" class="bg-slate-800 text-slate-400 px-3 py-2 text-[10px] uppercase font-black rounded-lg">Reset</button>
+<!-- Header -->
+<header class="bg-slate-900 text-white px-4 py-3 shrink-0 z-50 flex justify-between items-center safe-top">
+    <div class="flex items-center gap-3">
+        <div class="bg-blue-600 w-9 h-9 rounded-xl flex items-center justify-center text-lg">📦</div>
+        <div>
+            <h1 class="text-sm font-black uppercase tracking-tight leading-none">SAP Auditor</h1>
+            <p class="text-[9px] text-blue-400 font-bold uppercase tracking-widest">Floor Unit</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <div id="sync-indicator" class="relative">
+            <div id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-400"></div>
+            <div id="queue-count" class="queue-badge hidden">0</div>
+        </div>
+        <button id="auditor-name-btn" onclick="showAuditorModal()" class="bg-slate-800 text-slate-300 px-3 py-2 text-[10px] font-black rounded-lg uppercase truncate max-w-[80px]" title="Set your name">👤 —</button>
+        <button onclick="clearAllData()" class="bg-slate-800/50 text-slate-500 px-3 py-2 text-[10px] font-black rounded-lg uppercase">Reset</button>
+    </div>
 </header>
 
+<!-- Nav -->
 <nav class="bg-white border-b flex p-1.5 shrink-0 gap-1">
-    <button id="nav-audit" onclick="switchView('audit')" class="flex-1 py-3 text-[10px] font-black uppercase nav-active rounded-xl">Audit Mode</button>
-    <button id="nav-report" onclick="switchView('report')" class="flex-1 py-3 text-[10px] font-black uppercase text-slate-400 bg-slate-50 rounded-xl">Live Report</button>
+    <button id="nav-audit" onclick="switchView('audit')" class="nav-pill active flex-1 py-3 text-[10px] font-black uppercase rounded-xl">Audit</button>
+    <button id="nav-report" onclick="switchView('report')" class="nav-pill flex-1 py-3 text-[10px] font-black uppercase text-slate-400 bg-slate-50 rounded-xl">Report</button>
 </nav>
 
+<!-- ===== AUDIT VIEW ===== -->
 <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
-    <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col p-6 overflow-y-auto">
-        <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center">
-            <h2 class="text-3xl font-black uppercase mb-2 text-slate-800">Upload Data</h2>
-            <input type="file" id="sap-upload-main" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
-            <label for="sap-upload-main" class="bg-blue-600 text-white py-6 px-12 rounded-3xl font-black uppercase text-sm shadow-xl cursor-pointer active:scale-95 transition-transform">Select Excel File</label>
-        </div>
+
+    <!-- Setup Screen (Row Selection) -->
+    <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col overflow-y-auto">
         
-        <div id="row-selection" class="hidden space-y-6">
-            <div class="bg-slate-900 text-white p-5 rounded-[2.5rem] shadow-xl">
+        <!-- Upload Prompt -->
+        <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <div class="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-4xl mb-6">📋</div>
+            <h2 class="text-2xl font-black uppercase mb-1 text-slate-800">Upload SAP Data</h2>
+            <p class="text-sm text-slate-400 font-medium mb-8">Excel export from SAP warehouse stock</p>
+            <input type="file" id="sap-upload-main" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(event)">
+            <label for="sap-upload-main" class="bg-blue-600 text-white py-5 px-12 rounded-2xl font-black uppercase text-sm shadow-xl cursor-pointer active:scale-95 transition-transform inline-block">
+                Select Excel File
+            </label>
+            <p class="text-[10px] text-slate-300 mt-4 font-semibold">Columns: Storage Bin, Handling Unit, Product, Batch, Quantity</p>
+        </div>
+
+        <!-- Row Selection Grid -->
+        <div id="row-selection" class="hidden p-5 pb-8 space-y-5">
+
+            <!-- Schedule Card -->
+            <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl">
                 <div class="flex justify-between items-center mb-3">
                     <span id="week-display" class="bg-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Week ?</span>
-                    <span id="day-display" class="text-[10px] font-black uppercase opacity-60">Monday</span>
+                    <span id="day-display" class="text-[10px] font-bold uppercase text-slate-400">Monday</span>
                 </div>
-                <p class="text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest text-center">Today's Targets</p>
-                <div id="schedule-list" class="text-xs font-bold space-y-2 opacity-90 mb-2"></div>
+                <p class="text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">Today's Targets</p>
+                <div id="schedule-list" class="space-y-1.5"></div>
             </div>
 
-            <div class="bg-white p-4 rounded-[2rem] border shadow-sm">
-                <p class="text-[10px] font-black uppercase text-slate-400 mb-2 ml-2 tracking-widest">Single Product Count</p>
+            <!-- Single Product Lookup -->
+            <div class="bg-white p-4 rounded-2xl border shadow-sm">
+                <p class="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Product Lookup</p>
                 <div class="flex gap-2">
-                    <input type="text" id="prod-cycle-input" placeholder="Enter Product #" class="flex-1 p-4 bg-slate-50 border-2 rounded-2xl mono text-sm outline-none focus:border-blue-500 transition-all">
-                    <button onclick="startProductCycle()" class="bg-orange-500 text-white px-6 rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">Search</button>
+                    <input type="text" id="prod-cycle-input" placeholder="Enter Product #" class="flex-1 p-4 bg-slate-50 border-2 rounded-xl mono text-sm outline-none focus:border-blue-500 transition-all">
+                    <button onclick="startProductCycle()" class="bg-orange-500 text-white px-5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">Go</button>
                 </div>
             </div>
 
-            <div class="flex justify-between items-end"><h2 class="text-2xl font-black uppercase text-slate-800">Select Row</h2><span id="total-progress" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">0 Bins Done</span></div>
-            <div class="grid grid-cols-4 gap-4" id="row-grid"></div>
-        </div>
-    </div>
-
-    <div class="px-4 py-4 bg-white border-b shrink-0">
-        <div class="flex gap-2">
-            <button onclick="stepBin(-1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl active:bg-slate-200 transition-colors">◀</button>
-            <div class="flex-1 relative">
-                <input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-4 px-6 bg-slate-50 border-2 rounded-2xl text-xl mono text-blue-700 uppercase outline-none focus:border-blue-400 transition-all" onchange="selectBin(this.value)">
-                <span id="bin-done-badge" class="hidden absolute right-4 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">✅ DONE</span>
+            <!-- Row Grid -->
+            <div class="flex justify-between items-end">
+                <h2 class="text-xl font-black uppercase text-slate-800">Select Aisle</h2>
+                <span id="total-progress" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">0 Done</span>
             </div>
-            <button onclick="stepBin(1)" class="bg-slate-100 text-slate-400 w-12 rounded-2xl active:bg-slate-200 transition-colors">▶</button>
+            <div class="grid grid-cols-4 gap-3" id="row-grid"></div>
+            
+            <!-- Quick Stats -->
+            <div class="flex gap-2">
+                <div class="flex-1 bg-white border rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-black text-slate-400 uppercase">Loaded Items</p>
+                    <p id="stat-loaded" class="text-lg font-black text-slate-700 mono">0</p>
+                </div>
+                <div class="flex-1 bg-white border rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-black text-slate-400 uppercase">Unique Bins</p>
+                    <p id="stat-bins" class="text-lg font-black text-slate-700 mono">0</p>
+                </div>
+                <div class="flex-1 bg-white border rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-black text-slate-400 uppercase">Queued</p>
+                    <p id="stat-queued" class="text-lg font-black text-orange-600 mono">0</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-[280px]"></div>
-
-    <div class="fixed bottom-0 left-0 right-0 glass p-4 shadow-2xl z-50">
-        <div class="flex gap-3 mb-4">
-            <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-4 rounded-2xl font-black uppercase text-[11px]">+ Found Item</button>
-            <button onclick="leaveAisle()" class="flex-1 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center font-black uppercase text-[11px] gap-2 border border-slate-200">🚪 Leave Aisle</button>
+    <!-- Active Bin Header -->
+    <div id="bin-header" class="px-4 py-3 bg-white border-b shrink-0">
+        <div class="flex gap-2 items-center">
+            <button onclick="stepBin(-1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">◀</button>
+            <div class="flex-1 relative">
+                <input type="text" id="bin-input" placeholder="SCAN BIN..." 
+                    class="w-full py-3.5 px-5 bg-slate-50 border-2 rounded-xl text-lg mono text-blue-700 font-bold uppercase outline-none focus:border-blue-400 transition-all" 
+                    onchange="selectBin(this.value)">
+                <span id="bin-done-badge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">DONE</span>
+            </div>
+            <button onclick="stepBin(1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">▶</button>
         </div>
-        <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-sm shadow-xl active:scale-[0.98] transition-all">Finalize & Next Bin</button>
+        <!-- Bin progress bar -->
+        <div class="mt-2 flex items-center gap-3">
+            <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div id="bin-progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div>
+            </div>
+            <span id="bin-progress-text" class="text-[10px] font-black text-slate-400 mono min-w-[50px] text-right">0 / 0</span>
+        </div>
+    </div>
+
+    <!-- Audit Item List -->
+    <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[260px]"></div>
+
+    <!-- Bottom Action Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50 safe-bottom">
+        <div class="flex gap-2 mb-3">
+            <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] transition-all">+ Found Item</button>
+            <button onclick="confirmAllRemaining()" id="btn-confirm-all" class="flex-1 bg-emerald-50 border-2 border-emerald-300 text-emerald-700 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] transition-all hidden">✓ Confirm All</button>
+            <button onclick="leaveAisle()" class="w-14 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center text-lg border border-slate-200 active:bg-slate-200">🚪</button>
+        </div>
+        <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white py-4.5 rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2" style="padding-top:18px;padding-bottom:18px;">
+            <span>Finalize & Next Bin</span>
+            <span class="swipe-hint text-white/50">→</span>
+        </button>
     </div>
 </main>
 
-<!-- Add Item Modal -->
-<div id="add-item-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
-    <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
-        <div class="flex justify-between items-center"><h2 class="text-2xl font-black uppercase">Physical Find</h2><span id="smart-fill-badge" class="hidden bg-green-100 text-green-600 text-[8px] font-black px-2 py-1 rounded-full animate-pulse uppercase">Smart Filled</span></div>
-        <div class="space-y-4">
-            <input type="text" id="add-hu" placeholder="HU Number (0 if missing)" class="w-full p-4 bg-slate-50 border-2 rounded-2xl mono font-bold outline-none focus:border-blue-500" oninput="autoLookupExtra(this)">
-            <div class="grid grid-cols-2 gap-3"><input type="text" id="add-prod" placeholder="Item #" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none"><input type="text" id="add-batch" placeholder="Batch" class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none"></div>
-            <input type="number" id="add-qty" placeholder="Count" class="w-full p-6 bg-blue-50 rounded-2xl font-black text-center text-3xl text-blue-700 outline-none">
+<!-- ===== REPORT VIEW ===== -->
+<main id="view-report" class="flex-1 flex flex-col overflow-hidden hidden">
+    <div class="p-4 space-y-3 overflow-y-auto flex-1">
+        <div class="flex gap-2">
+            <div class="flex-1 bg-white border rounded-xl p-4 text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase">Finalized</p>
+                <p id="rpt-finalized" class="text-2xl font-black text-blue-600 mono">0</p>
+                <p class="text-[9px] text-slate-400 font-bold">bins</p>
+            </div>
+            <div class="flex-1 bg-white border rounded-xl p-4 text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase">Discrepancies</p>
+                <p id="rpt-discrep" class="text-2xl font-black text-red-500 mono">0</p>
+                <p class="text-[9px] text-slate-400 font-bold">items</p>
+            </div>
+            <div class="flex-1 bg-white border rounded-xl p-4 text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase">Accuracy</p>
+                <p id="rpt-accuracy" class="text-2xl font-black text-emerald-600 mono">—</p>
+                <p class="text-[9px] text-slate-400 font-bold">raw</p>
+            </div>
         </div>
-        <div class="flex gap-3 pt-4"><button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Confirm Add</button></div>
+        <div id="report-list" class="space-y-2"></div>
+    </div>
+</main>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Add Item Modal -->
+<div id="add-item-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-black uppercase">Found Item</h2>
+            <span id="smart-fill-badge" class="hidden bg-green-100 text-green-700 text-[9px] font-black px-2 py-1 rounded-full">Auto-filled</span>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">HU Number</label>
+                <input type="text" id="add-hu" placeholder="Scan or type (0 if missing)" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl mono font-bold outline-none focus:border-blue-500 mt-1" oninput="autoLookupExtra(this)">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Item #</label>
+                    <input type="text" id="add-prod" placeholder="Product" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl outline-none mt-1">
+                </div>
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Batch</label>
+                    <input type="text" id="add-batch" placeholder="Batch" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl outline-none mt-1">
+                </div>
+            </div>
+            <div>
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Physical Count</label>
+                <input type="number" id="add-qty" placeholder="0" class="w-full p-5 bg-blue-50 border-2 border-blue-200 rounded-xl font-black text-center text-3xl text-blue-700 outline-none mt-1">
+            </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+            <button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
+            <button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-xl font-black uppercase shadow-lg active:scale-[0.97] transition-all">Add Item</button>
+        </div>
     </div>
 </div>
 
 <!-- Note Modal -->
-<div id="note-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
-    <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
-        <h2 class="text-xl font-black uppercase text-slate-800">Add Note</h2>
+<div id="note-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-center justify-center">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
+        <h2 class="text-lg font-black uppercase text-slate-800">Add Note</h2>
         <p id="note-modal-context" class="text-[11px] text-slate-500 font-semibold"></p>
-        <textarea id="note-text" rows="4" placeholder="Enter note..." class="w-full p-4 bg-slate-50 border-2 rounded-2xl outline-none text-sm resize-none focus:border-blue-500"></textarea>
-        <div class="flex gap-3 pt-2">
-            <button onclick="closeNoteModal()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
-            <button onclick="saveNote()" class="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Save Note</button>
+        <textarea id="note-text" rows="3" placeholder="Note..." class="w-full p-4 bg-slate-50 border-2 rounded-xl outline-none text-sm resize-none focus:border-blue-500"></textarea>
+        <div class="flex gap-3">
+            <button onclick="closeNoteModal()" class="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
+            <button onclick="saveNote()" class="flex-[2] bg-blue-600 text-white py-3.5 rounded-xl font-black uppercase shadow-lg">Save</button>
         </div>
     </div>
 </div>
 
 <!-- Bin Move Modal -->
-<div id="bin-move-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] p-4 flex items-center justify-center">
-    <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-5 shadow-2xl">
-        <h2 class="text-xl font-black uppercase text-slate-800">Record Bin Move</h2>
+<div id="bin-move-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-center justify-center">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
+        <h2 class="text-lg font-black uppercase text-slate-800">Record Bin Move</h2>
         <p id="move-modal-context" class="text-[11px] text-slate-500 font-semibold"></p>
-        <div class="bg-slate-50 p-4 rounded-2xl border-2 space-y-1">
+        <div class="bg-slate-50 p-3 rounded-xl border-2 space-y-1">
             <p class="text-[9px] font-black uppercase text-slate-400 tracking-widest">SAP Bin</p>
             <p id="move-sap-bin" class="mono font-black text-slate-700"></p>
         </div>
-        <input type="text" id="move-actual-bin" placeholder="Scan / Enter Actual Bin" class="w-full p-4 bg-blue-50 border-2 border-blue-200 rounded-2xl mono font-bold text-blue-700 uppercase outline-none focus:border-blue-500 text-center text-lg">
-        <div class="flex gap-3 pt-2">
-            <button onclick="closeBinMoveModal()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
-            <button onclick="saveBinMove()" class="flex-[2] bg-purple-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Confirm Move</button>
+        <input type="text" id="move-actual-bin" placeholder="Scan / Enter Actual Bin" class="w-full p-4 bg-blue-50 border-2 border-blue-200 rounded-xl mono font-bold text-blue-700 uppercase outline-none focus:border-blue-500 text-center text-lg">
+        <div class="flex gap-3">
+            <button onclick="closeBinMoveModal()" class="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
+            <button onclick="saveBinMove()" class="flex-[2] bg-purple-600 text-white py-3.5 rounded-xl font-black uppercase shadow-lg">Confirm</button>
         </div>
     </div>
 </div>
 
+<!-- Auditor Name Modal -->
+<div id="auditor-modal" class="hidden fixed inset-0 modal-backdrop z-[120] p-4 flex items-center justify-center">
+    <div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl">
+        <h2 class="text-lg font-black uppercase text-slate-800">Your Name</h2>
+        <input type="text" id="auditor-name-input" placeholder="e.g. Albert" class="w-full p-4 bg-slate-50 border-2 rounded-xl font-bold outline-none focus:border-blue-500 text-center text-lg">
+        <button onclick="saveAuditorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase shadow-lg">Save</button>
+    </div>
+</div>
+
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
+
+// ===== STATE =====
+let ALL_SAP_BINS = [];
+const FRESH_SKUS = ["3305704","3307506","3307509","3307515","3307518","3307525","3307710","3308356","3309009","3309016","3309017","3309019","3309138","3309139"];
+
+let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
+let sapBinIndex = {};
+let sapHUIndex = new Map();
+let expandedBins = new Set();
+let currentBinItems = [];
+let currentActiveBin = "";
+let cloudReport = [];
+let noteTargetIndex = null;
+let binMoveTargetIndex = null;
+let auditorName = localStorage.getItem('auditorName') || "";
+
+// ===== OFFLINE QUEUE =====
+let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue')) || [];
+
+function enqueuePost(payload) {
+    offlineQueue.push(payload);
+    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+    updateQueueBadge();
+    drainQueue();
+}
+
+async function drainQueue() {
+    if (offlineQueue.length === 0) return;
+    const batch = [...offlineQueue];
+    let successCount = 0;
+    for (const payload of batch) {
+        try {
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            if (res.ok) {
+                successCount++;
+                offlineQueue.shift();
+            } else break;
+        } catch { break; }
+    }
+    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+    updateQueueBadge();
+    if (successCount > 0) showToast(`${successCount} synced`, 'green');
+}
+
+function updateQueueBadge() {
+    const el = document.getElementById('queue-count');
+    const dot = document.getElementById('sync-dot');
+    const statQ = document.getElementById('stat-queued');
+    if (offlineQueue.length > 0) {
+        el.classList.remove('hidden');
+        el.textContent = offlineQueue.length;
+        dot.className = 'w-2 h-2 rounded-full bg-orange-400 sync-active';
+    } else {
+        el.classList.add('hidden');
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+    }
+    if (statQ) statQ.textContent = offlineQueue.length;
+}
+
+// ===== UTILITIES =====
+function haptic() { if (navigator.vibrate) navigator.vibrate(30); }
+
+function showToast(msg, color = 'green') {
+    const t = document.getElementById('toast');
+    const colors = { green: 'bg-emerald-600 text-white', red: 'bg-red-600 text-white', blue: 'bg-blue-600 text-white', orange: 'bg-orange-500 text-white' };
+    t.className = `${colors[color] || colors.green} px-5 py-3 rounded-2xl font-black text-xs uppercase shadow-2xl flex items-center gap-2`;
+    t.style.cssText = 'position:fixed;top:env(safe-area-inset-top,16px);left:50%;z-index:9999;pointer-events:none;transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.4s;';
+    document.getElementById('toast-text').textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ===== AUDITOR NAME =====
+function showAuditorModal() {
+    document.getElementById('auditor-name-input').value = auditorName;
+    document.getElementById('auditor-modal').classList.remove('hidden');
+}
+function saveAuditorName() {
+    auditorName = document.getElementById('auditor-name-input').value.trim() || "Floor";
+    localStorage.setItem('auditorName', auditorName);
+    document.getElementById('auditor-name-btn').textContent = '👤 ' + auditorName;
+    document.getElementById('auditor-modal').classList.add('hidden');
+}
+
+// ===== SCHEDULE =====
+function getScheduleContext() {
+    const now = new Date();
+    const startRef = new Date("2026-03-30T00:00:00");
+    const weeksDiff = Math.floor((now - startRef) / (7*24*60*60*1000));
+    return { week: ((weeksDiff % 4) + 4) % 4 + 1, day: now.getDay(), dayName: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][now.getDay()] };
+}
+
+function getTodaysSchedule() {
+    const ctx = getScheduleContext();
+    const s = [];
+    const isW13 = (ctx.week === 1 || ctx.week === 3);
+    if ([1,3,5].includes(ctx.day)) s.push({aisle:"FRESH",desc:"14 Items",isFresh:true},{aisle:"H",desc:"Bins 23-End"},{aisle:"J",desc:"Bins 23-End"});
+    if (ctx.day===1) s.push({aisle:"WA",desc:"Entire Row"},{aisle:"WK",desc:"Entire Row"});
+    else if (ctx.day===2) { s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WC",desc:"Entire Row"},{aisle:"WD",desc:"Entire Row"},{aisle:"WF",desc:"Entire Row"},{aisle:"WL",desc:"Entire Row"}); s.push({aisle:"WG",desc:isW13?"Bins 23-End":"Bins 23-End"}); }
+    else if (ctx.day===3) s.push({aisle:"WE",desc:"Entire Row"},{aisle:"WM",desc:"Entire Row"});
+    else if (ctx.day===4) { s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WF",desc:"Bins 23-End"},{aisle:"WN",desc:"Entire Row"}); s.push({aisle:"WG",desc:isW13?"Entire Row":"Bins 23-End"}); }
+    else if (ctx.day===5) s.push({aisle:"WB",desc:"Bins 23-End (SR)"},{aisle:"WC",desc:"Bins 23-End (SR)"},{aisle:"WP",desc:"Entire Row"});
+    return s;
+}
+
+// ===== CLOUD SYNC =====
+async function syncCloud() {
+    try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        cloudReport = data.report || [];
+        updateProgressUI();
+    } catch(e) { /* offline — no problem */ }
+    drainQueue();
+}
+
+function updateProgressUI() {
+    const finished = new Set(cloudReport.map(i => i.scanBin));
+    "ABCDEFGHIJKLMNOP".split("").forEach(row => {
+        const b = document.getElementById(`badge-${row}`);
+        if (b) b.innerText = Array.from(finished).filter(bin => bin && bin.includes(`W${row}`)).length;
+    });
+    document.getElementById('total-progress').innerText = `${finished.size} Done`;
+    if (currentActiveBin) document.getElementById('bin-done-badge').classList.toggle('hidden', !finished.has(currentActiveBin));
     
-    // NAVIGATION LIST (Now generated dynamically from Excel)
-    let ALL_SAP_BINS = [];
-    const FRESH_SKUS = ["3305704", "3307506", "3307509", "3307515", "3307518", "3307525", "3307710", "3308356", "3309009", "3309016", "3309017", "3309019", "3309138", "3309139"];
-
-    let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
-    let sapBinIndex = {}; let sapHUIndex = new Map(); let expandedBins = new Set();
-    let currentBinItems = []; let currentActiveBin = ""; let cloudReport = [];
-    let noteTargetIndex = null; let binMoveTargetIndex = null;
-
-    function haptic() { if (window.navigator.vibrate) window.navigator.vibrate(40); }
-
-    function getScheduleContext() {
-        const now = new Date();
-        const startRef = new Date("2026-03-30T00:00:00");
-        const weeksDiff = Math.floor((now - startRef) / (7 * 24 * 60 * 60 * 1000));
-        return { week: ((weeksDiff % 4) + 4) % 4 + 1, day: now.getDay(), dayName: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()] };
+    // Report view
+    const bins = new Set(cloudReport.map(i=>i.scanBin));
+    document.getElementById('rpt-finalized').textContent = bins.size;
+    const items = cloudReport.filter(i => i.hu !== 'EMPTY_BIN');
+    const discrep = items.filter(i => i.type !== 'ok').length;
+    document.getElementById('rpt-discrep').textContent = discrep;
+    if (items.length > 0) {
+        document.getElementById('rpt-accuracy').textContent = Math.round(((items.length - discrep)/items.length)*100) + '%';
     }
+}
 
-    function getTodaysSchedule() {
-        const ctx = getScheduleContext();
-        const sched = [];
-        const isW13 = (ctx.week === 1 || ctx.week === 3);
-        if ([1, 3, 5].includes(ctx.day)) sched.push({ aisle: "FRESH", desc: "14 Items", isFresh: true }, { aisle: "H", desc: "Bins 23-End" }, { aisle: "J", desc: "Bins 23-End" });
-        if (ctx.day === 1) sched.push({ aisle: "WA", desc: "Entire Row" }, { aisle: "WK", desc: "Entire Row" });
-        else if (ctx.day === 2) {
-            sched.push({ aisle: "WB", desc: "Bins 00-25" }, { aisle: "WC", desc: "Entire Row" }, { aisle: "WD", desc: "Entire Row" }, { aisle: "WF", desc: "Entire Row" }, { aisle: "WL", desc: "Entire Row" });
-            if (isW13) sched.push({ aisle: "WG", desc: "Bins 23-End" }); else sched.push({ aisle: "WG", desc: "Bins 23-End" });
-        } else if (ctx.day === 3) sched.push({ aisle: "WE", desc: "Entire Row" }, { aisle: "WM", desc: "Entire Row" });
-        else if (ctx.day === 4) {
-            sched.push({ aisle: "WB", desc: "Bins 00-25" }, { aisle: "WF", desc: "Bins 23-End" }, { aisle: "WN", desc: "Entire Row" });
-            if (isW13) sched.push({ aisle: "WG", desc: "Entire Row" }); else sched.push({ aisle: "WG", desc: "Bins 23-End" });
-        } else if (ctx.day === 5) sched.push({ aisle: "WB", desc: "Bins 23-End (SR)" }, { aisle: "WC", desc: "Bins 23-End (SR)" }, { aisle: "WP", desc: "Entire Row" });
-        return sched;
+// ===== BIN PROGRESS =====
+function updateBinProgress() {
+    const total = currentBinItems.length;
+    const done = currentBinItems.filter(i => i.verified || i.isMissing).length;
+    document.getElementById('bin-progress-bar').style.width = total > 0 ? Math.round((done/total)*100) + '%' : '0%';
+    document.getElementById('bin-progress-text').textContent = `${done} / ${total}`;
+    
+    // Show/hide confirm all button
+    const remaining = total - done;
+    const btn = document.getElementById('btn-confirm-all');
+    if (remaining > 1 && remaining === total) {
+        btn.classList.remove('hidden');
+    } else {
+        btn.classList.add('hidden');
     }
+}
 
-    // COMPLETELY UNRESTRICTED
-    function isBinAllowed(binName) { return true; }
+// ===== CONFIRM ALL =====
+function confirmAllRemaining() {
+    haptic();
+    let count = 0;
+    currentBinItems.forEach(i => {
+        if (!i.verified && !i.isMissing) {
+            i.countQty = i.sapQty;
+            i.verified = true;
+            count++;
+        }
+    });
+    showToast(`${count} items confirmed`, 'green');
+    renderAuditList();
+}
 
-    async function syncCloud() { try { const res = await fetch(API_URL); const data = await res.json(); cloudReport = data.report || []; updateProgressUI(); } catch(e){} }
-
-    function updateProgressUI() {
-        const finished = new Set(cloudReport.map(i => i.scanBin));
-        "ABCDEFGHIJKLMNOP".split("").forEach(row => {
-            const b = document.getElementById(`badge-${row}`); if (b) b.innerText = Array.from(finished).filter(bin => bin && bin.includes(`W${row}`)).length;
-        });
-        document.getElementById('total-progress').innerText = `${finished.size} Bins Done`;
-        if (currentActiveBin) document.getElementById('bin-done-badge').classList.toggle('hidden', !finished.has(currentActiveBin));
+// ===== FINALIZE =====
+function finalizeBin() {
+    if (!currentActiveBin) return;
+    const unfinished = currentBinItems.filter(i => !i.verified && !i.isMissing);
+    if (unfinished.length > 0) {
+        showToast(`${unfinished.length} items not verified`, 'red');
+        return;
     }
-
-    function finalizeBin() {
-        if(!currentActiveBin) return;
-        if (currentBinItems.length > 0 && currentBinItems.some(i => !i.verified && !i.isMissing)) return alert("Verify all items first.");
-        haptic();
-        let itemsToLog = currentBinItems.length === 0 ? [{ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok', note: "" }] : currentBinItems.map(i => {
+    haptic();
+    
+    let itemsToLog = currentBinItems.length === 0
+        ? [{ hu:"EMPTY_BIN", product:"NONE", desc:"Confirmed Empty", batch:"", sapBin:"", scannedBin:currentActiveBin, sapQty:0, countQty:0, type:'ok', note:"" }]
+        : currentBinItems.map(i => {
             let type = 'ok';
             if (i.isMissing) type = 'miss';
             else if (i.isExtra) type = 'inactive';
             else if (i.countQty !== i.sapQty) type = 'adj';
-            return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.actualBin || currentActiveBin, sapQty: i.sapQty, countQty: i.countQty, type: type, note: i.note || "" };
+            return { hu:i.hu, product:i.product, desc:i.desc, batch:i.batch, sapBin:i.sapBin, scannedBin:i.actualBin||currentActiveBin, sapQty:i.sapQty, countQty:i.countQty, type, note:i.note||"" };
         });
-        itemsToLog.forEach(item => cloudReport.push({ scanBin: item.scannedBin, ...item }));
-        updateProgressUI();
-        fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'logAudit', user: "Floor", bin: currentActiveBin, items: itemsToLog }) });
-        if(currentActiveBin.startsWith("PRODUCT:")) leaveAisle(); else stepBin(1);
-    }
-
-    function renderAuditList() {
-        const container = document.getElementById('audit-list'); container.innerHTML = "";
-        const isFresh = currentActiveBin === "PRODUCT: FRESH";
-        const isSingle = currentActiveBin.startsWith("PRODUCT:") && !isFresh;
-        if (isFresh || isSingle) {
-            const groups = {};
-            currentBinItems.forEach((item, idx) => { const key = isFresh ? item.product : item.sapBin; if (!groups[key]) groups[key] = []; groups[key].push({ item, idx }); });
-            Object.keys(groups).forEach(key => {
-                const isExp = expandedBins.has(key);
-                const div = document.createElement('div'); div.className = "bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden mb-3 shadow-sm";
-                div.innerHTML = `<div onclick="toggleBinAccordion('${key}')" class="flex justify-between items-center p-6 active:bg-slate-50 cursor-pointer"><div><span class="mono font-black text-slate-800 block">${isFresh ? 'SKU: '+key : '/ '+key}</span><span class="text-[10px] text-slate-400 font-bold truncate max-w-[200px] block">${isFresh ? groups[key][0].item.desc : groups[key].length + ' Items'}</span></div></div><div id="content-${key}" class="${isExp ? 'p-5 space-y-5 border-t-2 border-slate-50' : 'hidden'}"></div>`;
-                if (isExp) groups[key].forEach(obj => div.querySelector(`#content-${key}`).appendChild(createItemCard(obj.item, obj.idx)));
-                container.appendChild(div);
-            });
-        } else { 
-            if(currentBinItems.length === 0 && currentActiveBin !== "") container.innerHTML = `<div class="py-20 text-center text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin</div>`;
-            currentBinItems.forEach((item, index) => container.appendChild(createItemCard(item, index))); 
-        }
-    }
-
-    function createItemCard(item, index) {
-        const card = document.createElement('div'); 
-        card.className = `p-5 rounded-[2.5rem] border bg-white transition-all shadow-sm ${item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : '')}`;
-        const isProductMode = currentActiveBin.startsWith("PRODUCT:");
-        const isNoHU = (!item.hu || item.hu === "0" || item.hu.trim() === "");
-        const hasNote = item.note && item.note.trim() !== "";
-        const hasActualBin = item.actualBin && item.actualBin !== item.sapBin;
-
-        let noteHTML = isNoHU ? `<button onclick="openNoteModal(${index})" class="w-full mt-3 py-2.5 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${hasNote ? 'bg-amber-50 border-amber-400 text-amber-700' : 'border-dashed border-slate-200 text-slate-300 bg-white'}">${hasNote ? '📝 ' + item.note.substring(0, 40) : '📝 Add Note (No HU)'}</button>` : '';
-        let binMoveHTML = isProductMode ? `<button onclick="openBinMoveModal(${index})" class="w-full mt-2 py-2.5 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${hasActualBin ? 'bg-purple-50 border-purple-400 text-purple-700' : 'border-dashed border-slate-200 text-slate-300 bg-white'}">${hasActualBin ? '📍 Actual: ' + item.actualBin : '📍 Record Bin Move'}</button>` : '';
-
-        card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="flex-1"><span class="inline-block px-3 py-1 bg-slate-900 text-blue-400 mono text-[10px] rounded-lg mb-2">HU: ${item.hu || 'N/A'}</span><h3 class="text-sm font-black text-slate-800 leading-tight mb-1">${item.product}</h3><p class="text-[11px] text-blue-600 font-bold mb-1 italic">${item.desc || 'No Description'}</p><p class="text-[10px] text-slate-500 font-semibold uppercase">Bin: ${item.sapBin}${hasActualBin ? ' <span class="text-purple-600">➔ ' + item.actualBin + '</span>' : ''}</p></div><div class="text-right bg-slate-50 p-2 rounded-xl border min-w-[70px]"><p class="text-[7px] font-black text-slate-400 uppercase">SAP QTY</p><p class="text-lg mono font-black text-slate-700">${item.sapQty}</p></div></div><div class="flex flex-col gap-3"><div class="flex gap-2"><button onclick="quickConfirm(${index})" class="flex-[3] py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Confirm ${item.sapQty}</button><button onclick="toggleMissing(${index})" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase border-2 ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-100 text-slate-300 bg-white'}">Missing</button></div><div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100"><button onclick="adjustQty(${index}, -1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-slate-300 active:bg-slate-100">－</button><input type="number" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none"><button onclick="adjustQty(${index}, 1)" class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm text-2xl font-black text-blue-600 active:bg-slate-100">＋</button></div>${noteHTML}${binMoveHTML}</div>`;
-        return card;
-    }
-
-    function openNoteModal(idx) { haptic(); noteTargetIndex = idx; const item = currentBinItems[idx]; document.getElementById('note-modal-context').innerText = `${item.product} — Bin: ${item.sapBin}`; document.getElementById('note-text').value = item.note || ""; document.getElementById('note-modal').classList.remove('hidden'); }
-    function closeNoteModal() { document.getElementById('note-modal').classList.add('hidden'); }
-    function saveNote() { currentBinItems[noteTargetIndex].note = document.getElementById('note-text').value.trim(); closeNoteModal(); renderAuditList(); }
-    function openBinMoveModal(idx) { haptic(); binMoveTargetIndex = idx; const item = currentBinItems[idx]; document.getElementById('move-modal-context').innerText = `${item.product}`; document.getElementById('move-sap-bin').innerText = item.sapBin; document.getElementById('move-actual-bin').value = item.actualBin || ""; document.getElementById('bin-move-modal').classList.remove('hidden'); }
-    function closeBinMoveModal() { document.getElementById('bin-move-modal').classList.add('hidden'); }
-    function saveBinMove() { const b = document.getElementById('move-actual-bin').value.trim().toUpperCase(); if (b) currentBinItems[binMoveTargetIndex].actualBin = b; closeBinMoveModal(); renderAuditList(); }
-    function autoLookupExtra(input) { const hu = input.value.trim(); if (hu.length < 8) return; const match = sapHUIndex.get(hu); if (match) { document.getElementById('smart-fill-badge').classList.remove('hidden'); document.getElementById('add-prod').value = match.product; document.getElementById('add-batch').value = match.batch; document.getElementById('add-qty').focus(); } }
-    function submitExtra() { const hu = document.getElementById('add-hu').value.trim(); const prod = document.getElementById('add-prod').value.trim(); const qty = parseFloat(document.getElementById('add-qty').value) || 0; if(!hu || qty <= 0) return; const match = sapHUIndex.get(hu) || {}; currentBinItems.push({ hu, product: prod, batch: document.getElementById('add-batch').value, desc: match.desc || "FIND", sapQty: match.sapQty || 0, sapBin: match.sapBin || null, countQty: qty, verified: true, isMissing: false, isExtra: true, note: "", actualBin: null }); toggleAddForm(); renderAuditList(); }
-    function adjustQty(idx, delta) { haptic(); let c = currentBinItems[idx].countQty || 0; currentBinItems[idx].countQty = Math.max(0, c + delta); currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
-    function updateCount(idx, val) { currentBinItems[idx].countQty = parseFloat(val) || 0; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; }
-    function quickConfirm(idx) { haptic(); currentBinItems[idx].countQty = currentBinItems[idx].sapQty; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
-    function toggleMissing(idx) { haptic(); currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } renderAuditList(); }
-    function startProductCycle() { const sku = document.getElementById('prod-cycle-input').value.trim(); const matches = sapMasterData.filter(item => item.product === sku); if (matches.length === 0) return alert("Not found"); currentActiveBin = "PRODUCT: " + sku; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
-    function startFreshCycle() { const matches = sapMasterData.filter(item => FRESH_SKUS.includes(item.product)); currentActiveBin = "PRODUCT: FRESH"; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
-    function toggleBinAccordion(bin) { if (expandedBins.has(bin)) expandedBins.delete(bin); else expandedBins.add(bin); renderAuditList(); }
-    function leaveAisle() { currentActiveBin = ""; document.getElementById('setup-screen').classList.remove('hidden'); }
     
-    function selectBin(binName) { 
-        if (!binName) return; 
-        const upperBin = binName.toUpperCase(); 
-        currentActiveBin = upperBin; 
-        document.getElementById('bin-input').value = currentActiveBin; 
-        const expected = sapBinIndex[currentActiveBin] || []; 
-        currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); 
-        document.getElementById('setup-screen').classList.add('hidden'); 
-        renderAuditList(); 
-        window.scrollTo(0,0); 
-        updateProgressUI(); 
-    }
+    itemsToLog.forEach(item => cloudReport.push({ scanBin: item.scannedBin, ...item }));
+    updateProgressUI();
 
-    function stepBin(dir) { 
-        const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin); 
-        if (currentIdx !== -1 && ALL_SAP_BINS[currentIdx + dir]) {
-            selectBin(ALL_SAP_BINS[currentIdx + dir]);
-        } else if (currentIdx === -1) {
-            // If user scanned a random bin not in our navigation list, find the closest one
-            const nextBin = ALL_SAP_BINS.find(b => b > currentActiveBin) || ALL_SAP_BINS[0];
-            selectBin(nextBin);
-        }
-    }
+    enqueuePost({ action:'logAudit', user: auditorName || "Floor", bin: currentActiveBin, items: itemsToLog });
+    showToast('Bin finalized', 'blue');
 
-    function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
+    if (currentActiveBin.startsWith("PRODUCT:")) leaveAisle();
+    else stepBin(1);
+}
+
+// ===== RENDER =====
+function renderAuditList() {
+    const container = document.getElementById('audit-list');
+    container.innerHTML = "";
     
-    function rebuildIndexes() { 
-        sapBinIndex = {}; 
-        sapHUIndex = new Map(); 
-        const uniqueBins = new Set();
-        sapMasterData.forEach(item => { 
-            if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = []; 
-            sapBinIndex[item.sapBin].push(item); 
-            sapHUIndex.set(item.hu, item); 
-            if(item.sapBin) uniqueBins.add(item.sapBin);
-        }); 
-        // Build dynamic master list of bins from the Excel file and sort them naturally
-        ALL_SAP_BINS = Array.from(uniqueBins).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+    const isFresh = currentActiveBin === "PRODUCT: FRESH";
+    const isSingle = currentActiveBin.startsWith("PRODUCT:") && !isFresh;
+
+    if (isFresh || isSingle) {
+        const groups = {};
+        currentBinItems.forEach((item, idx) => {
+            const key = isFresh ? item.product : item.sapBin;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push({ item, idx });
+        });
+        Object.keys(groups).forEach(key => {
+            const isExp = expandedBins.has(key);
+            const allDone = groups[key].every(o => o.item.verified || o.item.isMissing);
+            const div = document.createElement('div');
+            div.className = `bg-white border-2 ${allDone ? 'border-emerald-200' : 'border-slate-100'} rounded-2xl overflow-hidden mb-2 shadow-sm`;
+            const countBadge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-lg ${allDone ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${groups[key].filter(o=>o.item.verified||o.item.isMissing).length}/${groups[key].length}</span>`;
+            div.innerHTML = `
+                <div onclick="toggleBinAccordion('${key}')" class="flex justify-between items-center p-4 active:bg-slate-50 cursor-pointer">
+                    <div>
+                        <span class="mono font-black text-slate-800 text-sm">${isFresh ? 'SKU '+key : key}</span>
+                        <span class="text-[10px] text-slate-400 font-semibold block truncate max-w-[200px]">${isFresh ? groups[key][0].item.desc : groups[key].length+' items'}</span>
+                    </div>
+                    <div class="flex items-center gap-2">${countBadge}<span class="text-slate-300 text-xs">${isExp ? '▼' : '▶'}</span></div>
+                </div>
+                <div id="content-${CSS.escape(key)}" class="${isExp ? 'p-4 pt-0 space-y-3' : 'hidden'}"></div>`;
+            if (isExp) {
+                const contentEl = div.querySelector(`[id="content-${CSS.escape(key)}"]`);
+                groups[key].forEach(obj => contentEl.appendChild(createItemCard(obj.item, obj.idx)));
+            }
+            container.appendChild(div);
+        });
+    } else {
+        if (currentBinItems.length === 0 && currentActiveBin !== "") {
+            container.innerHTML = `<div class="py-20 text-center"><div class="text-4xl mb-3">📭</div><p class="text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin — Confirm to finalize</p></div>`;
+        }
+        currentBinItems.forEach((item, index) => container.appendChild(createItemCard(item, index)));
+    }
+    updateBinProgress();
+}
+
+function createItemCard(item, index) {
+    const card = document.createElement('div');
+    const statusClass = item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : 'card-default'));
+    card.className = `p-4 rounded-2xl transition-all shadow-sm ${statusClass}`;
+    
+    const isProductMode = currentActiveBin.startsWith("PRODUCT:");
+    const isNoHU = (!item.hu || item.hu === "0" || item.hu.trim() === "");
+    const hasNote = item.note && item.note.trim() !== "";
+    const hasActualBin = item.actualBin && item.actualBin !== item.sapBin;
+    const qtyMatch = item.verified && item.countQty === item.sapQty;
+
+    let extrasHTML = '';
+    if (isNoHU) {
+        extrasHTML += `<button onclick="openNoteModal(${index})" class="chip mt-2 ${hasNote ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-white border border-dashed border-slate-200 text-slate-400'}">📝 ${hasNote ? item.note.substring(0,30) : 'Note (No HU)'}</button>`;
+    }
+    if (isProductMode) {
+        extrasHTML += `<button onclick="openBinMoveModal(${index})" class="chip mt-2 ${hasActualBin ? 'bg-purple-50 border border-purple-300 text-purple-700' : 'bg-white border border-dashed border-slate-200 text-slate-400'}">📍 ${hasActualBin ? 'Moved → '+item.actualBin : 'Bin Move'}</button>`;
     }
 
-    function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
-    function switchView(v) { document.getElementById('view-audit').classList.toggle('hidden', v !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', v !== 'report'); if(v==='audit') syncCloud(); }
+    card.innerHTML = `
+        <div class="flex justify-between items-start mb-3">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="inline-block px-2 py-0.5 bg-slate-900 text-blue-400 mono text-[9px] font-bold rounded-md">HU ${item.hu || 'N/A'}</span>
+                    ${item.isExtra ? '<span class="text-[8px] font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">EXTRA</span>' : ''}
+                    ${qtyMatch ? '<span class="text-[8px] font-black text-emerald-600">✓</span>' : ''}
+                </div>
+                <h3 class="text-sm font-bold text-slate-800 leading-tight">${item.product}</h3>
+                <p class="text-[10px] text-blue-600 font-semibold truncate">${item.desc || ''}</p>
+                <p class="text-[9px] text-slate-400 font-semibold mt-0.5">Bin: ${item.sapBin}${hasActualBin ? ' <span class="text-purple-600 font-black">→ '+item.actualBin+'</span>' : ''}</p>
+            </div>
+            <div class="text-right bg-slate-50/80 p-2 rounded-xl border min-w-[60px] ml-3">
+                <p class="text-[7px] font-black text-slate-400 uppercase">SAP</p>
+                <p class="text-xl mono font-black text-slate-700 leading-none">${item.sapQty}</p>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <div class="flex gap-2">
+                <button onclick="quickConfirm(${index})" class="flex-[3] py-3.5 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase shadow active:scale-95 transition-all">
+                    Confirm ${item.sapQty}
+                </button>
+                <button onclick="toggleMissing(${index})" class="flex-1 py-3.5 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${item.isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-200 text-slate-300 bg-white'}">
+                    ${item.isMissing ? '✕' : 'Miss'}
+                </button>
+            </div>
+            <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-100">
+                <button onclick="adjustQty(${index}, -1)" class="stepper-btn bg-white shadow-sm text-slate-400 active:bg-slate-100">−</button>
+                <input type="number" inputmode="numeric" value="${item.countQty || ''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none mono min-w-0">
+                <button onclick="adjustQty(${index}, 1)" class="stepper-btn bg-white shadow-sm text-blue-600 active:bg-blue-50">+</button>
+            </div>
+            ${extrasHTML}
+        </div>`;
+    return card;
+}
 
-    function initSetupGrid() { 
-        const grid = document.getElementById('row-grid'); grid.innerHTML = ""; 
-        const ctx = getScheduleContext(); const sched = getTodaysSchedule(); 
-        document.getElementById('week-display').innerText = `Week ${ctx.week}`; 
-        document.getElementById('day-display').innerText = ctx.dayName; 
-        document.getElementById('schedule-list').innerHTML = sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white font-bold">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); 
-        "ABCDEFGHIJKLMNOP".split("").forEach(row => { 
-            const btn = document.createElement('button'); 
-            btn.className = `relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl`; 
-            btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; 
-            btn.onclick = () => { 
-                // Find the first bin in our dynamic list that starts with this row letter
-                const startBin = ALL_SAP_BINS.find(b => b.includes(`W${row}`)) || `W${row}00A`;
-                selectBin(startBin); 
-            }; 
-            grid.appendChild(btn); 
-        }); 
-        syncCloud(); 
+// ===== ITEM ACTIONS =====
+function quickConfirm(idx) { haptic(); currentBinItems[idx].countQty = currentBinItems[idx].sapQty; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
+function toggleMissing(idx) { haptic(); currentBinItems[idx].isMissing = !currentBinItems[idx].isMissing; if (currentBinItems[idx].isMissing) { currentBinItems[idx].verified = false; currentBinItems[idx].countQty = 0; } renderAuditList(); }
+function adjustQty(idx, delta) { haptic(); let c = currentBinItems[idx].countQty || 0; currentBinItems[idx].countQty = Math.max(0, c + delta); currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; renderAuditList(); }
+function updateCount(idx, val) { currentBinItems[idx].countQty = parseFloat(val) || 0; currentBinItems[idx].verified = true; currentBinItems[idx].isMissing = false; updateBinProgress(); }
+
+// ===== MODALS =====
+function openNoteModal(idx) { haptic(); noteTargetIndex = idx; const item = currentBinItems[idx]; document.getElementById('note-modal-context').innerText = `${item.product} — ${item.sapBin}`; document.getElementById('note-text').value = item.note || ""; document.getElementById('note-modal').classList.remove('hidden'); }
+function closeNoteModal() { document.getElementById('note-modal').classList.add('hidden'); }
+function saveNote() { currentBinItems[noteTargetIndex].note = document.getElementById('note-text').value.trim(); closeNoteModal(); renderAuditList(); }
+
+function openBinMoveModal(idx) { haptic(); binMoveTargetIndex = idx; const item = currentBinItems[idx]; document.getElementById('move-modal-context').innerText = item.product; document.getElementById('move-sap-bin').innerText = item.sapBin; document.getElementById('move-actual-bin').value = item.actualBin || ""; document.getElementById('bin-move-modal').classList.remove('hidden'); }
+function closeBinMoveModal() { document.getElementById('bin-move-modal').classList.add('hidden'); }
+function saveBinMove() { const b = document.getElementById('move-actual-bin').value.trim().toUpperCase(); if (b) currentBinItems[binMoveTargetIndex].actualBin = b; closeBinMoveModal(); renderAuditList(); }
+
+function toggleAddForm() {
+    haptic();
+    const modal = document.getElementById('add-item-modal');
+    modal.classList.toggle('hidden');
+    if (!modal.classList.contains('hidden')) {
+        document.getElementById('add-hu').value = '';
+        document.getElementById('add-prod').value = '';
+        document.getElementById('add-batch').value = '';
+        document.getElementById('add-qty').value = '';
+        document.getElementById('smart-fill-badge').classList.add('hidden');
+        setTimeout(() => document.getElementById('add-hu').focus(), 100);
     }
+}
 
-    function handleFileUpload(event) { 
-        const reader = new FileReader(); 
-        reader.onload = (e) => { 
-            const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); 
-            sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({ 
-                sapBin: String(row['Storage Bin'] || "").trim().toUpperCase(), 
-                hu: String(row['Handling Unit'] || "").trim(), 
-                product: String(row['Product'] || ""), 
-                batch: String(row['Batch'] || "").trim(), 
-                desc: row['Product Short Description'] || "", 
-                sapQty: parseFloat(row['Quantity']) || 0 
-            })); 
-            localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData)); 
-            rebuildIndexes(); 
-            document.getElementById('upload-prompt').classList.add('hidden'); 
-            document.getElementById('row-selection').classList.remove('hidden'); 
-            initSetupGrid(); 
-        }; 
-        reader.readAsArrayBuffer(event.target.files[0]); 
+function autoLookupExtra(input) {
+    const hu = input.value.trim();
+    if (hu.length < 8) { document.getElementById('smart-fill-badge').classList.add('hidden'); return; }
+    const match = sapHUIndex.get(hu);
+    if (match) {
+        document.getElementById('smart-fill-badge').classList.remove('hidden');
+        document.getElementById('add-prod').value = match.product;
+        document.getElementById('add-batch').value = match.batch;
+        document.getElementById('add-qty').focus();
     }
+}
 
-    window.onload = () => { if (sapMasterData.length > 0) { rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } setInterval(syncCloud, 5000); };
+function submitExtra() {
+    const hu = document.getElementById('add-hu').value.trim();
+    const prod = document.getElementById('add-prod').value.trim();
+    const qty = parseFloat(document.getElementById('add-qty').value) || 0;
+    if (!hu || qty <= 0) { showToast('Need HU and count', 'red'); return; }
+    const match = sapHUIndex.get(hu) || {};
+    currentBinItems.push({ hu, product: prod, batch: document.getElementById('add-batch').value, desc: match.desc || "FOUND", sapQty: match.sapQty || 0, sapBin: match.sapBin || "", countQty: qty, verified: true, isMissing: false, isExtra: true, note: "", actualBin: null });
+    toggleAddForm();
+    showToast('Item added', 'green');
+    renderAuditList();
+}
+
+// ===== NAVIGATION =====
+function selectBin(binName) {
+    if (!binName) return;
+    const upperBin = binName.toUpperCase();
+    currentActiveBin = upperBin;
+    document.getElementById('bin-input').value = currentActiveBin;
+    const expected = sapBinIndex[currentActiveBin] || [];
+    currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null }));
+    document.getElementById('setup-screen').classList.add('hidden');
+    renderAuditList();
+    window.scrollTo(0, 0);
+    updateProgressUI();
+}
+
+function stepBin(dir) {
+    const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin);
+    if (currentIdx !== -1 && ALL_SAP_BINS[currentIdx + dir]) {
+        selectBin(ALL_SAP_BINS[currentIdx + dir]);
+    } else if (currentIdx === -1) {
+        const nextBin = ALL_SAP_BINS.find(b => b > currentActiveBin) || ALL_SAP_BINS[0];
+        selectBin(nextBin);
+    } else {
+        showToast(dir > 0 ? 'Last bin in list' : 'First bin in list', 'blue');
+    }
+}
+
+function startProductCycle() {
+    const sku = document.getElementById('prod-cycle-input').value.trim();
+    const matches = sapMasterData.filter(item => item.product === sku);
+    if (matches.length === 0) { showToast('Product not found', 'red'); return; }
+    currentActiveBin = "PRODUCT: " + sku;
+    expandedBins.clear();
+    currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null }));
+    document.getElementById('setup-screen').classList.add('hidden');
+    document.getElementById('bin-input').value = currentActiveBin;
+    renderAuditList();
+}
+
+function startFreshCycle() {
+    const matches = sapMasterData.filter(item => FRESH_SKUS.includes(item.product));
+    if (matches.length === 0) { showToast('No FRESH items found', 'red'); return; }
+    currentActiveBin = "PRODUCT: FRESH";
+    expandedBins.clear();
+    currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null }));
+    document.getElementById('setup-screen').classList.add('hidden');
+    document.getElementById('bin-input').value = currentActiveBin;
+    renderAuditList();
+}
+
+function toggleBinAccordion(bin) { if (expandedBins.has(bin)) expandedBins.delete(bin); else expandedBins.add(bin); renderAuditList(); }
+function leaveAisle() { currentActiveBin = ""; document.getElementById('setup-screen').classList.remove('hidden'); }
+
+function switchView(v) {
+    document.getElementById('view-audit').classList.toggle('hidden', v !== 'audit');
+    document.getElementById('view-report').classList.toggle('hidden', v !== 'report');
+    document.querySelectorAll('.nav-pill').forEach(b => { b.classList.remove('active'); b.classList.add('text-slate-400', 'bg-slate-50'); });
+    const active = document.getElementById('nav-' + v);
+    active.classList.add('active');
+    active.classList.remove('text-slate-400', 'bg-slate-50');
+    if (v === 'report') renderReportView();
+}
+
+function renderReportView() {
+    const container = document.getElementById('report-list');
+    container.innerHTML = '';
+    const items = cloudReport.filter(i => i.hu !== 'EMPTY_BIN' && i.type !== 'ok');
+    if (items.length === 0) {
+        container.innerHTML = '<div class="py-10 text-center text-slate-300 font-bold text-sm">No discrepancies yet</div>';
+        return;
+    }
+    items.slice(-50).reverse().forEach(i => {
+        const typeColor = { miss:'bg-red-100 text-red-700', adj:'bg-amber-100 text-amber-700', inactive:'bg-purple-100 text-purple-700', move:'bg-blue-100 text-blue-700' }[i.type] || 'bg-slate-100 text-slate-600';
+        const div = document.createElement('div');
+        div.className = 'bg-white border rounded-xl p-3 flex justify-between items-center';
+        div.innerHTML = `<div><p class="font-bold text-sm text-slate-800">${i.prod || i.product}</p><p class="text-[10px] text-slate-400 font-semibold mono">${i.scanBin} · HU ${i.hu}</p></div><div class="flex items-center gap-2"><span class="mono font-bold text-sm">${i.scanQty||i.countQty}/${i.sapQty}</span><span class="text-[9px] font-black uppercase px-2 py-1 rounded-lg ${typeColor}">${i.type}</span></div>`;
+        container.appendChild(div);
+    });
+}
+
+// ===== DATA MANAGEMENT =====
+function rebuildIndexes() {
+    sapBinIndex = {};
+    sapHUIndex = new Map();
+    const uniqueBins = new Set();
+    sapMasterData.forEach(item => {
+        if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = [];
+        sapBinIndex[item.sapBin].push(item);
+        sapHUIndex.set(item.hu, item);
+        if (item.sapBin) uniqueBins.add(item.sapBin);
+    });
+    ALL_SAP_BINS = Array.from(uniqueBins).sort((a,b) => a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}));
+    
+    document.getElementById('stat-loaded').textContent = sapMasterData.length;
+    document.getElementById('stat-bins').textContent = ALL_SAP_BINS.length;
+}
+
+function clearAllData() { if (confirm("Reset all data and uploads?")) { localStorage.clear(); location.reload(); } }
+
+function handleFileUpload(event) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({
+            sapBin: String(row['Storage Bin'] || "").trim().toUpperCase(),
+            hu: String(row['Handling Unit'] || "").trim(),
+            product: String(row['Product'] || ""),
+            batch: String(row['Batch'] || "").trim(),
+            desc: row['Product Short Description'] || "",
+            sapQty: parseFloat(row['Quantity']) || 0
+        }));
+        localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
+        rebuildIndexes();
+        document.getElementById('upload-prompt').classList.add('hidden');
+        document.getElementById('row-selection').classList.remove('hidden');
+        initSetupGrid();
+        showToast(`${sapMasterData.length} items loaded`, 'blue');
+    };
+    reader.readAsArrayBuffer(event.target.files[0]);
+}
+
+function initSetupGrid() {
+    const grid = document.getElementById('row-grid');
+    grid.innerHTML = "";
+    const ctx = getScheduleContext();
+    const sched = getTodaysSchedule();
+    document.getElementById('week-display').innerText = `Week ${ctx.week}`;
+    document.getElementById('day-display').innerText = ctx.dayName;
+    
+    const schedList = document.getElementById('schedule-list');
+    schedList.innerHTML = sched.map(s => {
+        if (s.isFresh) {
+            return `<button onclick="startFreshCycle()" class="sched-item w-full text-left py-2.5 px-4 bg-blue-600/80 hover:bg-blue-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all"><span>🧊 ${s.aisle}: ${s.desc}</span><span class="text-white/60">▶</span></button>`;
+        }
+        return `<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${s.aisle}</span> <span class="text-slate-400 font-semibold">${s.desc}</span></div>`;
+    }).join('');
+
+    "ABCDEFGHIJKLMNOP".split("").forEach(row => {
+        const binCount = ALL_SAP_BINS.filter(b => b.includes(`W${row}`)).length;
+        const btn = document.createElement('button');
+        btn.className = 'row-btn bg-white border-2 border-slate-100 p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden';
+        btn.innerHTML = `<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span><span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${binCount}</span>`;
+        btn.onclick = () => {
+            const startBin = ALL_SAP_BINS.find(b => b.includes(`W${row}`)) || `W${row}00A`;
+            selectBin(startBin);
+        };
+        grid.appendChild(btn);
+    });
+    syncCloud();
+}
+
+// ===== INIT =====
+window.onload = () => {
+    if (auditorName) document.getElementById('auditor-name-btn').textContent = '👤 ' + auditorName;
+    
+    if (sapMasterData.length > 0) {
+        rebuildIndexes();
+        document.getElementById('upload-prompt').classList.add('hidden');
+        document.getElementById('row-selection').classList.remove('hidden');
+        initSetupGrid();
+    }
+    
+    updateQueueBadge();
+    setInterval(syncCloud, 8000);
+    setInterval(drainQueue, 15000);
+};
 </script>
 </body>
 </html>

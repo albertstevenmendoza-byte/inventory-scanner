@@ -77,7 +77,6 @@
         </div>
     </div>
 
-    <!-- Fixed scrolling container with internal scroll -->
     <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-4 pb-[280px]"></div>
 
     <div class="fixed bottom-0 left-0 right-0 glass p-4 shadow-2xl z-50">
@@ -134,9 +133,9 @@
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
-    const ALL_SAP_BINS = ["B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK","FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B","FB01A","FB01B","FB02A","FB02B","FB03A","FB03B","FB04A","FB04B","FB05A","FB05B","FB06A","FB06B","FB07A","FB07B","FB08A","FB08B","FC01A","FC01B","FC02A","FC02B","FC03A","FC03B","FC04A","FC04B","FC05A","FC05B","FC06A","FC06B","FC07A","FC07B","FB08A","FB08B","FD01A","FD01B","FD02A","FD02B","FD03A","FD03B","FD04A","FD04B","FD05A","FD05B","FD06A","FD06B","FD07A","FD07B","FD08A","FD08B","FD09A","FD09B","FD10A","FD10B","GR-PRODUCTION","GR-ZONE","GR-ZONE-SMALLPARC","KITS-FLOOR","MIXAREA1_HU_FIX","MIXAREA2_HU_FIX","PACKRM1_NHU","PACKRM2_NHU","PACKRM2_HU_FIX","PKG_RETURN","PRFL-01-02","PRFL-01-04","PSA-INTERMEDIATE","RECV-HOLD","RECV01","RECV02","RECV03","RECV04","RETURN-BLND-FLOOR","SIG-INSIDE-01","SIG-INSIDE-02","STG01","STG02","STG03","STG04","STG05","STG06","STG07","STG08","STG09","STG10","STG11","STG12","STG13","STG14","STG_RTN","VIRTUAL_BIN","VIRTUAL_FLUID_LOAD","VIRTUAL_RET_BIN"];
-    const aisleConfigs = {A:36, B:38, C:38, D:38, E:38, F:38, G:38, H:38, J:37, K:12, L:34, M:35, N:24, P:6};
-    Object.keys(aisleConfigs).forEach(char => { for(let i=0; i<=aisleConfigs[char]; i++){ const bay = i.toString().padStart(2,'0'); ALL_SAP_BINS.push(`W${char}${bay}A`,`W${char}${bay}B`,`W${char}${bay}C`); } ALL_SAP_BINS.push(`W${char}100`); });
+    
+    // Dynamic Bin List - Now populated from your Excel data
+    let ALL_SAP_BINS = [];
     const FRESH_SKUS = ["3305704", "3307506", "3307509", "3307515", "3307518", "3307525", "3307710", "3308356", "3309009", "3309016", "3309017", "3309019", "3309138", "3309139"];
 
     let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
@@ -157,7 +156,7 @@
         const ctx = getScheduleContext();
         const sched = [];
         const isW13 = (ctx.week === 1 || ctx.week === 3);
-        if ([1, 3, 5].includes(ctx.day)) sched.push({ aisle: "FRESH", desc: "14 Items (Click to Count)", isFresh: true }, { aisle: "H", desc: "Bins 23-End" }, { aisle: "J", desc: "Bins 23-End" });
+        if ([1, 3, 5].includes(ctx.day)) sched.push({ aisle: "FRESH", desc: "14 Items", isFresh: true }, { aisle: "H", desc: "Bins 23-End" }, { aisle: "J", desc: "Bins 23-End" });
         if (ctx.day === 1) sched.push({ aisle: "WA", desc: "Entire Row" }, { aisle: "WK", desc: "Entire Row" });
         else if (ctx.day === 2) {
             sched.push({ aisle: "WB", desc: "Bins 00-25" }, { aisle: "WC", desc: "Entire Row" }, { aisle: "WD", desc: "Entire Row" }, { aisle: "WF", desc: "Entire Row" }, { aisle: "WL", desc: "Entire Row" });
@@ -170,10 +169,8 @@
         return sched;
     }
 
-    // Restriction removed: Always returns true
-    function isBinAllowed(binName) {
-        return true;
-    }
+    // ALL Restrictions removed. Returns true for any bin found in data.
+    function isBinAllowed(binName) { return true; }
 
     async function syncCloud() {
         try { const res = await fetch(API_URL); const data = await res.json(); cloudReport = data.report || []; updateProgressUI(); } catch(e){}
@@ -182,7 +179,7 @@
     function updateProgressUI() {
         const finished = new Set(cloudReport.map(i => i.scanBin));
         "ABCDEFGHIJKLMNOP".split("").forEach(row => {
-            const b = document.getElementById(`badge-${row}`); if (b) b.innerText = Array.from(finished).filter(bin => bin && bin.charAt(1) === row).length;
+            const b = document.getElementById(`badge-${row}`); if (b) b.innerText = Array.from(finished).filter(bin => bin && bin.includes(`W${row}`)).length;
         });
         document.getElementById('total-progress').innerText = `${finished.size} Bins Done`;
         if (currentActiveBin) document.getElementById('bin-done-badge').classList.toggle('hidden', !finished.has(currentActiveBin));
@@ -195,15 +192,10 @@
         let itemsToLog = currentBinItems.length === 0 ? [{ hu: "EMPTY_BIN", product: "NONE", desc: "Confirmed Empty", batch: "", sapBin: "", scannedBin: currentActiveBin, sapQty: 0, countQty: 0, type: 'ok', note: "" }] : currentBinItems.map(i => {
             let type = 'ok';
             if (i.isMissing) type = 'miss';
-            else if (i.isExtra) {
-                if (!sapHUIndex.has(i.hu) || i.hu === "0") type = 'inactive';
-                else if (i.sapBin && currentActiveBin !== i.sapBin) type = 'move';
-                else if (i.countQty !== i.sapQty) type = 'adj';
-            }
+            else if (i.isExtra) type = 'inactive';
             else if (i.actualBin && i.actualBin !== i.sapBin) type = 'move';
-            else if (i.sapBin && currentActiveBin !== i.sapBin) type = 'move';
             else if (i.countQty !== i.sapQty) type = 'adj';
-            return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.actualBin || currentActiveBin, sapQty: i.sapQty, countQty: i.countQty, type: type, unit: i.unit, stockType: i.stockType, grDate: i.grDate, sled: i.sled, note: i.note || "" };
+            return { hu: i.hu, product: i.product, desc: i.desc, batch: i.batch, sapBin: i.sapBin, scannedBin: i.actualBin || currentActiveBin, sapQty: i.sapQty, countQty: i.countQty, type: type, note: i.note || "" };
         });
         itemsToLog.forEach(item => cloudReport.push({ scanBin: item.scannedBin, ...item }));
         updateProgressUI();
@@ -221,7 +213,7 @@
             Object.keys(groups).forEach(key => {
                 const isExp = expandedBins.has(key);
                 const div = document.createElement('div'); div.className = "bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden mb-3 shadow-sm";
-                div.innerHTML = `<div onclick="toggleBinAccordion('${key}')" class="flex justify-between items-center p-6 active:bg-slate-50 cursor-pointer"><div><span class="mono font-black text-slate-800 block">${isFresh ? 'SKU: '+key : '/ '+key}</span><span class="text-[10px] text-slate-400 font-bold truncate max-w-[200px] block">${isFresh ? groups[key][0].item.desc : groups[key].length + ' Items'}</span></div><span class="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">${isFresh ? groups[key].length + ' Pallets' : ''}</span></div><div id="content-${key}" class="${isExp ? 'p-5 space-y-5 border-t-2 border-slate-50' : 'hidden'}"></div>`;
+                div.innerHTML = `<div onclick="toggleBinAccordion('${key}')" class="flex justify-between items-center p-6 active:bg-slate-50 cursor-pointer"><div><span class="mono font-black text-slate-800 block">${isFresh ? 'SKU: '+key : '/ '+key}</span><span class="text-[10px] text-slate-400 font-bold truncate max-w-[200px] block">${isFresh ? groups[key][0].item.desc : groups[key].length + ' Items'}</span></div></div><div id="content-${key}" class="${isExp ? 'p-5 space-y-5 border-t-2 border-slate-50' : 'hidden'}"></div>`;
                 if (isExp) groups[key].forEach(obj => div.querySelector(`#content-${key}`).appendChild(createItemCard(obj.item, obj.idx)));
                 container.appendChild(div);
             });
@@ -262,18 +254,99 @@
     function startFreshCycle() { const matches = sapMasterData.filter(item => FRESH_SKUS.includes(item.product)); currentActiveBin = "PRODUCT: FRESH"; expandedBins.clear(); currentBinItems = matches.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); }
     function toggleBinAccordion(bin) { if (expandedBins.has(bin)) expandedBins.delete(bin); else expandedBins.add(bin); renderAuditList(); }
     function leaveAisle() { currentActiveBin = ""; document.getElementById('setup-screen').classList.remove('hidden'); }
-    function selectBin(binName) { if (!binName) return; const upperBin = binName.toUpperCase(); if (!isBinAllowed(upperBin)) return alert("Not on schedule."); currentActiveBin = upperBin; document.getElementById('bin-input').value = currentActiveBin; const expected = sapBinIndex[currentActiveBin] || []; currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); window.scrollTo(0,0); updateProgressUI(); }
-    function stepBin(dir) { const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin); if (currentIdx !== -1 && ALL_SAP_BINS[currentIdx + dir]) selectBin(ALL_SAP_BINS[currentIdx + dir]); }
+    
+    function selectBin(binName) { 
+        if (!binName) return; 
+        const upperBin = binName.toUpperCase(); 
+        currentActiveBin = upperBin; 
+        document.getElementById('bin-input').value = currentActiveBin; 
+        const expected = sapBinIndex[currentActiveBin] || []; 
+        currentBinItems = expected.map(i => ({ ...i, verified: false, isMissing: false, countQty: 0, note: "", actualBin: null })); 
+        document.getElementById('setup-screen').classList.add('hidden'); 
+        renderAuditList(); 
+        window.scrollTo(0,0); 
+        updateProgressUI(); 
+    }
+
+    function stepBin(dir) { 
+        const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin); 
+        if (currentIdx !== -1 && ALL_SAP_BINS[currentIdx + dir]) selectBin(ALL_SAP_BINS[currentIdx + dir]); 
+    }
+
     function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
-    function rebuildIndexes() { sapBinIndex = {}; sapHUIndex = new Map(); sapMasterData.forEach(item => { if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = []; sapBinIndex[item.sapBin].push(item); sapHUIndex.set(item.hu, item); }); }
+    
+    function rebuildIndexes() { 
+        sapBinIndex = {}; 
+        sapHUIndex = new Map(); 
+        const binSet = new Set();
+        sapMasterData.forEach(item => { 
+            if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = []; 
+            sapBinIndex[item.sapBin].push(item); 
+            sapHUIndex.set(item.hu, item); 
+            if(item.sapBin) binSet.add(item.sapBin);
+        }); 
+        // Build dynamic master list of bins from the Excel file
+        ALL_SAP_BINS = Array.from(binSet).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+    }
+
     function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
     function switchView(v) { document.getElementById('view-audit').classList.toggle('hidden', v !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', v !== 'report'); if(v==='audit') syncCloud(); }
     
-    // Restriction removed from Setup Grid: All buttons enabled, match logic only sets startBin
-    function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; const ctx = getScheduleContext(); const sched = getTodaysSchedule(); document.getElementById('week-display').innerText = `Week ${ctx.week}`; document.getElementById('day-display').innerText = ctx.dayName; document.getElementById('schedule-list').innerHTML = sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white font-bold">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); const match = sched.find(s => s.aisle === row || s.aisle === "W" + row); btn.className = `relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl`; btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { let startBin = `W${row}00A`; if (match && match.desc.includes("23-End")) startBin = `W${row}23A`; selectBin(startBin); }; grid.appendChild(btn); }); syncCloud(); }
+    function initSetupGrid() { 
+        const grid = document.getElementById('row-grid'); 
+        grid.innerHTML = ""; 
+        const ctx = getScheduleContext(); 
+        const sched = getTodaysSchedule(); 
+        document.getElementById('week-display').innerText = `Week ${ctx.week}`; 
+        document.getElementById('day-display').innerText = ctx.dayName; 
+        document.getElementById('schedule-list').innerHTML = sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white font-bold">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); 
+        
+        // Generate Row Buttons (A-P) - Now always active
+        "ABCDEFGHIJKLMNOP".split("").forEach(row => { 
+            const btn = document.createElement('button'); 
+            const match = sched.find(s => s.aisle === row || s.aisle === "W" + row); 
+            btn.className = `relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl`; 
+            btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; 
+            btn.onclick = () => { 
+                let startBin = `W${row}00A`; 
+                if (match && match.desc.includes("23-End")) startBin = `W${row}23A`; 
+                selectBin(startBin); 
+            }; 
+            grid.appendChild(btn); 
+        }); 
+        syncCloud(); 
+    }
     
-    function handleFileUpload(event) { const reader = new FileReader(); reader.onload = (e) => { const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({ sapBin: String(row['Storage Bin'] || "").trim().toUpperCase(), hu: String(row['Handling Unit'] || "").trim(), product: String(row['Product'] || ""), batch: String(row['Batch'] || "").trim(), desc: row['Product Short Description'] || "", sapQty: parseFloat(row['Quantity']) || 0 })); localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData)); rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); }; reader.readAsArrayBuffer(event.target.files[0]); }
-    window.onload = () => { if (sapMasterData.length > 0) { rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } setInterval(syncCloud, 5000); };
+    function handleFileUpload(event) { 
+        const reader = new FileReader(); 
+        reader.onload = (e) => { 
+            const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); 
+            sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({ 
+                sapBin: String(row['Storage Bin'] || "").trim().toUpperCase(), 
+                hu: String(row['Handling Unit'] || "").trim(), 
+                product: String(row['Product'] || ""), 
+                batch: String(row['Batch'] || "").trim(), 
+                desc: row['Product Short Description'] || "", 
+                sapQty: parseFloat(row['Quantity']) || 0 
+            })); 
+            localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData)); 
+            rebuildIndexes(); 
+            document.getElementById('upload-prompt').classList.add('hidden'); 
+            document.getElementById('row-selection').classList.remove('hidden'); 
+            initSetupGrid(); 
+        }; 
+        reader.readAsArrayBuffer(event.target.files[0]); 
+    }
+
+    window.onload = () => { 
+        if (sapMasterData.length > 0) { 
+            rebuildIndexes(); 
+            document.getElementById('upload-prompt').classList.add('hidden'); 
+            document.getElementById('row-selection').classList.remove('hidden'); 
+            initSetupGrid(); 
+        } 
+        setInterval(syncCloud, 5000); 
+    };
 </script>
 </body>
 </html>

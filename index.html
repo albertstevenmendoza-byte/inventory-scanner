@@ -170,16 +170,8 @@
         return sched;
     }
 
+    // Restriction removed: Always returns true
     function isBinAllowed(binName) {
-        if (binName.startsWith("PRODUCT:")) return true;
-        if (!binName.startsWith("W")) return false;
-        const aisleLetter = binName.charAt(1);
-        const bayNum = parseInt(binName.substring(2,4));
-        const sched = getTodaysSchedule();
-        const match = sched.find(s => s.aisle === aisleLetter || s.aisle === "W" + aisleLetter);
-        if (!match) return false;
-        if (match.desc.includes("00-25") && bayNum > 25) return false;
-        if (match.desc.includes("23-End") && bayNum < 23) return false;
         return true;
     }
 
@@ -276,7 +268,10 @@
     function rebuildIndexes() { sapBinIndex = {}; sapHUIndex = new Map(); sapMasterData.forEach(item => { if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = []; sapBinIndex[item.sapBin].push(item); sapHUIndex.set(item.hu, item); }); }
     function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
     function switchView(v) { document.getElementById('view-audit').classList.toggle('hidden', v !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', v !== 'report'); if(v==='audit') syncCloud(); }
-    function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; const ctx = getScheduleContext(); const sched = getTodaysSchedule(); document.getElementById('week-display').innerText = `Week ${ctx.week}`; document.getElementById('day-display').innerText = ctx.dayName; document.getElementById('schedule-list').innerHTML = sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white font-bold">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); const match = sched.find(s => s.aisle === row || s.aisle === "W" + row); btn.className = `relative bg-white border-2 p-5 rounded-2xl font-black text-xl ${!match ? 'opacity-20 grayscale' : 'border-slate-100'}`; btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { if (!match) return; let startBin = `W${row}00A`; if (match.desc.includes("23-End")) startBin = `W${row}23A`; selectBin(startBin); }; grid.appendChild(btn); }); syncCloud(); }
+    
+    // Restriction removed from Setup Grid: All buttons enabled, match logic only sets startBin
+    function initSetupGrid() { const grid = document.getElementById('row-grid'); grid.innerHTML = ""; const ctx = getScheduleContext(); const sched = getTodaysSchedule(); document.getElementById('week-display').innerText = `Week ${ctx.week}`; document.getElementById('day-display').innerText = ctx.dayName; document.getElementById('schedule-list').innerHTML = sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white font-bold">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); "ABCDEFGHIJKLMNOP".split("").forEach(row => { const btn = document.createElement('button'); const match = sched.find(s => s.aisle === row || s.aisle === "W" + row); btn.className = `relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl`; btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; btn.onclick = () => { let startBin = `W${row}00A`; if (match && match.desc.includes("23-End")) startBin = `W${row}23A`; selectBin(startBin); }; grid.appendChild(btn); }); syncCloud(); }
+    
     function handleFileUpload(event) { const reader = new FileReader(); reader.onload = (e) => { const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); sapMasterData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => ({ sapBin: String(row['Storage Bin'] || "").trim().toUpperCase(), hu: String(row['Handling Unit'] || "").trim(), product: String(row['Product'] || ""), batch: String(row['Batch'] || "").trim(), desc: row['Product Short Description'] || "", sapQty: parseFloat(row['Quantity']) || 0 })); localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData)); rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); }; reader.readAsArrayBuffer(event.target.files[0]); }
     window.onload = () => { if (sapMasterData.length > 0) { rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); } setInterval(syncCloud, 5000); };
 </script>

@@ -134,11 +134,8 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
     
-    // FULL WAREHOUSE MAP
-    const ALL_SAP_BINS = ["B101","B102","B103","B104","B105","B106","B107","B108","B109","B110","B111","B112","B113","B114","CLARIFICATION","C_TRUCK","FA01A","FA01B","FA02A","FA02B","FA03A","FA03B","FA04A","FA04B","FA05A","FA05B","FA06A","FA06B","FA07A","FA07B","FA08A","FA08B","FB01A","FB01B","FB02A","FB02B","FB03A","FB03B","FB04A","FB04B","FB05A","FB05B","FB06A","FB06B","FB07A","FB07B","FB08A","FB08B","FC01A","FC01B","FC02A","FC02B","FC03A","FC03B","FC04A","FC04B","FC05A","FC05B","FC06A","FC06B","FC07A","FC07B","FB08A","FB08B","FD01A","FD01B","FD02A","FD02B","FD03A","FD03B","FD04A","FD04B","FD05A","FD05B","FD06A","FD06B","FD07A","FD07B","FD08A","FD08B","FD09A","FD09B","FD10A","FD10B","GR-PRODUCTION","GR-ZONE","GR-ZONE-SMALLPARC","KITS-FLOOR","MIXAREA1_HU_FIX","MIXAREA2_HU_FIX","PACKRM1_NHU","PACKRM2_NHU","PACKRM2_HU_FIX","PKG_RETURN","PRFL-01-02","PRFL-01-04","PSA-INTERMEDIATE","RECV-HOLD","RECV01","RECV02","RECV03","RECV04","RETURN-BLND-FLOOR","SIG-INSIDE-01","SIG-INSIDE-02","STG01","STG02","STG03","STG04","STG05","STG06","STG07","STG08","STG09","STG10","STG11","STG12","STG13","STG14","STG_RTN","VIRTUAL_BIN","VIRTUAL_FLUID_LOAD","VIRTUAL_RET_BIN"];
-    const aisleConfigs = {A:36, B:38, C:38, D:38, E:38, F:38, G:38, H:38, J:37, K:12, L:34, M:35, N:24, P:6};
-    Object.keys(aisleConfigs).forEach(char => { for(let i=0; i<=aisleConfigs[char]; i++){ const bay = i.toString().padStart(2,'0'); ALL_SAP_BINS.push(`W${char}${bay}A`,`W${char}${bay}B`,`W${char}${bay}C`); } ALL_SAP_BINS.push(`W${char}100`); });
-    
+    // NAVIGATION LIST (Now generated dynamically from Excel)
+    let ALL_SAP_BINS = [];
     const FRESH_SKUS = ["3305704", "3307506", "3307509", "3307515", "3307518", "3307525", "3307710", "3308356", "3309009", "3309016", "3309017", "3309019", "3309138", "3309139"];
 
     let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
@@ -172,6 +169,7 @@
         return sched;
     }
 
+    // COMPLETELY UNRESTRICTED
     function isBinAllowed(binName) { return true; }
 
     async function syncCloud() { try { const res = await fetch(API_URL); const data = await res.json(); cloudReport = data.report || []; updateProgressUI(); } catch(e){} }
@@ -179,7 +177,7 @@
     function updateProgressUI() {
         const finished = new Set(cloudReport.map(i => i.scanBin));
         "ABCDEFGHIJKLMNOP".split("").forEach(row => {
-            const b = document.getElementById(`badge-${row}`); if (b) b.innerText = Array.from(finished).filter(bin => bin && bin.charAt(1) === row).length;
+            const b = document.getElementById(`badge-${row}`); if (b) b.innerText = Array.from(finished).filter(bin => bin && bin.includes(`W${row}`)).length;
         });
         document.getElementById('total-progress').innerText = `${finished.size} Bins Done`;
         if (currentActiveBin) document.getElementById('bin-done-badge').classList.toggle('hidden', !finished.has(currentActiveBin));
@@ -269,11 +267,31 @@
 
     function stepBin(dir) { 
         const currentIdx = ALL_SAP_BINS.indexOf(currentActiveBin); 
-        if (currentIdx !== -1 && ALL_SAP_BINS[currentIdx + dir]) selectBin(ALL_SAP_BINS[currentIdx + dir]); 
+        if (currentIdx !== -1 && ALL_SAP_BINS[currentIdx + dir]) {
+            selectBin(ALL_SAP_BINS[currentIdx + dir]);
+        } else if (currentIdx === -1) {
+            // If user scanned a random bin not in our navigation list, find the closest one
+            const nextBin = ALL_SAP_BINS.find(b => b > currentActiveBin) || ALL_SAP_BINS[0];
+            selectBin(nextBin);
+        }
     }
 
     function toggleAddForm() { haptic(); document.getElementById('add-item-modal').classList.toggle('hidden'); }
-    function rebuildIndexes() { sapBinIndex = {}; sapHUIndex = new Map(); sapMasterData.forEach(item => { if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = []; sapBinIndex[item.sapBin].push(item); sapHUIndex.set(item.hu, item); }); }
+    
+    function rebuildIndexes() { 
+        sapBinIndex = {}; 
+        sapHUIndex = new Map(); 
+        const uniqueBins = new Set();
+        sapMasterData.forEach(item => { 
+            if (!sapBinIndex[item.sapBin]) sapBinIndex[item.sapBin] = []; 
+            sapBinIndex[item.sapBin].push(item); 
+            sapHUIndex.set(item.hu, item); 
+            if(item.sapBin) uniqueBins.add(item.sapBin);
+        }); 
+        // Build dynamic master list of bins from the Excel file and sort them naturally
+        ALL_SAP_BINS = Array.from(uniqueBins).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+    }
+
     function clearAllData() { if (confirm("Reset?")) { localStorage.clear(); location.reload(); } }
     function switchView(v) { document.getElementById('view-audit').classList.toggle('hidden', v !== 'audit'); document.getElementById('view-report').classList.toggle('hidden', v !== 'report'); if(v==='audit') syncCloud(); }
 
@@ -285,12 +303,11 @@
         document.getElementById('schedule-list').innerHTML = sched.map(s => s.isFresh ? `<button onclick="startFreshCycle()" class="w-full text-left py-3 px-4 bg-blue-600 rounded-2xl mb-1 flex justify-between items-center text-white font-bold">• ${s.aisle}: ${s.desc} <span>▶</span></button>` : `<div class="py-1.5 px-2">• <span class="text-blue-400 font-black">${s.aisle}:</span> ${s.desc}</div>`).join(''); 
         "ABCDEFGHIJKLMNOP".split("").forEach(row => { 
             const btn = document.createElement('button'); 
-            const match = sched.find(s => s.aisle === row || s.aisle === "W" + row); 
             btn.className = `relative bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-xl`; 
             btn.innerHTML = `${row}<span id="badge-${row}" class="row-progress-badge">0</span>`; 
             btn.onclick = () => { 
-                let startBin = `W${row}00A`; 
-                if (match && match.desc.includes("23-End")) startBin = `W${row}23A`; 
+                // Find the first bin in our dynamic list that starts with this row letter
+                const startBin = ALL_SAP_BINS.find(b => b.includes(`W${row}`)) || `W${row}00A`;
                 selectBin(startBin); 
             }; 
             grid.appendChild(btn); 

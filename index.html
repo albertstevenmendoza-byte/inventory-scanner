@@ -8,53 +8,57 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --blue: #2563eb; --blue-dark: #1d4ed8; --green: #059669; --red: #dc2626;
-            --purple: #7c3aed; --orange: #ea580c; --slate-900: #0f172a; --slate-800: #1e293b; --slate-50: #f8fafc; --radius: 1.25rem;
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'DM Sans', sans-serif; overscroll-behavior: none; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        .card-verified { border-left: 6px solid var(--green); background: linear-gradient(135deg, #ecfdf5 0%, #fff 60%); }
-        .card-missing { border-left: 6px solid var(--red); background: #fef2f2; opacity: 0.65; }
-        .card-extra { border-left: 6px solid var(--purple); background: #f5f3ff; }
-        .card-default { border-left: 6px solid #cbd5e1; }
-        #audit-list { -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-behavior: smooth; }
-        #audit-list::-webkit-scrollbar { display: none; }
-        #toast { position: fixed; top: env(safe-area-inset-top, 16px); left: 50%; transform: translateX(-50%) translateY(-120%); z-index: 9999; pointer-events: none; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s; opacity: 0; }
-        #toast.show { transform: translateX(-50%) translateY(16px); opacity: 1; }
-        .queue-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; background: var(--orange); color: white; border-radius: 99px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 2px solid var(--slate-900); }
-        @keyframes pulse-sync { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .sync-active { animation: pulse-sync 1.2s infinite; }
-        .nav-pill { transition: all 0.2s ease; }
-        .nav-pill.active { background: var(--blue); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
-        .row-btn { position: relative; transition: all 0.15s ease; }
-        .row-btn:active { transform: scale(0.93); }
-        .row-btn .fill-bar { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(37, 99, 235, 0.15), transparent); transition: height 0.5s ease; border-radius: 0 0 var(--radius) var(--radius); }
-        @keyframes swipe-hint { 0% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-8px); opacity: 1; } 100% { transform: translateX(0); opacity: 0.6; } }
-        .swipe-hint { animation: swipe-hint 2s ease-in-out infinite; }
-        .bottom-bar { background: rgba(255,255,255,0.92); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-top: 1px solid rgba(0,0,0,0.06); }
-        .stepper-btn { min-width: 56px; min-height: 56px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 900; border-radius: 16px; transition: all 0.1s; }
-        .stepper-btn:active { transform: scale(0.9); }
-        .sched-item { transition: all 0.15s; }
-        .sched-item:active { transform: scale(0.97); }
-        .bin-nav-btn { min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 16px; font-weight: 900; transition: all 0.1s; }
-        .bin-nav-btn:active { transform: scale(0.9); }
-        .modal-backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); }
-        .chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 99px; font-size: 11px; font-weight: 700; transition: all 0.15s; cursor: pointer; }
-        .chip:active { transform: scale(0.95); }
+        :root { --blue:#2563eb; --green:#059669; --red:#dc2626; --purple:#7c3aed; --orange:#ea580c; --cyan:#0891b2; --slate-900:#0f172a; --slate-800:#1e293b; --slate-50:#f8fafc; }
+        * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'DM Sans',sans-serif; overscroll-behavior:none; }
+        .mono { font-family:'JetBrains Mono',monospace; }
+        .card-verified { border-left:6px solid var(--green); background:linear-gradient(135deg,#ecfdf5 0%,#fff 60%); }
+        .card-missing { border-left:6px solid var(--red); background:#fef2f2; opacity:0.65; }
+        .card-extra { border-left:6px solid var(--purple); background:#f5f3ff; }
+        .card-default { border-left:6px solid #cbd5e1; }
+        #audit-list,#fresh-list { -webkit-overflow-scrolling:touch; scrollbar-width:none; scroll-behavior:smooth; }
+        #audit-list::-webkit-scrollbar,#fresh-list::-webkit-scrollbar { display:none; }
+        #toast { position:fixed; top:env(safe-area-inset-top,16px); left:50%; transform:translateX(-50%) translateY(-120%); z-index:9999; pointer-events:none; transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.4s; opacity:0; }
+        #toast.show { transform:translateX(-50%) translateY(16px); opacity:1; }
+        .queue-badge { position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; background:var(--orange); color:white; border-radius:99px; font-size:9px; font-weight:900; display:flex; align-items:center; justify-content:center; border:2px solid var(--slate-900); }
+        @keyframes pulse-sync { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .sync-active { animation:pulse-sync 1.2s infinite; }
+        .nav-pill { transition:all 0.2s ease; }
+        .nav-pill.active { background:var(--blue); color:white; box-shadow:0 4px 12px rgba(37,99,235,0.3); }
+        .row-btn { position:relative; transition:all 0.15s ease; }
+        .row-btn:active { transform:scale(0.93); }
+        .row-btn .fill-bar { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(to top,rgba(37,99,235,0.15),transparent); transition:height 0.5s ease; }
+        @keyframes swipe-hint { 0%{transform:translateX(0);opacity:0.6} 50%{transform:translateX(-8px);opacity:1} 100%{transform:translateX(0);opacity:0.6} }
+        .swipe-hint { animation:swipe-hint 2s ease-in-out infinite; }
+        .bottom-bar { background:rgba(255,255,255,0.92); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border-top:1px solid rgba(0,0,0,0.06); }
+        .stepper-btn { min-width:56px; min-height:56px; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:900; border-radius:16px; transition:all 0.1s; }
+        .stepper-btn:active { transform:scale(0.9); }
+        .bin-nav-btn { min-width:48px; min-height:48px; display:flex; align-items:center; justify-content:center; border-radius:16px; font-weight:900; transition:all 0.1s; }
+        .bin-nav-btn:active { transform:scale(0.9); }
+        .modal-backdrop { background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); }
+        .chip { display:inline-flex; align-items:center; gap:4px; padding:6px 14px; border-radius:99px; font-size:11px; font-weight:700; transition:all 0.15s; cursor:pointer; }
+        .chip:active { transform:scale(0.95); }
+        .annotation-layer { position:relative; touch-action:none; }
+        .annotation-layer canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; }
+        .color-dot { width:28px; height:28px; border-radius:50%; border:3px solid white; box-shadow:0 1px 4px rgba(0,0,0,0.2); cursor:pointer; transition:transform 0.1s; }
+        .color-dot:active,.color-dot.active { transform:scale(1.2); box-shadow:0 0 0 2px var(--blue); }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .spinner { width:16px; height:16px; border:2px solid white; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; display:inline-block; }
 
-        /* ===== ANNOTATION CANVAS ===== */
-        .annotation-layer { position: relative; touch-action: none; }
-        .annotation-layer canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
-        .color-dot { width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.1s; }
-        .color-dot:active, .color-dot.active { transform: scale(1.2); box-shadow: 0 0 0 2px var(--blue); }
-        .photo-thumb { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 2px solid #e2e8f0; cursor: pointer; transition: all 0.15s; }
-        .photo-thumb:active { transform: scale(0.9); }
-        
-        /* Upload spinner */
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner { width: 16px; height: 16px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+        /* ===== FRESH MODE STYLES ===== */
+        .fresh-card { background:white; border:2px solid #e2e8f0; border-radius:1.25rem; overflow:hidden; transition:all 0.2s; }
+        .fresh-card.counted { border-color:#a7f3d0; background:linear-gradient(135deg,#ecfdf5,#fff 70%); }
+        .fresh-card.has-variance { border-color:#fbbf24; }
+        .fresh-stepper { min-width:64px; min-height:64px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:900; border-radius:1rem; transition:all 0.1s; -webkit-user-select:none; user-select:none; }
+        .fresh-stepper:active { transform:scale(0.88); }
+        .fresh-qty-input { width:100%; text-align:center; font-size:3rem; font-weight:900; color:#1e40af; background:transparent; border:none; outline:none; font-family:'JetBrains Mono',monospace; }
+        .fresh-qty-input::placeholder { color:#cbd5e1; }
+        .condition-tag { padding:5px 12px; border-radius:99px; font-size:10px; font-weight:800; text-transform:uppercase; border:2px solid transparent; cursor:pointer; transition:all 0.15s; -webkit-user-select:none; user-select:none; }
+        .condition-tag:active { transform:scale(0.93); }
+        .condition-tag.active { border-color:currentColor; }
+        .fresh-sap-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; font-size:11px; }
+        .fresh-sap-row:nth-child(odd) { background:#f8fafc; }
+        .fresh-header { background:linear-gradient(135deg,#0e7490,#0891b2); color:white; }
     </style>
 </head>
 <body class="bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
@@ -63,7 +67,6 @@
     <span id="toast-icon">✓</span><span id="toast-text">Synced</span>
 </div>
 
-<!-- Header -->
 <header class="bg-slate-900 text-white px-4 py-3 shrink-0 z-50 flex justify-between items-center">
     <div class="flex items-center gap-3">
         <div class="bg-blue-600 w-9 h-9 rounded-xl flex items-center justify-center text-lg">📦</div>
@@ -81,10 +84,8 @@
     <button id="nav-report" onclick="switchView('report')" class="nav-pill flex-1 py-3 text-[10px] font-black uppercase text-slate-400 bg-slate-50 rounded-xl">Report</button>
 </nav>
 
-<!-- AUDIT VIEW -->
+<!-- ===== AUDIT VIEW (Standard Bin Mode) ===== -->
 <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
-
-    <!-- Setup Screen -->
     <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col overflow-y-auto">
         <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center p-8">
             <div class="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-4xl mb-6">📋</div>
@@ -92,29 +93,21 @@
             <p class="text-sm text-slate-400 font-medium mb-8">Excel export from SAP warehouse stock</p>
             <input type="file" id="sap-upload-main" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(event)">
             <label for="sap-upload-main" class="bg-blue-600 text-white py-5 px-12 rounded-2xl font-black uppercase text-sm shadow-xl cursor-pointer active:scale-95 transition-transform inline-block">Select Excel File</label>
-            <p class="text-[10px] text-slate-300 mt-4 font-semibold">Columns: Storage Bin, Handling Unit, Product, Batch, Quantity</p>
         </div>
-
         <div id="row-selection" class="hidden p-5 pb-8 space-y-5">
             <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl">
-                <div class="flex justify-between items-center mb-3">
-                    <span id="week-display" class="bg-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Week ?</span>
-                    <span id="day-display" class="text-[10px] font-bold uppercase text-slate-400">Monday</span>
-                </div>
+                <div class="flex justify-between items-center mb-3"><span id="week-display" class="bg-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Week ?</span><span id="day-display" class="text-[10px] font-bold uppercase text-slate-400">Monday</span></div>
                 <p class="text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">Today's Targets</p>
                 <div id="schedule-list" class="space-y-1.5"></div>
             </div>
             <div class="bg-white p-4 rounded-2xl border shadow-sm">
                 <p class="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Product Lookup</p>
                 <div class="flex gap-2">
-                    <input type="text" id="prod-cycle-input" placeholder="Enter Product #" class="flex-1 p-4 bg-slate-50 border-2 rounded-xl mono text-sm outline-none focus:border-blue-500 transition-all">
-                    <button onclick="startProductCycle()" class="bg-orange-500 text-white px-5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">Go</button>
+                    <input type="text" id="prod-cycle-input" placeholder="Enter Product #" class="flex-1 p-4 bg-slate-50 border-2 rounded-xl mono text-sm outline-none focus:border-blue-500">
+                    <button onclick="startProductCycle()" class="bg-orange-500 text-white px-5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95">Go</button>
                 </div>
             </div>
-            <div class="flex justify-between items-end">
-                <h2 class="text-xl font-black uppercase text-slate-800">Select Aisle</h2>
-                <span id="total-progress" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">0 Done</span>
-            </div>
+            <div class="flex justify-between items-end"><h2 class="text-xl font-black uppercase text-slate-800">Select Aisle</h2><span id="total-progress" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">0 Done</span></div>
             <div class="grid grid-cols-4 gap-3" id="row-grid"></div>
             <div class="flex gap-2">
                 <div class="flex-1 bg-white border rounded-xl p-3 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Loaded</p><p id="stat-loaded" class="text-lg font-black text-slate-700 mono">0</p></div>
@@ -124,38 +117,73 @@
         </div>
     </div>
 
-    <!-- Bin Header -->
+    <!-- Bin Header (standard mode) -->
     <div id="bin-header" class="px-4 py-3 bg-white border-b shrink-0">
         <div class="flex gap-2 items-center">
             <button onclick="stepBin(-1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">◀</button>
-            <div class="flex-1 relative">
-                <input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-3.5 px-5 bg-slate-50 border-2 rounded-xl text-lg mono text-blue-700 font-bold uppercase outline-none focus:border-blue-400 transition-all" onchange="selectBin(this.value)">
-                <span id="bin-done-badge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">DONE</span>
-            </div>
+            <div class="flex-1 relative"><input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-3.5 px-5 bg-slate-50 border-2 rounded-xl text-lg mono text-blue-700 font-bold uppercase outline-none focus:border-blue-400" onchange="selectBin(this.value)"><span id="bin-done-badge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">DONE</span></div>
             <button onclick="stepBin(1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">▶</button>
         </div>
-        <div class="mt-2 flex items-center gap-3">
-            <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="bin-progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div></div>
-            <span id="bin-progress-text" class="text-[10px] font-black text-slate-400 mono min-w-[50px] text-right">0 / 0</span>
-        </div>
+        <div class="mt-2 flex items-center gap-3"><div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="bin-progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div></div><span id="bin-progress-text" class="text-[10px] font-black text-slate-400 mono min-w-[50px] text-right">0 / 0</span></div>
     </div>
-
     <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[260px]"></div>
 
-    <!-- Bottom Bar -->
-    <div class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50">
+    <!-- Bottom Bar (standard mode) -->
+    <div id="standard-bottom-bar" class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50">
         <div class="flex gap-2 mb-3">
-            <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] transition-all">+ Found Item</button>
-            <button onclick="confirmAllRemaining()" id="btn-confirm-all" class="flex-1 bg-emerald-50 border-2 border-emerald-300 text-emerald-700 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] transition-all hidden">✓ Confirm All</button>
+            <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97]">+ Found Item</button>
+            <button onclick="confirmAllRemaining()" id="btn-confirm-all" class="flex-1 bg-emerald-50 border-2 border-emerald-300 text-emerald-700 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] hidden">✓ Confirm All</button>
             <button onclick="leaveAisle()" class="w-14 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center text-lg border border-slate-200 active:bg-slate-200">🚪</button>
         </div>
-        <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2" style="padding:18px 0;">
-            <span>Finalize & Next Bin</span><span class="swipe-hint text-white/50">→</span>
+        <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;"><span>Finalize & Next Bin</span><span class="swipe-hint text-white/50">→</span></button>
+    </div>
+</main>
+
+<!-- ===== FRESH COUNT VIEW ===== -->
+<main id="view-fresh" class="flex-1 flex flex-col overflow-hidden hidden">
+    <!-- Fresh Header -->
+    <div class="fresh-header px-4 py-4 shrink-0">
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-black uppercase tracking-tight">🧊 Fresh Count</h2>
+                <p id="fresh-progress-text" class="text-[10px] font-bold text-cyan-100">0 of 14 SKUs counted</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <div id="fresh-mode-toggle" class="flex bg-white/20 rounded-lg overflow-hidden">
+                    <button onclick="setFreshMode('quick')" id="fresh-mode-quick" class="px-3 py-1.5 text-[9px] font-black uppercase bg-white text-cyan-700">Quick</button>
+                    <button onclick="setFreshMode('detailed')" id="fresh-mode-detailed" class="px-3 py-1.5 text-[9px] font-black uppercase text-white/70">Detailed</button>
+                </div>
+                <button onclick="leaveFresh()" class="bg-white/20 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase">✕ Exit</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fresh List -->
+    <div id="fresh-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[200px]"></div>
+    
+    <!-- Fresh Bottom Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50" id="fresh-bottom-bar" style="display:none;">
+        <div class="flex gap-2 mb-3">
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">SAP Total</p>
+                <p id="fresh-sap-total" class="text-lg font-black text-slate-600 mono">0</p>
+            </div>
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">Your Count</p>
+                <p id="fresh-count-total" class="text-lg font-black text-blue-600 mono">0</p>
+            </div>
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">Variance</p>
+                <p id="fresh-variance-total" class="text-lg font-black mono">0</p>
+            </div>
+        </div>
+        <button onclick="finalizeFresh()" class="w-full bg-cyan-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;">
+            <span>Submit Fresh Count</span>
         </button>
     </div>
 </main>
 
-<!-- REPORT VIEW -->
+<!-- ===== REPORT VIEW ===== -->
 <main id="view-report" class="flex-1 flex flex-col overflow-hidden hidden">
     <div class="p-4 space-y-3 overflow-y-auto flex-1">
         <div class="flex gap-2">
@@ -167,540 +195,389 @@
     </div>
 </main>
 
-<!-- ===== MODALS ===== -->
-
-<!-- Add Item Modal -->
+<!-- ===== MODALS (same as before) ===== -->
 <div id="add-item-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-end sm:items-center justify-center">
     <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center"><h2 class="text-xl font-black uppercase">Found Item</h2><span id="smart-fill-badge" class="hidden bg-green-100 text-green-700 text-[9px] font-black px-2 py-1 rounded-full">Auto-filled</span></div>
         <div class="space-y-3">
             <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">HU Number</label><input type="text" id="add-hu" placeholder="Scan or type (0 if missing)" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl mono font-bold outline-none focus:border-blue-500 mt-1" oninput="autoLookupExtra(this)"></div>
-            <div class="grid grid-cols-2 gap-2"><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Item #</label><input type="text" id="add-prod" placeholder="Product" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl outline-none mt-1"></div><div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Batch</label><input type="text" id="add-batch" placeholder="Batch" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl outline-none mt-1"></div></div>
-            <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Physical Count</label><input type="number" id="add-qty" placeholder="0" class="w-full p-5 bg-blue-50 border-2 border-blue-200 rounded-xl font-black text-center text-3xl text-blue-700 outline-none mt-1"></div>
+            <div class="grid grid-cols-2 gap-2"><div><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Item #</label><input type="text" id="add-prod" placeholder="Product" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl outline-none mt-1"></div><div><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Batch</label><input type="text" id="add-batch" placeholder="Batch" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl outline-none mt-1"></div></div>
+            <div><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Physical Count</label><input type="number" id="add-qty" placeholder="0" class="w-full p-5 bg-blue-50 border-2 border-blue-200 rounded-xl font-black text-center text-3xl text-blue-700 outline-none mt-1"></div>
         </div>
-        <div class="flex gap-3 pt-2"><button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-xl font-black uppercase shadow-lg active:scale-[0.97] transition-all">Add Item</button></div>
+        <div class="flex gap-3 pt-2"><button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-xl font-black uppercase shadow-lg active:scale-[0.97]">Add Item</button></div>
     </div>
 </div>
 
-<!-- Note + Photo Modal (Enhanced) -->
 <div id="note-modal" class="hidden fixed inset-0 modal-backdrop z-[110] flex flex-col">
     <div class="flex-1 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="p-5 pb-3 shrink-0">
-                <div class="flex justify-between items-center mb-1">
-                    <h2 class="text-lg font-black uppercase text-slate-800">Note & Photo</h2>
-                    <span id="photo-upload-status" class="hidden text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-full"></span>
-                </div>
-                <p id="note-modal-context" class="text-[11px] text-slate-500 font-semibold"></p>
-            </div>
-
+            <div class="p-5 pb-3 shrink-0"><div class="flex justify-between items-center mb-1"><h2 class="text-lg font-black uppercase text-slate-800">Note & Photo</h2><span id="photo-upload-status" class="hidden text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-full"></span></div><p id="note-modal-context" class="text-[11px] text-slate-500 font-semibold"></p></div>
             <div class="flex-1 overflow-y-auto px-5 space-y-4 pb-5">
-                <!-- Note text -->
-                <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Note</label>
-                    <textarea id="note-text" rows="2" placeholder="Describe issue, damage, etc..." class="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none text-sm resize-none focus:border-blue-500 mt-1"></textarea>
-                </div>
-
-                <!-- Photo capture -->
-                <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Photo Evidence</label>
+                <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Note</label><textarea id="note-text" rows="2" placeholder="Describe issue..." class="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none text-sm resize-none focus:border-blue-500 mt-1"></textarea></div>
+                <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Photo Evidence</label>
                     <div class="mt-2">
-                        <!-- No photo yet: show capture buttons -->
-                        <div id="photo-capture-area">
-                            <div id="photo-empty-state" class="flex gap-2">
-                                <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoCapture(event)">
-                                <label for="camera-input" class="flex-1 bg-blue-50 border-2 border-dashed border-blue-200 rounded-xl py-6 flex flex-col items-center gap-1 cursor-pointer active:bg-blue-100 transition-colors">
-                                    <span class="text-2xl">📷</span>
-                                    <span class="text-[10px] font-black text-blue-600 uppercase">Take Photo</span>
-                                </label>
-                                <input type="file" id="gallery-input" accept="image/*" class="hidden" onchange="handlePhotoCapture(event)">
-                                <label for="gallery-input" class="flex-1 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl py-6 flex flex-col items-center gap-1 cursor-pointer active:bg-slate-100 transition-colors">
-                                    <span class="text-2xl">🖼️</span>
-                                    <span class="text-[10px] font-black text-slate-500 uppercase">Gallery</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Photo loaded: show image + annotation tools -->
-                        <div id="photo-editor" class="hidden">
-                            <div class="annotation-layer rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100" id="annotation-container" style="position:relative;">
-                                <img id="photo-preview" class="w-full block" style="max-height:300px; object-fit:contain; background:#f1f5f9;">
-                                <canvas id="annotation-canvas"></canvas>
-                            </div>
-                            <!-- Annotation toolbar -->
-                            <div class="flex items-center justify-between mt-3 px-1">
-                                <div class="flex items-center gap-2">
-                                    <div class="color-dot active" style="background:#ef4444" onclick="setAnnotColor('#ef4444', this)"></div>
-                                    <div class="color-dot" style="background:#2563eb" onclick="setAnnotColor('#2563eb', this)"></div>
-                                    <div class="color-dot" style="background:#16a34a" onclick="setAnnotColor('#16a34a', this)"></div>
-                                    <div class="color-dot" style="background:#000000" onclick="setAnnotColor('#000000', this)"></div>
-                                    <div class="w-px h-6 bg-slate-200 mx-1"></div>
-                                    <button onclick="setAnnotSize(3)" id="pen-thin" class="text-[9px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">Thin</button>
-                                    <button onclick="setAnnotSize(6)" id="pen-med" class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Med</button>
-                                    <button onclick="setAnnotSize(12)" id="pen-thick" class="text-[9px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">Thick</button>
-                                </div>
-                                <div class="flex gap-1">
-                                    <button onclick="undoAnnotation()" class="text-[10px] font-black text-slate-400 bg-white border px-3 py-1.5 rounded-lg active:bg-slate-50">Undo</button>
-                                    <button onclick="clearAnnotations()" class="text-[10px] font-black text-red-400 bg-white border px-3 py-1.5 rounded-lg active:bg-red-50">Clear</button>
-                                </div>
-                            </div>
-                            <button onclick="removePhoto()" class="w-full mt-2 py-2 text-[10px] font-black text-red-400 uppercase">✕ Remove Photo</button>
-                        </div>
+                        <div id="photo-capture-area"><div id="photo-empty-state" class="flex gap-2"><input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoCapture(event)"><label for="camera-input" class="flex-1 bg-blue-50 border-2 border-dashed border-blue-200 rounded-xl py-6 flex flex-col items-center gap-1 cursor-pointer active:bg-blue-100"><span class="text-2xl">📷</span><span class="text-[10px] font-black text-blue-600 uppercase">Take Photo</span></label><input type="file" id="gallery-input" accept="image/*" class="hidden" onchange="handlePhotoCapture(event)"><label for="gallery-input" class="flex-1 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl py-6 flex flex-col items-center gap-1 cursor-pointer active:bg-slate-100"><span class="text-2xl">🖼️</span><span class="text-[10px] font-black text-slate-500 uppercase">Gallery</span></label></div></div>
+                        <div id="photo-editor" class="hidden"><div class="annotation-layer rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100" id="annotation-container" style="position:relative;"><img id="photo-preview" class="w-full block" style="max-height:300px;object-fit:contain;background:#f1f5f9;"><canvas id="annotation-canvas"></canvas></div><div class="flex items-center justify-between mt-3 px-1"><div class="flex items-center gap-2"><div class="color-dot active" style="background:#ef4444" onclick="setAnnotColor('#ef4444',this)"></div><div class="color-dot" style="background:#2563eb" onclick="setAnnotColor('#2563eb',this)"></div><div class="color-dot" style="background:#16a34a" onclick="setAnnotColor('#16a34a',this)"></div><div class="color-dot" style="background:#000" onclick="setAnnotColor('#000',this)"></div><div class="w-px h-6 bg-slate-200 mx-1"></div><button onclick="setAnnotSize(3)" id="pen-thin" class="text-[9px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">Thin</button><button onclick="setAnnotSize(6)" id="pen-med" class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Med</button><button onclick="setAnnotSize(12)" id="pen-thick" class="text-[9px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">Thick</button></div><div class="flex gap-1"><button onclick="undoAnnotation()" class="text-[10px] font-black text-slate-400 bg-white border px-3 py-1.5 rounded-lg">Undo</button><button onclick="clearAnnotations()" class="text-[10px] font-black text-red-400 bg-white border px-3 py-1.5 rounded-lg">Clear</button></div></div><button onclick="removePhoto()" class="w-full mt-2 py-2 text-[10px] font-black text-red-400 uppercase">✕ Remove Photo</button></div>
                     </div>
                 </div>
             </div>
-
-            <!-- Actions -->
-            <div class="p-5 pt-3 border-t flex gap-3 shrink-0">
-                <button onclick="closeNoteModal()" class="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px]">Cancel</button>
-                <button onclick="saveNoteAndPhoto()" class="flex-[2] bg-blue-600 text-white py-3.5 rounded-xl font-black uppercase shadow-lg active:scale-[0.97] transition-all">Save</button>
-            </div>
+            <div class="p-5 pt-3 border-t flex gap-3 shrink-0"><button onclick="closeNoteModal()" class="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="saveNoteAndPhoto()" class="flex-[2] bg-blue-600 text-white py-3.5 rounded-xl font-black uppercase shadow-lg active:scale-[0.97]">Save</button></div>
         </div>
     </div>
 </div>
 
-<!-- Bin Move Modal -->
 <div id="bin-move-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-center justify-center">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
-        <h2 class="text-lg font-black uppercase text-slate-800">Record Bin Move</h2>
-        <p id="move-modal-context" class="text-[11px] text-slate-500 font-semibold"></p>
-        <div class="bg-slate-50 p-3 rounded-xl border-2 space-y-1"><p class="text-[9px] font-black uppercase text-slate-400 tracking-widest">SAP Bin</p><p id="move-sap-bin" class="mono font-black text-slate-700"></p></div>
-        <input type="text" id="move-actual-bin" placeholder="Scan / Enter Actual Bin" class="w-full p-4 bg-blue-50 border-2 border-blue-200 rounded-xl mono font-bold text-blue-700 uppercase outline-none focus:border-blue-500 text-center text-lg">
-        <div class="flex gap-3"><button onclick="closeBinMoveModal()" class="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="saveBinMove()" class="flex-[2] bg-purple-600 text-white py-3.5 rounded-xl font-black uppercase shadow-lg">Confirm</button></div>
-    </div>
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl"><h2 class="text-lg font-black uppercase text-slate-800">Record Bin Move</h2><p id="move-modal-context" class="text-[11px] text-slate-500 font-semibold"></p><div class="bg-slate-50 p-3 rounded-xl border-2"><p class="text-[9px] font-black uppercase text-slate-400">SAP Bin</p><p id="move-sap-bin" class="mono font-black text-slate-700"></p></div><input type="text" id="move-actual-bin" placeholder="Scan Actual Bin" class="w-full p-4 bg-blue-50 border-2 border-blue-200 rounded-xl mono font-bold text-blue-700 uppercase outline-none focus:border-blue-500 text-center text-lg"><div class="flex gap-3"><button onclick="closeBinMoveModal()" class="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="saveBinMove()" class="flex-[2] bg-purple-600 text-white py-3.5 rounded-xl font-black uppercase shadow-lg">Confirm</button></div></div>
 </div>
-
-<!-- Auditor Name Modal -->
-<div id="auditor-modal" class="hidden fixed inset-0 modal-backdrop z-[120] p-4 flex items-center justify-center">
-    <div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl">
-        <h2 class="text-lg font-black uppercase text-slate-800">Your Name</h2>
-        <input type="text" id="auditor-name-input" placeholder="e.g. Albert" class="w-full p-4 bg-slate-50 border-2 rounded-xl font-bold outline-none focus:border-blue-500 text-center text-lg">
-        <button onclick="saveAuditorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase shadow-lg">Save</button>
-    </div>
-</div>
-
-<!-- Fullscreen Photo Viewer -->
-<div id="photo-viewer" class="hidden fixed inset-0 bg-black/90 z-[130] flex items-center justify-center p-4" onclick="this.classList.add('hidden')">
-    <img id="photo-viewer-img" class="max-w-full max-h-full rounded-xl shadow-2xl">
-</div>
+<div id="auditor-modal" class="hidden fixed inset-0 modal-backdrop z-[120] p-4 flex items-center justify-center"><div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl"><h2 class="text-lg font-black uppercase text-slate-800">Your Name</h2><input type="text" id="auditor-name-input" placeholder="e.g. Albert" class="w-full p-4 bg-slate-50 border-2 rounded-xl font-bold outline-none focus:border-blue-500 text-center text-lg"><button onclick="saveAuditorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase shadow-lg">Save</button></div></div>
+<div id="photo-viewer" class="hidden fixed inset-0 bg-black/90 z-[130] flex items-center justify-center p-4" onclick="this.classList.add('hidden')"><img id="photo-viewer-img" class="max-w-full max-h-full rounded-xl shadow-2xl"></div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
 
 let ALL_SAP_BINS = [];
 const FRESH_SKUS = ["3305704","3307506","3307509","3307515","3307518","3307525","3307710","3308356","3309009","3309016","3309017","3309019","3309138","3309139"];
-let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData')) || [];
-let sapBinIndex = {}, sapHUIndex = new Map(), expandedBins = new Set();
-let currentBinItems = [], currentActiveBin = "", cloudReport = [];
-let noteTargetIndex = null, binMoveTargetIndex = null;
-let auditorName = localStorage.getItem('auditorName') || "";
-let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue')) || [];
+let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData'))||[];
+let sapBinIndex={}, sapHUIndex=new Map(), expandedBins=new Set();
+let currentBinItems=[], currentActiveBin="", cloudReport=[];
+let noteTargetIndex=null, binMoveTargetIndex=null;
+let auditorName=localStorage.getItem('auditorName')||"";
+let offlineQueue=JSON.parse(localStorage.getItem('offlineQueue'))||[];
+let annotCanvas,annotCtx,annotColor='#ef4444',annotSize=6,isDrawing=false,annotHistory=[],currentPhotoBase64=null;
 
-// ===== ANNOTATION STATE =====
-let annotCanvas, annotCtx, annotColor = '#ef4444', annotSize = 6;
-let isDrawing = false, annotHistory = [], currentPhotoBase64 = null;
+// ===== FRESH STATE =====
+let freshMode = 'quick'; // 'quick' or 'detailed'
+let freshData = []; // [{sku, desc, sapTotal, sapItems:[], countQty, condition, note, photoBase64, photoUrl}]
+let freshNoteTarget = null; // index into freshData
 
 // ===== OFFLINE QUEUE =====
-function enqueuePost(payload) {
-    offlineQueue.push(payload);
-    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
-    updateQueueBadge();
-    drainQueue();
-}
-async function drainQueue() {
-    if (offlineQueue.length === 0) return;
-    const batch = [...offlineQueue]; let ok = 0;
-    for (const p of batch) {
-        try { const r = await fetch(API_URL, { method:'POST', body:JSON.stringify(p) }); if (r.ok) { ok++; offlineQueue.shift(); } else break; } catch { break; }
-    }
-    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
-    updateQueueBadge();
-    if (ok > 0) showToast(`${ok} synced`, 'green');
-}
-function updateQueueBadge() {
-    const el = document.getElementById('queue-count'), dot = document.getElementById('sync-dot'), sq = document.getElementById('stat-queued');
-    if (offlineQueue.length > 0) { el.classList.remove('hidden'); el.textContent = offlineQueue.length; dot.className = 'w-2 h-2 rounded-full bg-orange-400 sync-active'; }
-    else { el.classList.add('hidden'); dot.className = 'w-2 h-2 rounded-full bg-emerald-400'; }
-    if (sq) sq.textContent = offlineQueue.length;
-}
+function enqueuePost(p){offlineQueue.push(p);localStorage.setItem('offlineQueue',JSON.stringify(offlineQueue));updateQueueBadge();drainQueue();}
+async function drainQueue(){if(!offlineQueue.length)return;let ok=0;for(const p of[...offlineQueue]){try{const r=await fetch(API_URL,{method:'POST',body:JSON.stringify(p)});if(r.ok){ok++;offlineQueue.shift();}else break;}catch{break;}}localStorage.setItem('offlineQueue',JSON.stringify(offlineQueue));updateQueueBadge();if(ok>0)showToast(`${ok} synced`,'green');}
+function updateQueueBadge(){const el=document.getElementById('queue-count'),dot=document.getElementById('sync-dot'),sq=document.getElementById('stat-queued');if(offlineQueue.length>0){el.classList.remove('hidden');el.textContent=offlineQueue.length;dot.className='w-2 h-2 rounded-full bg-orange-400 sync-active';}else{el.classList.add('hidden');dot.className='w-2 h-2 rounded-full bg-emerald-400';}if(sq)sq.textContent=offlineQueue.length;}
 
 // ===== UTILS =====
-function haptic() { if (navigator.vibrate) navigator.vibrate(30); }
-function showToast(msg, color='green') {
-    const t = document.getElementById('toast');
-    const c = { green:'bg-emerald-600 text-white', red:'bg-red-600 text-white', blue:'bg-blue-600 text-white', orange:'bg-orange-500 text-white' };
-    t.className = `${c[color]||c.green} px-5 py-3 rounded-2xl font-black text-xs uppercase shadow-2xl flex items-center gap-2`;
-    t.style.cssText = 'position:fixed;top:env(safe-area-inset-top,16px);left:50%;z-index:9999;pointer-events:none;transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.4s;';
-    document.getElementById('toast-text').textContent = msg; t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2200);
-}
-function showAuditorModal() { document.getElementById('auditor-name-input').value = auditorName; document.getElementById('auditor-modal').classList.remove('hidden'); }
-function saveAuditorName() { auditorName = document.getElementById('auditor-name-input').value.trim()||"Floor"; localStorage.setItem('auditorName',auditorName); document.getElementById('auditor-name-btn').textContent = '👤 '+auditorName; document.getElementById('auditor-modal').classList.add('hidden'); }
+function haptic(){if(navigator.vibrate)navigator.vibrate(30);}
+function showToast(msg,color='green'){const t=document.getElementById('toast');const c={green:'bg-emerald-600 text-white',red:'bg-red-600 text-white',blue:'bg-blue-600 text-white',orange:'bg-orange-500 text-white',cyan:'bg-cyan-600 text-white'};t.className=`${c[color]||c.green} px-5 py-3 rounded-2xl font-black text-xs uppercase shadow-2xl flex items-center gap-2`;t.style.cssText='position:fixed;top:env(safe-area-inset-top,16px);left:50%;z-index:9999;pointer-events:none;transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.4s;';document.getElementById('toast-text').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function showAuditorModal(){document.getElementById('auditor-name-input').value=auditorName;document.getElementById('auditor-modal').classList.remove('hidden');}
+function saveAuditorName(){auditorName=document.getElementById('auditor-name-input').value.trim()||"Floor";localStorage.setItem('auditorName',auditorName);document.getElementById('auditor-name-btn').textContent='👤 '+auditorName;document.getElementById('auditor-modal').classList.add('hidden');}
 
 // ===== SCHEDULE =====
-function getScheduleContext() { const n = new Date(), s = new Date("2026-03-30T00:00:00"), w = Math.floor((n-s)/(7*864e5)); return { week:((w%4)+4)%4+1, day:n.getDay(), dayName:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][n.getDay()] }; }
-function getTodaysSchedule() {
-    const c = getScheduleContext(), s = [], w13 = (c.week===1||c.week===3);
-    if ([1,3,5].includes(c.day)) s.push({aisle:"FRESH",desc:"14 Items",isFresh:true},{aisle:"H",desc:"Bins 23-End"},{aisle:"J",desc:"Bins 23-End"});
-    if (c.day===1) s.push({aisle:"WA",desc:"Entire Row"},{aisle:"WK",desc:"Entire Row"});
-    else if (c.day===2) { s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WC",desc:"Entire Row"},{aisle:"WD",desc:"Entire Row"},{aisle:"WF",desc:"Entire Row"},{aisle:"WL",desc:"Entire Row"}); s.push({aisle:"WG",desc:"Bins 23-End"}); }
-    else if (c.day===3) s.push({aisle:"WE",desc:"Entire Row"},{aisle:"WM",desc:"Entire Row"});
-    else if (c.day===4) { s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WF",desc:"Bins 23-End"},{aisle:"WN",desc:"Entire Row"}); s.push({aisle:"WG",desc:w13?"Entire Row":"Bins 23-End"}); }
-    else if (c.day===5) s.push({aisle:"WB",desc:"Bins 23-End (SR)"},{aisle:"WC",desc:"Bins 23-End (SR)"},{aisle:"WP",desc:"Entire Row"});
-    return s;
+function getScheduleContext(){const n=new Date(),s=new Date("2026-03-30T00:00:00"),w=Math.floor((n-s)/(7*864e5));return{week:((w%4)+4)%4+1,day:n.getDay(),dayName:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][n.getDay()]};}
+function getTodaysSchedule(){const c=getScheduleContext(),s=[],w13=(c.week===1||c.week===3);if([1,3,5].includes(c.day))s.push({aisle:"FRESH",desc:"14 Items",isFresh:true},{aisle:"H",desc:"Bins 23-End"},{aisle:"J",desc:"Bins 23-End"});if(c.day===1)s.push({aisle:"WA",desc:"Entire Row"},{aisle:"WK",desc:"Entire Row"});else if(c.day===2){s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WC",desc:"Entire Row"},{aisle:"WD",desc:"Entire Row"},{aisle:"WF",desc:"Entire Row"},{aisle:"WL",desc:"Entire Row"},{aisle:"WG",desc:"Bins 23-End"});}else if(c.day===3)s.push({aisle:"WE",desc:"Entire Row"},{aisle:"WM",desc:"Entire Row"});else if(c.day===4){s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WF",desc:"Bins 23-End"},{aisle:"WN",desc:"Entire Row"},{aisle:"WG",desc:w13?"Entire Row":"Bins 23-End"});}else if(c.day===5)s.push({aisle:"WB",desc:"Bins 23-End (SR)"},{aisle:"WC",desc:"Bins 23-End (SR)"},{aisle:"WP",desc:"Entire Row"});return s;}
+
+// ===== CLOUD =====
+async function syncCloud(){try{const r=await fetch(API_URL);const d=await r.json();cloudReport=d.report||[];updateProgressUI();}catch{}drainQueue();}
+function updateProgressUI(){const f=new Set(cloudReport.map(i=>i.scanBin));"ABCDEFGHIJKLMNOP".split("").forEach(r=>{const b=document.getElementById(`badge-${r}`);if(b)b.innerText=Array.from(f).filter(bin=>bin&&bin.includes(`W${r}`)).length;});document.getElementById('total-progress').innerText=`${f.size} Done`;if(currentActiveBin)document.getElementById('bin-done-badge').classList.toggle('hidden',!f.has(currentActiveBin));document.getElementById('rpt-finalized').textContent=new Set(cloudReport.map(i=>i.scanBin)).size;const items=cloudReport.filter(i=>i.hu!=='EMPTY_BIN');const disc=items.filter(i=>i.type!=='ok').length;document.getElementById('rpt-discrep').textContent=disc;if(items.length>0)document.getElementById('rpt-accuracy').textContent=Math.round(((items.length-disc)/items.length)*100)+'%';}
+function updateBinProgress(){const t=currentBinItems.length,d=currentBinItems.filter(i=>i.verified||i.isMissing).length;document.getElementById('bin-progress-bar').style.width=t>0?Math.round((d/t)*100)+'%':'0%';document.getElementById('bin-progress-text').textContent=`${d} / ${t}`;const btn=document.getElementById('btn-confirm-all');(t-d>1&&t-d===t)?btn.classList.remove('hidden'):btn.classList.add('hidden');}
+function confirmAllRemaining(){haptic();let c=0;currentBinItems.forEach(i=>{if(!i.verified&&!i.isMissing){i.countQty=i.sapQty;i.verified=true;c++;}});showToast(`${c} confirmed`,'green');renderAuditList();}
+
+// ===========================
+// ===== FRESH COUNT MODE =====
+// ===========================
+function startFreshCycle() {
+    const matches = sapMasterData.filter(i => FRESH_SKUS.includes(i.product));
+    // Build product-centric tally: group all HUs by SKU
+    const grouped = {};
+    FRESH_SKUS.forEach(sku => { grouped[sku] = { items: [], totalQty: 0, desc: '' }; });
+    matches.forEach(item => {
+        if (grouped[item.product]) {
+            grouped[item.product].items.push(item);
+            grouped[item.product].totalQty += item.sapQty;
+            if (!grouped[item.product].desc) grouped[item.product].desc = item.desc;
+        }
+    });
+
+    freshData = FRESH_SKUS.map(sku => ({
+        sku,
+        desc: grouped[sku]?.desc || '',
+        sapTotal: grouped[sku]?.totalQty || 0,
+        sapItems: grouped[sku]?.items || [],
+        countQty: null, // null = not yet counted, 0 = explicitly zero
+        condition: '', // '', 'ok', 'short-dated', 'damaged', 'overstocked'
+        note: '',
+        photoBase64: null,
+        photoUrl: null
+    }));
+
+    // Show fresh view
+    document.getElementById('view-audit').classList.add('hidden');
+    document.getElementById('view-report').classList.add('hidden');
+    document.getElementById('view-fresh').classList.remove('hidden');
+    document.getElementById('fresh-bottom-bar').style.display = 'block';
+    document.getElementById('standard-bottom-bar').style.display = 'none';
+    renderFreshList();
 }
 
-// ===== CLOUD SYNC =====
-async function syncCloud() { try { const r = await fetch(API_URL); const d = await r.json(); cloudReport = d.report || []; updateProgressUI(); } catch{} drainQueue(); }
-function updateProgressUI() {
-    const f = new Set(cloudReport.map(i => i.scanBin));
-    "ABCDEFGHIJKLMNOP".split("").forEach(r => { const b = document.getElementById(`badge-${r}`); if (b) b.innerText = Array.from(f).filter(bin => bin&&bin.includes(`W${r}`)).length; });
-    document.getElementById('total-progress').innerText = `${f.size} Done`;
-    if (currentActiveBin) document.getElementById('bin-done-badge').classList.toggle('hidden', !f.has(currentActiveBin));
-    const bins = new Set(cloudReport.map(i=>i.scanBin));
-    document.getElementById('rpt-finalized').textContent = bins.size;
-    const items = cloudReport.filter(i => i.hu !== 'EMPTY_BIN');
-    const disc = items.filter(i => i.type !== 'ok').length;
-    document.getElementById('rpt-discrep').textContent = disc;
-    if (items.length > 0) document.getElementById('rpt-accuracy').textContent = Math.round(((items.length-disc)/items.length)*100)+'%';
-}
-function updateBinProgress() {
-    const t = currentBinItems.length, d = currentBinItems.filter(i => i.verified||i.isMissing).length;
-    document.getElementById('bin-progress-bar').style.width = t>0 ? Math.round((d/t)*100)+'%' : '0%';
-    document.getElementById('bin-progress-text').textContent = `${d} / ${t}`;
-    const btn = document.getElementById('btn-confirm-all');
-    (t-d > 1 && t-d === t) ? btn.classList.remove('hidden') : btn.classList.add('hidden');
-}
-function confirmAllRemaining() { haptic(); let c=0; currentBinItems.forEach(i => { if (!i.verified&&!i.isMissing) { i.countQty=i.sapQty; i.verified=true; c++; } }); showToast(`${c} confirmed`,'green'); renderAuditList(); }
-
-// ===== PHOTO / ANNOTATION =====
-function handlePhotoCapture(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        // Resize to max 1200px wide to keep payload manageable
-        const img = new Image();
-        img.onload = () => {
-            const maxW = 1200, maxH = 900;
-            let w = img.width, h = img.height;
-            if (w > maxW) { h = h * (maxW / w); w = maxW; }
-            if (h > maxH) { w = w * (maxH / h); h = maxH; }
-            const c = document.createElement('canvas');
-            c.width = w; c.height = h;
-            c.getContext('2d').drawImage(img, 0, 0, w, h);
-            currentPhotoBase64 = c.toDataURL('image/jpeg', 0.75);
-            showPhotoEditor();
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-    event.target.value = ''; // Reset so same file can be re-selected
+function leaveFresh() {
+    if (freshData.some(f => f.countQty !== null)) {
+        if (!confirm('You have unsaved counts. Leave Fresh mode?')) return;
+    }
+    document.getElementById('view-fresh').classList.add('hidden');
+    document.getElementById('view-audit').classList.remove('hidden');
+    document.getElementById('fresh-bottom-bar').style.display = 'none';
+    document.getElementById('standard-bottom-bar').style.display = 'block';
+    freshData = [];
 }
 
-function showPhotoEditor() {
-    document.getElementById('photo-empty-state').classList.add('hidden');
-    document.getElementById('photo-editor').classList.remove('hidden');
-    const preview = document.getElementById('photo-preview');
-    preview.src = currentPhotoBase64;
-    preview.onload = () => initAnnotationCanvas();
+function setFreshMode(mode) {
+    freshMode = mode;
+    document.getElementById('fresh-mode-quick').className = `px-3 py-1.5 text-[9px] font-black uppercase ${mode==='quick'?'bg-white text-cyan-700':'text-white/70'}`;
+    document.getElementById('fresh-mode-detailed').className = `px-3 py-1.5 text-[9px] font-black uppercase ${mode==='detailed'?'bg-white text-cyan-700':'text-white/70'}`;
+    renderFreshList();
 }
 
-function initAnnotationCanvas() {
-    const container = document.getElementById('annotation-container');
-    const img = document.getElementById('photo-preview');
-    annotCanvas = document.getElementById('annotation-canvas');
-    annotCanvas.width = img.clientWidth;
-    annotCanvas.height = img.clientHeight;
-    annotCanvas.style.width = img.clientWidth + 'px';
-    annotCanvas.style.height = img.clientHeight + 'px';
-    annotCtx = annotCanvas.getContext('2d');
-    annotCtx.lineCap = 'round'; annotCtx.lineJoin = 'round';
-    annotHistory = [];
-    // Touch events
-    annotCanvas.addEventListener('touchstart', annotStart, { passive: false });
-    annotCanvas.addEventListener('touchmove', annotMove, { passive: false });
-    annotCanvas.addEventListener('touchend', annotEnd, { passive: false });
-    // Mouse fallback
-    annotCanvas.addEventListener('mousedown', annotStart);
-    annotCanvas.addEventListener('mousemove', annotMove);
-    annotCanvas.addEventListener('mouseup', annotEnd);
-    annotCanvas.addEventListener('mouseleave', annotEnd);
+function renderFreshList() {
+    const container = document.getElementById('fresh-list');
+    container.innerHTML = '';
+    const counted = freshData.filter(f => f.countQty !== null).length;
+    document.getElementById('fresh-progress-text').textContent = `${counted} of ${freshData.length} SKUs counted`;
+
+    freshData.forEach((item, idx) => {
+        const isCounted = item.countQty !== null;
+        const variance = isCounted ? item.countQty - item.sapTotal : null;
+        const hasVariance = variance !== null && variance !== 0;
+        const card = document.createElement('div');
+        card.className = `fresh-card ${isCounted ? 'counted' : ''} ${hasVariance ? 'has-variance' : ''}`;
+
+        let detailSection = '';
+        if (freshMode === 'detailed' && item.sapItems.length > 0) {
+            detailSection = `
+                <div class="px-4 pb-3">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">SAP Breakdown (${item.sapItems.length} HUs)</p>
+                    <div class="space-y-0.5 max-h-[120px] overflow-y-auto">
+                        ${item.sapItems.map(si => `<div class="fresh-sap-row"><span class="mono text-slate-500 font-semibold">${si.sapBin}</span><span class="mono text-slate-400 text-[10px]">HU ${si.hu}</span><span class="mono font-bold">${si.sapQty}</span></div>`).join('')}
+                    </div>
+                </div>`;
+        }
+
+        const conditionTags = [
+            { key:'ok', label:'OK', color:'text-emerald-600 bg-emerald-50' },
+            { key:'short-dated', label:'Short Dated', color:'text-amber-600 bg-amber-50' },
+            { key:'damaged', label:'Damaged', color:'text-red-600 bg-red-50' },
+            { key:'overstocked', label:'Overstocked', color:'text-purple-600 bg-purple-50' }
+        ];
+
+        card.innerHTML = `
+            <div class="p-4 pb-2">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <span class="mono font-black text-sm text-slate-800">${item.sku}</span>
+                            ${isCounted ? `<span class="text-[8px] font-black ${hasVariance ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'} px-2 py-0.5 rounded-full">${hasVariance ? (variance > 0 ? '+' : '') + variance : '✓ Match'}</span>` : ''}
+                        </div>
+                        <p class="text-[11px] text-slate-500 font-semibold leading-tight">${item.desc}</p>
+                    </div>
+                    <div class="text-right ml-3">
+                        <p class="text-[7px] font-black text-slate-400 uppercase">SAP</p>
+                        <p class="text-2xl mono font-black text-slate-300 leading-none">${item.sapTotal}</p>
+                        <p class="text-[8px] text-slate-300 font-bold">${item.sapItems.length} HUs</p>
+                    </div>
+                </div>
+
+                <!-- Quick count stepper -->
+                <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100 mb-3">
+                    <button onclick="freshAdjust(${idx},-10)" class="fresh-stepper bg-white shadow-sm text-slate-300 active:bg-slate-100 text-lg">−10</button>
+                    <button onclick="freshAdjust(${idx},-1)" class="fresh-stepper bg-white shadow-sm text-slate-400 active:bg-slate-100">−</button>
+                    <input type="number" inputmode="numeric" value="${isCounted ? item.countQty : ''}" 
+                        oninput="freshSetQty(${idx},this.value)" placeholder="—"
+                        class="fresh-qty-input">
+                    <button onclick="freshAdjust(${idx},1)" class="fresh-stepper bg-white shadow-sm text-blue-600 active:bg-blue-50">+</button>
+                    <button onclick="freshAdjust(${idx},10)" class="fresh-stepper bg-white shadow-sm text-blue-600 active:bg-blue-50 text-lg">+10</button>
+                </div>
+
+                <!-- Condition tags -->
+                <div class="flex flex-wrap gap-1.5 mb-2">
+                    ${conditionTags.map(ct => `<span class="condition-tag ${ct.color} ${item.condition===ct.key?'active':''}" onclick="freshSetCondition(${idx},'${ct.key}')">${ct.label}</span>`).join('')}
+                </div>
+
+                <!-- Note/Photo chip -->
+                <button onclick="openFreshNoteModal(${idx})" class="chip w-full justify-center ${(item.note||item.photoBase64)?'bg-amber-50 border border-amber-300 text-amber-700':'bg-white border border-dashed border-slate-200 text-slate-400'}">
+                    ${item.photoBase64?'📷 ':''}📝 ${item.note ? item.note.substring(0,35) : 'Add Note / Photo'}
+                </button>
+            </div>
+            ${detailSection}`;
+        container.appendChild(card);
+    });
+
+    updateFreshTotals();
 }
 
-function getAnnotPos(e) {
-    const rect = annotCanvas.getBoundingClientRect();
-    const touch = e.touches ? e.touches[0] : e;
-    return { x: (touch.clientX - rect.left) * (annotCanvas.width / rect.width), y: (touch.clientY - rect.top) * (annotCanvas.height / rect.height) };
+function freshAdjust(idx, delta) {
+    haptic();
+    const item = freshData[idx];
+    if (item.countQty === null) item.countQty = 0;
+    item.countQty = Math.max(0, item.countQty + delta);
+    renderFreshList();
 }
 
-function annotStart(e) {
-    e.preventDefault(); isDrawing = true;
-    annotCtx.strokeStyle = annotColor; annotCtx.lineWidth = annotSize;
-    annotCtx.beginPath();
-    const p = getAnnotPos(e); annotCtx.moveTo(p.x, p.y);
-    // Save state before this stroke
-    annotHistory.push(annotCtx.getImageData(0, 0, annotCanvas.width, annotCanvas.height));
-}
-function annotMove(e) { if (!isDrawing) return; e.preventDefault(); const p = getAnnotPos(e); annotCtx.lineTo(p.x, p.y); annotCtx.stroke(); }
-function annotEnd(e) { if (isDrawing) { isDrawing = false; annotCtx.closePath(); } }
-function setAnnotColor(c, el) { annotColor = c; document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active')); if (el) el.classList.add('active'); }
-function setAnnotSize(s) {
-    annotSize = s;
-    ['pen-thin','pen-med','pen-thick'].forEach(id => { const el = document.getElementById(id); el.className = `text-[9px] font-black ${s === parseInt(el.textContent === 'Thin' ? '3' : el.textContent === 'Med' ? '6' : '12') ? 'text-blue-600 bg-blue-50' : 'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`; });
-    document.getElementById('pen-thin').className = `text-[9px] font-black ${s===3?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;
-    document.getElementById('pen-med').className = `text-[9px] font-black ${s===6?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;
-    document.getElementById('pen-thick').className = `text-[9px] font-black ${s===12?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;
-}
-function undoAnnotation() { if (annotHistory.length > 0) annotCtx.putImageData(annotHistory.pop(), 0, 0); }
-function clearAnnotations() { annotCtx.clearRect(0, 0, annotCanvas.width, annotCanvas.height); annotHistory = []; }
-function removePhoto() { currentPhotoBase64 = null; document.getElementById('photo-editor').classList.add('hidden'); document.getElementById('photo-empty-state').classList.remove('hidden'); annotHistory = []; }
-
-function getCompositeImage() {
-    // Merge photo + annotations into one image
-    if (!currentPhotoBase64) return null;
-    const img = document.getElementById('photo-preview');
-    const c = document.createElement('canvas');
-    c.width = annotCanvas.width; c.height = annotCanvas.height;
-    const ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0, c.width, c.height);
-    ctx.drawImage(annotCanvas, 0, 0);
-    return c.toDataURL('image/jpeg', 0.8);
+function freshSetQty(idx, val) {
+    const v = val === '' ? null : (parseFloat(val) || 0);
+    freshData[idx].countQty = v;
+    updateFreshTotals();
 }
 
-// ===== NOTE MODAL (Enhanced — now for ALL items) =====
-function openNoteModal(idx) {
-    haptic(); noteTargetIndex = idx;
-    const item = currentBinItems[idx];
-    document.getElementById('note-modal-context').innerText = `${item.product} — Bin: ${item.sapBin}`;
+function freshSetCondition(idx, cond) {
+    haptic();
+    freshData[idx].condition = freshData[idx].condition === cond ? '' : cond;
+    renderFreshList();
+}
+
+function updateFreshTotals() {
+    const sapTotal = freshData.reduce((s, f) => s + f.sapTotal, 0);
+    const countTotal = freshData.reduce((s, f) => s + (f.countQty || 0), 0);
+    const variance = countTotal - sapTotal;
+    document.getElementById('fresh-sap-total').textContent = sapTotal;
+    document.getElementById('fresh-count-total').textContent = countTotal;
+    const vEl = document.getElementById('fresh-variance-total');
+    vEl.textContent = (variance >= 0 ? '+' : '') + variance;
+    vEl.className = `text-lg font-black mono ${variance === 0 ? 'text-emerald-600' : (variance > 0 ? 'text-purple-600' : 'text-red-600')}`;
+}
+
+function openFreshNoteModal(idx) {
+    freshNoteTarget = idx;
+    noteTargetIndex = null; // distinguish from standard mode
+    const item = freshData[idx];
+    document.getElementById('note-modal-context').innerText = `FRESH: ${item.sku} — ${item.desc}`;
     document.getElementById('note-text').value = item.note || "";
-    // Reset photo state
     currentPhotoBase64 = item.photoBase64 || null;
     document.getElementById('photo-upload-status').classList.add('hidden');
-    if (currentPhotoBase64) {
-        showPhotoEditor();
-    } else {
-        document.getElementById('photo-editor').classList.add('hidden');
-        document.getElementById('photo-empty-state').classList.remove('hidden');
-    }
+    if (currentPhotoBase64) { showPhotoEditor(); } else { document.getElementById('photo-editor').classList.add('hidden'); document.getElementById('photo-empty-state').classList.remove('hidden'); }
     document.getElementById('note-modal').classList.remove('hidden');
 }
-function closeNoteModal() { document.getElementById('note-modal').classList.add('hidden'); currentPhotoBase64 = null; }
+
+function finalizeFresh() {
+    const uncounted = freshData.filter(f => f.countQty === null);
+    if (uncounted.length > 0) {
+        if (!confirm(`${uncounted.length} SKU(s) haven't been counted yet. Submit anyway? (Uncounted items will be recorded as 0)`)) return;
+        uncounted.forEach(f => f.countQty = 0);
+    }
+    haptic();
+
+    // Build items to log — one row per SKU (product-level summary)
+    const itemsToLog = freshData.map(f => ({
+        hu: `FRESH_${f.sku}`,
+        product: f.sku,
+        desc: f.desc,
+        batch: f.condition || '',
+        sapBin: 'FRESH',
+        scannedBin: 'FRESH',
+        sapQty: f.sapTotal,
+        countQty: f.countQty || 0,
+        type: (f.countQty || 0) === f.sapTotal ? 'ok' : 'adj',
+        note: [f.condition ? `[${f.condition.toUpperCase()}]` : '', f.note || ''].filter(Boolean).join(' '),
+        photoUrl: f.photoUrl || ''
+    }));
+
+    itemsToLog.forEach(item => cloudReport.push({ scanBin: 'FRESH', ...item }));
+    updateProgressUI();
+    enqueuePost({ action: 'logAudit', user: auditorName || "Floor", bin: 'PRODUCT: FRESH', items: itemsToLog });
+
+    const variance = freshData.reduce((s, f) => s + ((f.countQty || 0) - f.sapTotal), 0);
+    showToast(`Fresh submitted (${variance >= 0 ? '+' : ''}${variance} variance)`, 'cyan');
+    
+    // Return to setup
+    document.getElementById('view-fresh').classList.add('hidden');
+    document.getElementById('view-audit').classList.remove('hidden');
+    document.getElementById('fresh-bottom-bar').style.display = 'none';
+    document.getElementById('standard-bottom-bar').style.display = 'block';
+    freshData = [];
+}
+
+// ===== PHOTO / ANNOTATION (shared between standard and FRESH) =====
+function handlePhotoCapture(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(e)=>{const img=new Image();img.onload=()=>{const maxW=1200,maxH=900;let w=img.width,h=img.height;if(w>maxW){h=h*(maxW/w);w=maxW;}if(h>maxH){w=w*(maxH/h);h=maxH;}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);currentPhotoBase64=c.toDataURL('image/jpeg',0.75);showPhotoEditor();};img.src=e.target.result;};reader.readAsDataURL(file);event.target.value='';}
+function showPhotoEditor(){document.getElementById('photo-empty-state').classList.add('hidden');document.getElementById('photo-editor').classList.remove('hidden');const p=document.getElementById('photo-preview');p.src=currentPhotoBase64;p.onload=()=>initAnnotationCanvas();}
+function initAnnotationCanvas(){const img=document.getElementById('photo-preview');annotCanvas=document.getElementById('annotation-canvas');annotCanvas.width=img.clientWidth;annotCanvas.height=img.clientHeight;annotCanvas.style.width=img.clientWidth+'px';annotCanvas.style.height=img.clientHeight+'px';annotCtx=annotCanvas.getContext('2d');annotCtx.lineCap='round';annotCtx.lineJoin='round';annotHistory=[];annotCanvas.addEventListener('touchstart',annotStart,{passive:false});annotCanvas.addEventListener('touchmove',annotMove,{passive:false});annotCanvas.addEventListener('touchend',annotEnd,{passive:false});annotCanvas.addEventListener('mousedown',annotStart);annotCanvas.addEventListener('mousemove',annotMove);annotCanvas.addEventListener('mouseup',annotEnd);annotCanvas.addEventListener('mouseleave',annotEnd);}
+function getAnnotPos(e){const r=annotCanvas.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)*(annotCanvas.width/r.width),y:(t.clientY-r.top)*(annotCanvas.height/r.height)};}
+function annotStart(e){e.preventDefault();isDrawing=true;annotCtx.strokeStyle=annotColor;annotCtx.lineWidth=annotSize;annotCtx.beginPath();const p=getAnnotPos(e);annotCtx.moveTo(p.x,p.y);annotHistory.push(annotCtx.getImageData(0,0,annotCanvas.width,annotCanvas.height));}
+function annotMove(e){if(!isDrawing)return;e.preventDefault();const p=getAnnotPos(e);annotCtx.lineTo(p.x,p.y);annotCtx.stroke();}
+function annotEnd(){if(isDrawing){isDrawing=false;annotCtx.closePath();}}
+function setAnnotColor(c,el){annotColor=c;document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('active'));if(el)el.classList.add('active');}
+function setAnnotSize(s){annotSize=s;document.getElementById('pen-thin').className=`text-[9px] font-black ${s===3?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;document.getElementById('pen-med').className=`text-[9px] font-black ${s===6?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;document.getElementById('pen-thick').className=`text-[9px] font-black ${s===12?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;}
+function undoAnnotation(){if(annotHistory.length>0)annotCtx.putImageData(annotHistory.pop(),0,0);}
+function clearAnnotations(){annotCtx.clearRect(0,0,annotCanvas.width,annotCanvas.height);annotHistory=[];}
+function removePhoto(){currentPhotoBase64=null;document.getElementById('photo-editor').classList.add('hidden');document.getElementById('photo-empty-state').classList.remove('hidden');annotHistory=[];}
+function getCompositeImage(){if(!currentPhotoBase64)return null;const img=document.getElementById('photo-preview');const c=document.createElement('canvas');c.width=annotCanvas.width;c.height=annotCanvas.height;const ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);ctx.drawImage(annotCanvas,0,0);return c.toDataURL('image/jpeg',0.8);}
+
+// ===== NOTE MODAL (shared — detects fresh vs standard) =====
+function openNoteModal(idx){haptic();noteTargetIndex=idx;freshNoteTarget=null;const item=currentBinItems[idx];document.getElementById('note-modal-context').innerText=`${item.product} — Bin: ${item.sapBin}`;document.getElementById('note-text').value=item.note||"";currentPhotoBase64=item.photoBase64||null;document.getElementById('photo-upload-status').classList.add('hidden');if(currentPhotoBase64){showPhotoEditor();}else{document.getElementById('photo-editor').classList.add('hidden');document.getElementById('photo-empty-state').classList.remove('hidden');}document.getElementById('note-modal').classList.remove('hidden');}
+function closeNoteModal(){document.getElementById('note-modal').classList.add('hidden');currentPhotoBase64=null;}
 
 function saveNoteAndPhoto() {
-    const item = currentBinItems[noteTargetIndex];
-    item.note = document.getElementById('note-text').value.trim();
-    // Get composite (photo + annotations)
     const composite = getCompositeImage();
-    if (composite) {
-        item.photoBase64 = composite;
-        item.photoUrl = null; // Will be filled after upload
-        // Upload in background
-        uploadPhotoToCloud(noteTargetIndex, composite);
-    } else {
-        item.photoBase64 = null;
-        item.photoUrl = null;
-    }
-    closeNoteModal();
-    renderAuditList();
-}
-
-async function uploadPhotoToCloud(idx, base64) {
-    try {
-        const item = currentBinItems[idx];
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'uploadPhoto',
-                hu: item.hu,
-                bin: currentActiveBin,
-                product: item.product,
-                imageData: base64
-            })
-        });
-        const result = await res.json();
-        if (result.url) {
-            item.photoUrl = result.url;
-            showToast('Photo uploaded', 'green');
-        }
-    } catch (e) {
-        showToast('Photo queued (offline)', 'orange');
-        // Queue for later
-        const item = currentBinItems[idx];
-        enqueuePost({
-            action: 'uploadPhoto',
-            hu: item.hu,
-            bin: currentActiveBin,
-            product: item.product,
-            imageData: base64
-        });
-    }
-}
-
-function viewPhoto(idx) {
-    const item = currentBinItems[idx];
-    const src = item.photoUrl || item.photoBase64;
-    if (!src) return;
-    document.getElementById('photo-viewer-img').src = src;
-    document.getElementById('photo-viewer').classList.remove('hidden');
-}
-
-// ===== BIN MOVE =====
-function openBinMoveModal(idx) { haptic(); binMoveTargetIndex = idx; const item = currentBinItems[idx]; document.getElementById('move-modal-context').innerText = item.product; document.getElementById('move-sap-bin').innerText = item.sapBin; document.getElementById('move-actual-bin').value = item.actualBin || ""; document.getElementById('bin-move-modal').classList.remove('hidden'); }
-function closeBinMoveModal() { document.getElementById('bin-move-modal').classList.add('hidden'); }
-function saveBinMove() { const b = document.getElementById('move-actual-bin').value.trim().toUpperCase(); if (b) currentBinItems[binMoveTargetIndex].actualBin = b; closeBinMoveModal(); renderAuditList(); }
-
-function toggleAddForm() {
-    haptic(); const m = document.getElementById('add-item-modal'); m.classList.toggle('hidden');
-    if (!m.classList.contains('hidden')) {
-        ['add-hu','add-prod','add-batch','add-qty'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('smart-fill-badge').classList.add('hidden');
-        setTimeout(() => document.getElementById('add-hu').focus(), 100);
-    }
-}
-function autoLookupExtra(input) { const hu = input.value.trim(); if (hu.length<8) { document.getElementById('smart-fill-badge').classList.add('hidden'); return; } const m = sapHUIndex.get(hu); if (m) { document.getElementById('smart-fill-badge').classList.remove('hidden'); document.getElementById('add-prod').value=m.product; document.getElementById('add-batch').value=m.batch; document.getElementById('add-qty').focus(); } }
-function submitExtra() {
-    const hu = document.getElementById('add-hu').value.trim(), prod = document.getElementById('add-prod').value.trim(), qty = parseFloat(document.getElementById('add-qty').value)||0;
-    if (!hu||qty<=0) { showToast('Need HU and count','red'); return; }
-    const m = sapHUIndex.get(hu)||{};
-    currentBinItems.push({ hu, product:prod, batch:document.getElementById('add-batch').value, desc:m.desc||"FOUND", sapQty:m.sapQty||0, sapBin:m.sapBin||"", countQty:qty, verified:true, isMissing:false, isExtra:true, note:"", actualBin:null, photoBase64:null, photoUrl:null });
-    toggleAddForm(); showToast('Item added','green'); renderAuditList();
-}
-
-// ===== FINALIZE =====
-function finalizeBin() {
-    if (!currentActiveBin) return;
-    const unf = currentBinItems.filter(i => !i.verified && !i.isMissing);
-    if (unf.length > 0) { showToast(`${unf.length} not verified`,'red'); return; }
-    haptic();
-    let itemsToLog = currentBinItems.length === 0
-        ? [{ hu:"EMPTY_BIN", product:"NONE", desc:"Confirmed Empty", batch:"", sapBin:"", scannedBin:currentActiveBin, sapQty:0, countQty:0, type:'ok', note:"", photoUrl:"" }]
-        : currentBinItems.map(i => {
-            let type = 'ok';
-            if (i.isMissing) type = 'miss';
-            else if (i.isExtra) type = 'inactive';
-            else if (i.countQty !== i.sapQty) type = 'adj';
-            return { hu:i.hu, product:i.product, desc:i.desc, batch:i.batch, sapBin:i.sapBin, scannedBin:i.actualBin||currentActiveBin, sapQty:i.sapQty, countQty:i.countQty, type, note:i.note||"", photoUrl:i.photoUrl||"" };
-        });
-    itemsToLog.forEach(item => cloudReport.push({ scanBin: item.scannedBin, ...item }));
-    updateProgressUI();
-    enqueuePost({ action:'logAudit', user: auditorName||"Floor", bin: currentActiveBin, items: itemsToLog });
-    showToast('Bin finalized','blue');
-    if (currentActiveBin.startsWith("PRODUCT:")) leaveAisle(); else stepBin(1);
-}
-
-// ===== RENDER =====
-function renderAuditList() {
-    const container = document.getElementById('audit-list'); container.innerHTML = "";
-    const isFresh = currentActiveBin === "PRODUCT: FRESH", isSingle = currentActiveBin.startsWith("PRODUCT:") && !isFresh;
-    if (isFresh || isSingle) {
-        const groups = {};
-        currentBinItems.forEach((item, idx) => { const k = isFresh ? item.product : item.sapBin; if (!groups[k]) groups[k] = []; groups[k].push({item,idx}); });
-        Object.keys(groups).forEach(key => {
-            const isExp = expandedBins.has(key), allDone = groups[key].every(o => o.item.verified||o.item.isMissing);
-            const div = document.createElement('div');
-            div.className = `bg-white border-2 ${allDone?'border-emerald-200':'border-slate-100'} rounded-2xl overflow-hidden mb-2 shadow-sm`;
-            const badge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-lg ${allDone?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-500'}">${groups[key].filter(o=>o.item.verified||o.item.isMissing).length}/${groups[key].length}</span>`;
-            div.innerHTML = `<div onclick="toggleBinAccordion('${key}')" class="flex justify-between items-center p-4 active:bg-slate-50 cursor-pointer"><div><span class="mono font-black text-slate-800 text-sm">${isFresh?'SKU '+key:key}</span><span class="text-[10px] text-slate-400 font-semibold block truncate max-w-[200px]">${isFresh?groups[key][0].item.desc:groups[key].length+' items'}</span></div><div class="flex items-center gap-2">${badge}<span class="text-slate-300 text-xs">${isExp?'▼':'▶'}</span></div></div><div id="content-${CSS.escape(key)}" class="${isExp?'p-4 pt-0 space-y-3':'hidden'}"></div>`;
-            if (isExp) { const cel = div.querySelector(`[id="content-${CSS.escape(key)}"]`); groups[key].forEach(o => cel.appendChild(createItemCard(o.item, o.idx))); }
-            container.appendChild(div);
-        });
-    } else {
-        if (currentBinItems.length === 0 && currentActiveBin !== "") container.innerHTML = `<div class="py-20 text-center"><div class="text-4xl mb-3">📭</div><p class="text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin — Confirm to finalize</p></div>`;
-        currentBinItems.forEach((item, index) => container.appendChild(createItemCard(item, index)));
-    }
-    updateBinProgress();
-}
-
-function createItemCard(item, index) {
-    const card = document.createElement('div');
-    const sc = item.verified ? 'card-verified' : (item.isMissing ? 'card-missing' : (item.isExtra ? 'card-extra' : 'card-default'));
-    card.className = `p-4 rounded-2xl transition-all shadow-sm ${sc}`;
-    const isPM = currentActiveBin.startsWith("PRODUCT:");
-    const hasNote = item.note && item.note.trim() !== "";
-    const hasPhoto = item.photoBase64 || item.photoUrl;
-    const hasActualBin = item.actualBin && item.actualBin !== item.sapBin;
-    const qtyMatch = item.verified && item.countQty === item.sapQty;
-
-    let extrasHTML = '';
-    // Note button — always available now
-    extrasHTML += `<button onclick="openNoteModal(${index})" class="chip mt-2 ${(hasNote||hasPhoto) ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-white border border-dashed border-slate-200 text-slate-400'}">`;
-    if (hasPhoto) extrasHTML += `<img src="${item.photoUrl||item.photoBase64}" class="w-5 h-5 rounded object-cover"> `;
-    extrasHTML += `📝 ${hasNote ? item.note.substring(0,25) : 'Add Note / Photo'}</button>`;
     
-    // Photo thumbnail tap to view fullscreen
-    if (hasPhoto) {
-        extrasHTML += `<button onclick="viewPhoto(${index})" class="chip mt-1 bg-blue-50 border border-blue-200 text-blue-600">🔍 View Full Photo</button>`;
+    if (freshNoteTarget !== null) {
+        // FRESH mode
+        const item = freshData[freshNoteTarget];
+        item.note = document.getElementById('note-text').value.trim();
+        if (composite) { item.photoBase64 = composite; item.photoUrl = null; uploadFreshPhoto(freshNoteTarget, composite); }
+        else { item.photoBase64 = null; item.photoUrl = null; }
+        closeNoteModal();
+        renderFreshList();
+    } else if (noteTargetIndex !== null) {
+        // Standard mode
+        const item = currentBinItems[noteTargetIndex];
+        item.note = document.getElementById('note-text').value.trim();
+        if (composite) { item.photoBase64 = composite; item.photoUrl = null; uploadPhotoToCloud(noteTargetIndex, composite); }
+        else { item.photoBase64 = null; item.photoUrl = null; }
+        closeNoteModal();
+        renderAuditList();
     }
-
-    if (isPM) {
-        extrasHTML += `<button onclick="openBinMoveModal(${index})" class="chip mt-2 ${hasActualBin ? 'bg-purple-50 border border-purple-300 text-purple-700' : 'bg-white border border-dashed border-slate-200 text-slate-400'}">📍 ${hasActualBin ? 'Moved → '+item.actualBin : 'Bin Move'}</button>`;
-    }
-
-    card.innerHTML = `
-        <div class="flex justify-between items-start mb-3">
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="inline-block px-2 py-0.5 bg-slate-900 text-blue-400 mono text-[9px] font-bold rounded-md">HU ${item.hu||'N/A'}</span>
-                    ${item.isExtra?'<span class="text-[8px] font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">EXTRA</span>':''}
-                    ${qtyMatch?'<span class="text-[8px] font-black text-emerald-600">✓</span>':''}
-                </div>
-                <h3 class="text-sm font-bold text-slate-800 leading-tight">${item.product}</h3>
-                <p class="text-[10px] text-blue-600 font-semibold truncate">${item.desc||''}</p>
-                <p class="text-[9px] text-slate-400 font-semibold mt-0.5">Bin: ${item.sapBin}${hasActualBin?' <span class="text-purple-600 font-black">→ '+item.actualBin+'</span>':''}</p>
-            </div>
-            <div class="text-right bg-slate-50/80 p-2 rounded-xl border min-w-[60px] ml-3">
-                <p class="text-[7px] font-black text-slate-400 uppercase">SAP</p>
-                <p class="text-xl mono font-black text-slate-700 leading-none">${item.sapQty}</p>
-            </div>
-        </div>
-        <div class="space-y-2">
-            <div class="flex gap-2">
-                <button onclick="quickConfirm(${index})" class="flex-[3] py-3.5 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase shadow active:scale-95 transition-all">Confirm ${item.sapQty}</button>
-                <button onclick="toggleMissing(${index})" class="flex-1 py-3.5 rounded-xl font-black text-[10px] uppercase border-2 transition-all ${item.isMissing?'bg-red-600 border-red-600 text-white':'border-slate-200 text-slate-300 bg-white'}">${item.isMissing?'✕':'Miss'}</button>
-            </div>
-            <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-100">
-                <button onclick="adjustQty(${index}, -1)" class="stepper-btn bg-white shadow-sm text-slate-400 active:bg-slate-100">−</button>
-                <input type="number" inputmode="numeric" value="${item.countQty||''}" oninput="updateCount(${index}, this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none mono min-w-0">
-                <button onclick="adjustQty(${index}, 1)" class="stepper-btn bg-white shadow-sm text-blue-600 active:bg-blue-50">+</button>
-            </div>
-            ${extrasHTML}
-        </div>`;
-    return card;
 }
 
-// ===== ITEM ACTIONS =====
-function quickConfirm(i) { haptic(); currentBinItems[i].countQty=currentBinItems[i].sapQty; currentBinItems[i].verified=true; currentBinItems[i].isMissing=false; renderAuditList(); }
-function toggleMissing(i) { haptic(); currentBinItems[i].isMissing=!currentBinItems[i].isMissing; if(currentBinItems[i].isMissing){currentBinItems[i].verified=false;currentBinItems[i].countQty=0;} renderAuditList(); }
-function adjustQty(i,d) { haptic(); let c=currentBinItems[i].countQty||0; currentBinItems[i].countQty=Math.max(0,c+d); currentBinItems[i].verified=true; currentBinItems[i].isMissing=false; renderAuditList(); }
-function updateCount(i,v) { currentBinItems[i].countQty=parseFloat(v)||0; currentBinItems[i].verified=true; currentBinItems[i].isMissing=false; updateBinProgress(); }
+async function uploadPhotoToCloud(idx,base64){try{const item=currentBinItems[idx];const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'uploadPhoto',hu:item.hu,bin:currentActiveBin,product:item.product,imageData:base64})});const result=await res.json();if(result.url){item.photoUrl=result.url;showToast('Photo uploaded','green');}}catch{showToast('Photo queued','orange');const item=currentBinItems[idx];enqueuePost({action:'uploadPhoto',hu:item.hu,bin:currentActiveBin,product:item.product,imageData:base64});}}
 
-// ===== NAV =====
-function selectBin(n) { if(!n) return; const u=n.toUpperCase(); currentActiveBin=u; document.getElementById('bin-input').value=u; const e=sapBinIndex[u]||[]; currentBinItems=e.map(i=>({...i,verified:false,isMissing:false,countQty:0,note:"",actualBin:null,photoBase64:null,photoUrl:null})); document.getElementById('setup-screen').classList.add('hidden'); renderAuditList(); window.scrollTo(0,0); updateProgressUI(); }
-function stepBin(d) { const c=ALL_SAP_BINS.indexOf(currentActiveBin); if(c!==-1&&ALL_SAP_BINS[c+d])selectBin(ALL_SAP_BINS[c+d]); else if(c===-1){const n=ALL_SAP_BINS.find(b=>b>currentActiveBin)||ALL_SAP_BINS[0];selectBin(n);} else showToast(d>0?'Last bin':'First bin','blue'); }
-function startProductCycle() { const s=document.getElementById('prod-cycle-input').value.trim(),m=sapMasterData.filter(i=>i.product===s); if(!m.length){showToast('Not found','red');return;} currentActiveBin="PRODUCT: "+s; expandedBins.clear(); currentBinItems=m.map(i=>({...i,verified:false,isMissing:false,countQty:0,note:"",actualBin:null,photoBase64:null,photoUrl:null})); document.getElementById('setup-screen').classList.add('hidden'); document.getElementById('bin-input').value=currentActiveBin; renderAuditList(); }
-function startFreshCycle() { const m=sapMasterData.filter(i=>FRESH_SKUS.includes(i.product)); if(!m.length){showToast('No FRESH','red');return;} currentActiveBin="PRODUCT: FRESH"; expandedBins.clear(); currentBinItems=m.map(i=>({...i,verified:false,isMissing:false,countQty:0,note:"",actualBin:null,photoBase64:null,photoUrl:null})); document.getElementById('setup-screen').classList.add('hidden'); document.getElementById('bin-input').value=currentActiveBin; renderAuditList(); }
-function toggleBinAccordion(b) { expandedBins.has(b)?expandedBins.delete(b):expandedBins.add(b); renderAuditList(); }
-function leaveAisle() { currentActiveBin=""; document.getElementById('setup-screen').classList.remove('hidden'); }
-function switchView(v) { document.getElementById('view-audit').classList.toggle('hidden',v!=='audit'); document.getElementById('view-report').classList.toggle('hidden',v!=='report'); document.querySelectorAll('.nav-pill').forEach(b=>{b.classList.remove('active');b.classList.add('text-slate-400','bg-slate-50');}); const a=document.getElementById('nav-'+v); a.classList.add('active'); a.classList.remove('text-slate-400','bg-slate-50'); if(v==='report') renderReportView(); }
-function renderReportView() { const c=document.getElementById('report-list'); c.innerHTML=''; const items=cloudReport.filter(i=>i.hu!=='EMPTY_BIN'&&i.type!=='ok'); if(!items.length){c.innerHTML='<div class="py-10 text-center text-slate-300 font-bold text-sm">No discrepancies yet</div>';return;} items.slice(-50).reverse().forEach(i=>{const tc={miss:'bg-red-100 text-red-700',adj:'bg-amber-100 text-amber-700',inactive:'bg-purple-100 text-purple-700',move:'bg-blue-100 text-blue-700'}[i.type]||'bg-slate-100 text-slate-600'; const d=document.createElement('div'); d.className='bg-white border rounded-xl p-3 flex justify-between items-center'; d.innerHTML=`<div><p class="font-bold text-sm text-slate-800">${i.prod||i.product}</p><p class="text-[10px] text-slate-400 font-semibold mono">${i.scanBin} · HU ${i.hu}</p></div><div class="flex items-center gap-2"><span class="mono font-bold text-sm">${i.scanQty||i.countQty}/${i.sapQty}</span><span class="text-[9px] font-black uppercase px-2 py-1 rounded-lg ${tc}">${i.type}</span></div>`; c.appendChild(d); }); }
-
-// ===== DATA =====
-function rebuildIndexes() { sapBinIndex={}; sapHUIndex=new Map(); const u=new Set(); sapMasterData.forEach(i=>{if(!sapBinIndex[i.sapBin])sapBinIndex[i.sapBin]=[];sapBinIndex[i.sapBin].push(i);sapHUIndex.set(i.hu,i);if(i.sapBin)u.add(i.sapBin);}); ALL_SAP_BINS=Array.from(u).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'})); document.getElementById('stat-loaded').textContent=sapMasterData.length; document.getElementById('stat-bins').textContent=ALL_SAP_BINS.length; }
-function clearAllData() { if(confirm("Reset all data?")) { localStorage.clear(); location.reload(); } }
-function handleFileUpload(event) { const r=new FileReader(); r.onload=(e)=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); sapMasterData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(row=>({sapBin:String(row['Storage Bin']||"").trim().toUpperCase(),hu:String(row['Handling Unit']||"").trim(),product:String(row['Product']||""),batch:String(row['Batch']||"").trim(),desc:row['Product Short Description']||"",sapQty:parseFloat(row['Quantity'])||0})); localStorage.setItem('sapMasterData',JSON.stringify(sapMasterData)); rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); showToast(`${sapMasterData.length} items loaded`,'blue');}; r.readAsArrayBuffer(event.target.files[0]); }
-function initSetupGrid() {
-    const g=document.getElementById('row-grid'); g.innerHTML=""; const ctx=getScheduleContext(),sched=getTodaysSchedule();
-    document.getElementById('week-display').innerText=`Week ${ctx.week}`; document.getElementById('day-display').innerText=ctx.dayName;
-    document.getElementById('schedule-list').innerHTML=sched.map(s=>s.isFresh?`<button onclick="startFreshCycle()" class="sched-item w-full text-left py-2.5 px-4 bg-blue-600/80 hover:bg-blue-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all"><span>🧊 ${s.aisle}: ${s.desc}</span><span class="text-white/60">▶</span></button>`:`<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${s.aisle}</span> <span class="text-slate-400 font-semibold">${s.desc}</span></div>`).join('');
-    "ABCDEFGHIJKLMNOP".split("").forEach(row=>{const bc=ALL_SAP_BINS.filter(b=>b.includes(`W${row}`)).length; const btn=document.createElement('button'); btn.className='row-btn bg-white border-2 border-slate-100 p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden'; btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span><span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`; btn.onclick=()=>{const sb=ALL_SAP_BINS.find(b=>b.includes(`W${row}`))||`W${row}00A`;selectBin(sb);}; g.appendChild(btn);}); syncCloud();
+async function uploadFreshPhoto(idx, base64) {
+    try {
+        const item = freshData[idx];
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'uploadPhoto', hu: `FRESH_${item.sku}`, bin: 'FRESH', product: item.sku, imageData: base64 }) });
+        const result = await res.json();
+        if (result.url) { item.photoUrl = result.url; showToast('Photo uploaded', 'green'); }
+    } catch { showToast('Photo queued', 'orange'); }
 }
 
-window.onload = () => {
-    if (auditorName) document.getElementById('auditor-name-btn').textContent = '👤 ' + auditorName;
-    if (sapMasterData.length > 0) { rebuildIndexes(); document.getElementById('upload-prompt').classList.add('hidden'); document.getElementById('row-selection').classList.remove('hidden'); initSetupGrid(); }
-    updateQueueBadge(); setInterval(syncCloud, 8000); setInterval(drainQueue, 15000);
-};
+function viewPhoto(idx){const item=currentBinItems[idx];const src=item.photoUrl||item.photoBase64;if(!src)return;document.getElementById('photo-viewer-img').src=src;document.getElementById('photo-viewer').classList.remove('hidden');}
+
+// ===== STANDARD MODE FUNCTIONS =====
+function openBinMoveModal(idx){haptic();binMoveTargetIndex=idx;const item=currentBinItems[idx];document.getElementById('move-modal-context').innerText=item.product;document.getElementById('move-sap-bin').innerText=item.sapBin;document.getElementById('move-actual-bin').value=item.actualBin||"";document.getElementById('bin-move-modal').classList.remove('hidden');}
+function closeBinMoveModal(){document.getElementById('bin-move-modal').classList.add('hidden');}
+function saveBinMove(){const b=document.getElementById('move-actual-bin').value.trim().toUpperCase();if(b)currentBinItems[binMoveTargetIndex].actualBin=b;closeBinMoveModal();renderAuditList();}
+function toggleAddForm(){haptic();const m=document.getElementById('add-item-modal');m.classList.toggle('hidden');if(!m.classList.contains('hidden')){['add-hu','add-prod','add-batch','add-qty'].forEach(id=>document.getElementById(id).value='');document.getElementById('smart-fill-badge').classList.add('hidden');setTimeout(()=>document.getElementById('add-hu').focus(),100);}}
+function autoLookupExtra(input){const hu=input.value.trim();if(hu.length<8){document.getElementById('smart-fill-badge').classList.add('hidden');return;}const m=sapHUIndex.get(hu);if(m){document.getElementById('smart-fill-badge').classList.remove('hidden');document.getElementById('add-prod').value=m.product;document.getElementById('add-batch').value=m.batch;document.getElementById('add-qty').focus();}}
+function submitExtra(){const hu=document.getElementById('add-hu').value.trim(),prod=document.getElementById('add-prod').value.trim(),qty=parseFloat(document.getElementById('add-qty').value)||0;if(!hu||qty<=0){showToast('Need HU and count','red');return;}const m=sapHUIndex.get(hu)||{};currentBinItems.push({hu,product:prod,batch:document.getElementById('add-batch').value,desc:m.desc||"FOUND",sapQty:m.sapQty||0,sapBin:m.sapBin||"",countQty:qty,verified:true,isMissing:false,isExtra:true,note:"",actualBin:null,photoBase64:null,photoUrl:null});toggleAddForm();showToast('Item added','green');renderAuditList();}
+
+function finalizeBin(){if(!currentActiveBin)return;const unf=currentBinItems.filter(i=>!i.verified&&!i.isMissing);if(unf.length>0){showToast(`${unf.length} not verified`,'red');return;}haptic();let itemsToLog=currentBinItems.length===0?[{hu:"EMPTY_BIN",product:"NONE",desc:"Confirmed Empty",batch:"",sapBin:"",scannedBin:currentActiveBin,sapQty:0,countQty:0,type:'ok',note:"",photoUrl:""}]:currentBinItems.map(i=>{let type='ok';if(i.isMissing)type='miss';else if(i.isExtra)type='inactive';else if(i.countQty!==i.sapQty)type='adj';return{hu:i.hu,product:i.product,desc:i.desc,batch:i.batch,sapBin:i.sapBin,scannedBin:i.actualBin||currentActiveBin,sapQty:i.sapQty,countQty:i.countQty,type,note:i.note||"",photoUrl:i.photoUrl||""};});itemsToLog.forEach(item=>cloudReport.push({scanBin:item.scannedBin,...item}));updateProgressUI();enqueuePost({action:'logAudit',user:auditorName||"Floor",bin:currentActiveBin,items:itemsToLog});showToast('Bin finalized','blue');if(currentActiveBin.startsWith("PRODUCT:"))leaveAisle();else stepBin(1);}
+
+function renderAuditList(){const container=document.getElementById('audit-list');container.innerHTML="";const isFresh=currentActiveBin==="PRODUCT: FRESH",isSingle=currentActiveBin.startsWith("PRODUCT:")&&!isFresh;if(isFresh||isSingle){const groups={};currentBinItems.forEach((item,idx)=>{const k=isFresh?item.product:item.sapBin;if(!groups[k])groups[k]=[];groups[k].push({item,idx});});Object.keys(groups).forEach(key=>{const isExp=expandedBins.has(key),allDone=groups[key].every(o=>o.item.verified||o.item.isMissing);const div=document.createElement('div');div.className=`bg-white border-2 ${allDone?'border-emerald-200':'border-slate-100'} rounded-2xl overflow-hidden mb-2 shadow-sm`;const badge=`<span class="text-[10px] font-black px-2 py-0.5 rounded-lg ${allDone?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-500'}">${groups[key].filter(o=>o.item.verified||o.item.isMissing).length}/${groups[key].length}</span>`;div.innerHTML=`<div onclick="toggleBinAccordion('${key}')" class="flex justify-between items-center p-4 active:bg-slate-50 cursor-pointer"><div><span class="mono font-black text-slate-800 text-sm">${isFresh?'SKU '+key:key}</span><span class="text-[10px] text-slate-400 font-semibold block truncate max-w-[200px]">${isFresh?groups[key][0].item.desc:groups[key].length+' items'}</span></div><div class="flex items-center gap-2">${badge}<span class="text-slate-300 text-xs">${isExp?'▼':'▶'}</span></div></div><div id="content-${CSS.escape(key)}" class="${isExp?'p-4 pt-0 space-y-3':'hidden'}"></div>`;if(isExp){const cel=div.querySelector(`[id="content-${CSS.escape(key)}"]`);groups[key].forEach(o=>cel.appendChild(createItemCard(o.item,o.idx)));}container.appendChild(div);});}else{if(currentBinItems.length===0&&currentActiveBin!=="")container.innerHTML=`<div class="py-20 text-center"><div class="text-4xl mb-3">📭</div><p class="text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin — Confirm to finalize</p></div>`;currentBinItems.forEach((item,index)=>container.appendChild(createItemCard(item,index)));}updateBinProgress();}
+
+function createItemCard(item,index){const card=document.createElement('div');const sc=item.verified?'card-verified':(item.isMissing?'card-missing':(item.isExtra?'card-extra':'card-default'));card.className=`p-4 rounded-2xl transition-all shadow-sm ${sc}`;const isPM=currentActiveBin.startsWith("PRODUCT:");const hasNote=item.note&&item.note.trim()!=="";const hasPhoto=item.photoBase64||item.photoUrl;const hasActualBin=item.actualBin&&item.actualBin!==item.sapBin;const qtyMatch=item.verified&&item.countQty===item.sapQty;let extrasHTML=`<button onclick="openNoteModal(${index})" class="chip mt-2 ${(hasNote||hasPhoto)?'bg-amber-50 border border-amber-300 text-amber-700':'bg-white border border-dashed border-slate-200 text-slate-400'}">`;if(hasPhoto)extrasHTML+=`<img src="${item.photoUrl||item.photoBase64}" class="w-5 h-5 rounded object-cover"> `;extrasHTML+=`📝 ${hasNote?item.note.substring(0,25):'Add Note / Photo'}</button>`;if(hasPhoto)extrasHTML+=`<button onclick="viewPhoto(${index})" class="chip mt-1 bg-blue-50 border border-blue-200 text-blue-600">🔍 View Full Photo</button>`;if(isPM)extrasHTML+=`<button onclick="openBinMoveModal(${index})" class="chip mt-2 ${hasActualBin?'bg-purple-50 border border-purple-300 text-purple-700':'bg-white border border-dashed border-slate-200 text-slate-400'}">📍 ${hasActualBin?'Moved → '+item.actualBin:'Bin Move'}</button>`;card.innerHTML=`<div class="flex justify-between items-start mb-3"><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-1"><span class="inline-block px-2 py-0.5 bg-slate-900 text-blue-400 mono text-[9px] font-bold rounded-md">HU ${item.hu||'N/A'}</span>${item.isExtra?'<span class="text-[8px] font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">EXTRA</span>':''}${qtyMatch?'<span class="text-[8px] font-black text-emerald-600">✓</span>':''}</div><h3 class="text-sm font-bold text-slate-800 leading-tight">${item.product}</h3><p class="text-[10px] text-blue-600 font-semibold truncate">${item.desc||''}</p><p class="text-[9px] text-slate-400 font-semibold mt-0.5">Bin: ${item.sapBin}${hasActualBin?' <span class="text-purple-600 font-black">→ '+item.actualBin+'</span>':''}</p></div><div class="text-right bg-slate-50/80 p-2 rounded-xl border min-w-[60px] ml-3"><p class="text-[7px] font-black text-slate-400 uppercase">SAP</p><p class="text-xl mono font-black text-slate-700 leading-none">${item.sapQty}</p></div></div><div class="space-y-2"><div class="flex gap-2"><button onclick="quickConfirm(${index})" class="flex-[3] py-3.5 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase shadow active:scale-95">Confirm ${item.sapQty}</button><button onclick="toggleMissing(${index})" class="flex-1 py-3.5 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing?'bg-red-600 border-red-600 text-white':'border-slate-200 text-slate-300 bg-white'}">${item.isMissing?'✕':'Miss'}</button></div><div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-100"><button onclick="adjustQty(${index},-1)" class="stepper-btn bg-white shadow-sm text-slate-400 active:bg-slate-100">−</button><input type="number" inputmode="numeric" value="${item.countQty||''}" oninput="updateCount(${index},this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none mono min-w-0"><button onclick="adjustQty(${index},1)" class="stepper-btn bg-white shadow-sm text-blue-600 active:bg-blue-50">+</button></div>${extrasHTML}</div>`;return card;}
+
+function quickConfirm(i){haptic();currentBinItems[i].countQty=currentBinItems[i].sapQty;currentBinItems[i].verified=true;currentBinItems[i].isMissing=false;renderAuditList();}
+function toggleMissing(i){haptic();currentBinItems[i].isMissing=!currentBinItems[i].isMissing;if(currentBinItems[i].isMissing){currentBinItems[i].verified=false;currentBinItems[i].countQty=0;}renderAuditList();}
+function adjustQty(i,d){haptic();let c=currentBinItems[i].countQty||0;currentBinItems[i].countQty=Math.max(0,c+d);currentBinItems[i].verified=true;currentBinItems[i].isMissing=false;renderAuditList();}
+function updateCount(i,v){currentBinItems[i].countQty=parseFloat(v)||0;currentBinItems[i].verified=true;currentBinItems[i].isMissing=false;updateBinProgress();}
+
+function selectBin(n){if(!n)return;const u=n.toUpperCase();currentActiveBin=u;document.getElementById('bin-input').value=u;const e=sapBinIndex[u]||[];currentBinItems=e.map(i=>({...i,verified:false,isMissing:false,countQty:0,note:"",actualBin:null,photoBase64:null,photoUrl:null}));document.getElementById('setup-screen').classList.add('hidden');renderAuditList();window.scrollTo(0,0);updateProgressUI();}
+function stepBin(d){const c=ALL_SAP_BINS.indexOf(currentActiveBin);if(c!==-1&&ALL_SAP_BINS[c+d])selectBin(ALL_SAP_BINS[c+d]);else if(c===-1){const n=ALL_SAP_BINS.find(b=>b>currentActiveBin)||ALL_SAP_BINS[0];selectBin(n);}else showToast(d>0?'Last bin':'First bin','blue');}
+function startProductCycle(){const s=document.getElementById('prod-cycle-input').value.trim(),m=sapMasterData.filter(i=>i.product===s);if(!m.length){showToast('Not found','red');return;}currentActiveBin="PRODUCT: "+s;expandedBins.clear();currentBinItems=m.map(i=>({...i,verified:false,isMissing:false,countQty:0,note:"",actualBin:null,photoBase64:null,photoUrl:null}));document.getElementById('setup-screen').classList.add('hidden');document.getElementById('bin-input').value=currentActiveBin;renderAuditList();}
+function toggleBinAccordion(b){expandedBins.has(b)?expandedBins.delete(b):expandedBins.add(b);renderAuditList();}
+function leaveAisle(){currentActiveBin="";document.getElementById('setup-screen').classList.remove('hidden');}
+
+function switchView(v){
+    ['view-audit','view-report','view-fresh'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+    if(v==='audit'){document.getElementById('view-audit').classList.remove('hidden');document.getElementById('standard-bottom-bar').style.display='block';document.getElementById('fresh-bottom-bar').style.display='none';}
+    else if(v==='report'){document.getElementById('view-report').classList.remove('hidden');renderReportView();document.getElementById('standard-bottom-bar').style.display='none';document.getElementById('fresh-bottom-bar').style.display='none';}
+    document.querySelectorAll('.nav-pill').forEach(b=>{b.classList.remove('active');b.classList.add('text-slate-400','bg-slate-50');});
+    const a=document.getElementById('nav-'+v);if(a){a.classList.add('active');a.classList.remove('text-slate-400','bg-slate-50');}
+}
+
+function renderReportView(){const c=document.getElementById('report-list');c.innerHTML='';const items=cloudReport.filter(i=>i.hu!=='EMPTY_BIN'&&i.type!=='ok');if(!items.length){c.innerHTML='<div class="py-10 text-center text-slate-300 font-bold text-sm">No discrepancies yet</div>';return;}items.slice(-50).reverse().forEach(i=>{const tc={miss:'bg-red-100 text-red-700',adj:'bg-amber-100 text-amber-700',inactive:'bg-purple-100 text-purple-700',move:'bg-blue-100 text-blue-700'}[i.type]||'bg-slate-100 text-slate-600';const d=document.createElement('div');d.className='bg-white border rounded-xl p-3 flex justify-between items-center';d.innerHTML=`<div><p class="font-bold text-sm text-slate-800">${i.prod||i.product}</p><p class="text-[10px] text-slate-400 font-semibold mono">${i.scanBin} · HU ${i.hu}</p></div><div class="flex items-center gap-2"><span class="mono font-bold text-sm">${i.scanQty||i.countQty}/${i.sapQty}</span><span class="text-[9px] font-black uppercase px-2 py-1 rounded-lg ${tc}">${i.type}</span></div>`;c.appendChild(d);});}
+
+function rebuildIndexes(){sapBinIndex={};sapHUIndex=new Map();const u=new Set();sapMasterData.forEach(i=>{if(!sapBinIndex[i.sapBin])sapBinIndex[i.sapBin]=[];sapBinIndex[i.sapBin].push(i);sapHUIndex.set(i.hu,i);if(i.sapBin)u.add(i.sapBin);});ALL_SAP_BINS=Array.from(u).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));document.getElementById('stat-loaded').textContent=sapMasterData.length;document.getElementById('stat-bins').textContent=ALL_SAP_BINS.length;}
+function clearAllData(){if(confirm("Reset all data?")){localStorage.clear();location.reload();}}
+function handleFileUpload(event){const r=new FileReader();r.onload=(e)=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});sapMasterData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(row=>({sapBin:String(row['Storage Bin']||"").trim().toUpperCase(),hu:String(row['Handling Unit']||"").trim(),product:String(row['Product']||""),batch:String(row['Batch']||"").trim(),desc:row['Product Short Description']||"",sapQty:parseFloat(row['Quantity'])||0}));localStorage.setItem('sapMasterData',JSON.stringify(sapMasterData));rebuildIndexes();document.getElementById('upload-prompt').classList.add('hidden');document.getElementById('row-selection').classList.remove('hidden');initSetupGrid();showToast(`${sapMasterData.length} items loaded`,'blue');};r.readAsArrayBuffer(event.target.files[0]);}
+function initSetupGrid(){const g=document.getElementById('row-grid');g.innerHTML="";const ctx=getScheduleContext(),sched=getTodaysSchedule();document.getElementById('week-display').innerText=`Week ${ctx.week}`;document.getElementById('day-display').innerText=ctx.dayName;document.getElementById('schedule-list').innerHTML=sched.map(s=>s.isFresh?`<button onclick="startFreshCycle()" class="w-full text-left py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all"><span>🧊 ${s.aisle}: ${s.desc}</span><span class="text-white/60">▶</span></button>`:`<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${s.aisle}</span> <span class="text-slate-400 font-semibold">${s.desc}</span></div>`).join('');"ABCDEFGHIJKLMNOP".split("").forEach(row=>{const bc=ALL_SAP_BINS.filter(b=>b.includes(`W${row}`)).length;const btn=document.createElement('button');btn.className='row-btn bg-white border-2 border-slate-100 p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden';btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span><span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`;btn.onclick=()=>{const sb=ALL_SAP_BINS.find(b=>b.includes(`W${row}`))||`W${row}00A`;selectBin(sb);};g.appendChild(btn);});syncCloud();}
+
+window.onload=()=>{if(auditorName)document.getElementById('auditor-name-btn').textContent='👤 '+auditorName;if(sapMasterData.length>0){rebuildIndexes();document.getElementById('upload-prompt').classList.add('hidden');document.getElementById('row-selection').classList.remove('hidden');initSetupGrid();}updateQueueBadge();setInterval(syncCloud,8000);setInterval(drainQueue,15000);};
 </script>
 </body>
 </html>

@@ -88,11 +88,22 @@
 <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
     <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col overflow-y-auto">
         <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div class="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-4xl mb-6">📋</div>
-            <h2 class="text-2xl font-black uppercase mb-1 text-slate-800">Upload SAP Data</h2>
-            <p class="text-sm text-slate-400 font-medium mb-8">Excel export from SAP warehouse stock</p>
-            <input type="file" id="sap-upload-main" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(event)">
-            <label for="sap-upload-main" class="bg-blue-600 text-white py-5 px-12 rounded-2xl font-black uppercase text-sm shadow-xl cursor-pointer active:scale-95 transition-transform inline-block">Select Excel File</label>
+            <div class="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-4xl mb-6" id="load-icon">📋</div>
+            <h2 id="load-title" class="text-2xl font-black uppercase mb-1 text-slate-800">Loading SAP Data...</h2>
+            <p id="load-subtitle" class="text-sm text-slate-400 font-medium mb-6">Checking cloud for latest data</p>
+            <div id="load-spinner" class="mb-6"><div style="width:40px;height:40px;border:4px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;"></div></div>
+            <div id="load-actions" class="hidden space-y-3">
+                <button onclick="pullCloudSAPData()" class="bg-blue-600 text-white py-4 px-12 rounded-2xl font-black uppercase text-sm shadow-xl active:scale-95 transition-transform inline-block">↻ Retry Cloud Pull</button>
+                <p class="text-[10px] text-slate-300 font-bold uppercase">— or upload manually —</p>
+                <input type="file" id="sap-upload-main" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(event)">
+                <label for="sap-upload-main" class="bg-slate-200 text-slate-600 py-3 px-8 rounded-2xl font-black uppercase text-xs cursor-pointer active:scale-95 transition-transform inline-block">Select Local File</label>
+            </div>
+            <!-- Data freshness info -->
+            <div id="load-meta" class="hidden mt-4 bg-white border rounded-xl p-3 text-left w-full max-w-xs">
+                <p class="text-[9px] font-black text-emerald-600 uppercase mb-1">Cloud Data Available</p>
+                <p class="text-[10px] text-slate-500 font-semibold">📅 <span id="load-meta-time">—</span></p>
+                <p class="text-[10px] text-slate-500 font-semibold">📊 <span id="load-meta-rows">—</span> items</p>
+            </div>
         </div>
         <div id="row-selection" class="hidden p-5 pb-8 space-y-5">
             <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl">
@@ -577,7 +588,107 @@ function clearAllData(){if(confirm("Reset all data?")){localStorage.clear();loca
 function handleFileUpload(event){const r=new FileReader();r.onload=(e)=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});sapMasterData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(row=>({sapBin:String(row['Storage Bin']||"").trim().toUpperCase(),hu:String(row['Handling Unit']||"").trim(),product:String(row['Product']||""),batch:String(row['Batch']||"").trim(),desc:row['Product Short Description']||"",sapQty:parseFloat(row['Quantity'])||0}));localStorage.setItem('sapMasterData',JSON.stringify(sapMasterData));rebuildIndexes();document.getElementById('upload-prompt').classList.add('hidden');document.getElementById('row-selection').classList.remove('hidden');initSetupGrid();showToast(`${sapMasterData.length} items loaded`,'blue');};r.readAsArrayBuffer(event.target.files[0]);}
 function initSetupGrid(){const g=document.getElementById('row-grid');g.innerHTML="";const ctx=getScheduleContext(),sched=getTodaysSchedule();document.getElementById('week-display').innerText=`Week ${ctx.week}`;document.getElementById('day-display').innerText=ctx.dayName;document.getElementById('schedule-list').innerHTML=sched.map(s=>s.isFresh?`<button onclick="startFreshCycle()" class="w-full text-left py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all"><span>🧊 ${s.aisle}: ${s.desc}</span><span class="text-white/60">▶</span></button>`:`<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${s.aisle}</span> <span class="text-slate-400 font-semibold">${s.desc}</span></div>`).join('');"ABCDEFGHIJKLMNOP".split("").forEach(row=>{const bc=ALL_SAP_BINS.filter(b=>b.includes(`W${row}`)).length;const btn=document.createElement('button');btn.className='row-btn bg-white border-2 border-slate-100 p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden';btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span><span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`;btn.onclick=()=>{const sb=ALL_SAP_BINS.find(b=>b.includes(`W${row}`))||`W${row}00A`;selectBin(sb);};g.appendChild(btn);});syncCloud();}
 
-window.onload=()=>{if(auditorName)document.getElementById('auditor-name-btn').textContent='👤 '+auditorName;if(sapMasterData.length>0){rebuildIndexes();document.getElementById('upload-prompt').classList.add('hidden');document.getElementById('row-selection').classList.remove('hidden');initSetupGrid();}updateQueueBadge();setInterval(syncCloud,8000);setInterval(drainQueue,15000);};
+// ===== CLOUD SAP DATA PULL =====
+let sapDataTimestamp = localStorage.getItem('sapDataTimestamp') || null;
+
+async function pullCloudSAPData() {
+    const loadIcon = document.getElementById('load-icon');
+    const loadTitle = document.getElementById('load-title');
+    const loadSub = document.getElementById('load-subtitle');
+    const loadSpinner = document.getElementById('load-spinner');
+    const loadActions = document.getElementById('load-actions');
+    const loadMeta = document.getElementById('load-meta');
+
+    loadIcon.textContent = '📋';
+    loadTitle.textContent = 'Loading SAP Data...';
+    loadSub.textContent = 'Pulling from cloud';
+    loadSpinner.classList.remove('hidden');
+    loadActions.classList.add('hidden');
+    loadMeta.classList.add('hidden');
+
+    try {
+        const res = await fetch(API_URL + '?type=sapdata');
+        const data = await res.json();
+
+        if (data.sapData && data.sapData.length > 0) {
+            sapMasterData = data.sapData;
+            localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
+            if (data.meta && data.meta.timestamp) {
+                sapDataTimestamp = data.meta.timestamp;
+                localStorage.setItem('sapDataTimestamp', sapDataTimestamp);
+            }
+            rebuildIndexes();
+            document.getElementById('upload-prompt').classList.add('hidden');
+            document.getElementById('row-selection').classList.remove('hidden');
+            initSetupGrid();
+            showToast(`${sapMasterData.length} items from cloud`, 'blue');
+        } else {
+            // No cloud data — show manual upload option
+            loadIcon.textContent = '📭';
+            loadTitle.textContent = 'No Cloud Data';
+            loadSub.textContent = 'Ask your lead to upload SAP data from Control Center';
+            loadSpinner.classList.add('hidden');
+            loadActions.classList.remove('hidden');
+        }
+    } catch (err) {
+        // Offline — try local cache
+        if (sapMasterData.length > 0) {
+            rebuildIndexes();
+            document.getElementById('upload-prompt').classList.add('hidden');
+            document.getElementById('row-selection').classList.remove('hidden');
+            initSetupGrid();
+            showToast('Using cached data (offline)', 'orange');
+        } else {
+            loadIcon.textContent = '📵';
+            loadTitle.textContent = 'Offline';
+            loadSub.textContent = 'Cannot reach cloud — upload a local file or try again';
+            loadSpinner.classList.add('hidden');
+            loadActions.classList.remove('hidden');
+        }
+    }
+}
+
+// Check if cloud data is newer than our cache (called periodically)
+async function checkForDataRefresh() {
+    try {
+        const res = await fetch(API_URL + '?type=sapdata');
+        const data = await res.json();
+        if (data.meta && data.meta.timestamp && data.meta.timestamp !== sapDataTimestamp) {
+            // New data available
+            if (data.sapData && data.sapData.length > 0) {
+                sapMasterData = data.sapData;
+                localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
+                sapDataTimestamp = data.meta.timestamp;
+                localStorage.setItem('sapDataTimestamp', sapDataTimestamp);
+                rebuildIndexes();
+                showToast('SAP data refreshed', 'blue');
+            }
+        }
+    } catch {}
+}
+
+window.onload = () => {
+    if (auditorName) document.getElementById('auditor-name-btn').textContent = '👤 ' + auditorName;
+    
+    if (sapMasterData.length > 0) {
+        // We have cached data — show it immediately, then check for updates
+        rebuildIndexes();
+        document.getElementById('upload-prompt').classList.add('hidden');
+        document.getElementById('row-selection').classList.remove('hidden');
+        initSetupGrid();
+        // Silently check for newer cloud data
+        checkForDataRefresh();
+    } else {
+        // No cache — pull from cloud
+        pullCloudSAPData();
+    }
+    
+    updateQueueBadge();
+    setInterval(syncCloud, 8000);
+    setInterval(drainQueue, 15000);
+    // Check for data refresh every 2 minutes
+    setInterval(checkForDataRefresh, 120000);
+};
 </script>
 </body>
 </html>

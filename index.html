@@ -61,6 +61,14 @@
     .fresh-sap-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; font-size:11px; }
     .fresh-sap-row:nth-child(odd) { background:#f8fafc; }
     .fresh-header { background:linear-gradient(135deg,#0e7490,#0891b2); color:white; }
+
+    /* Notification banner */
+    .notif-banner { background:linear-gradient(135deg,#1e40af,#2563eb); color:white; padding:12px 16px; display:flex; flex-direction:column; gap:8px; box-shadow:0 4px 20px rgba(37,99,235,0.3); z-index:55; }
+    .notif-banner.urgent { background:linear-gradient(135deg,#dc2626,#ef4444); box-shadow:0 4px 20px rgba(239,68,68,0.3); }
+    @keyframes notif-slide { 0%{transform:translateY(-100%);opacity:0} 100%{transform:translateY(0);opacity:1} }
+    .notif-enter { animation:notif-slide 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+    @keyframes notif-pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+    .notif-icon-pulse { animation:notif-pulse 1.5s infinite; }
 </style>
 ```
 
@@ -88,6 +96,10 @@
     <button id="nav-report" onclick="switchView('report')" class="nav-pill flex-1 py-3 text-[10px] font-black uppercase text-slate-400 bg-slate-50 rounded-xl">Report</button>
 </nav>
 
+<!-- Notification Banner (hidden by default, shown when new pending assignments arrive) -->
+
+<div id="notif-container" class="shrink-0" style="display:none;"></div>
+
 <!-- ===== AUDIT VIEW (Standard Bin Mode) ===== -->
 
 <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
@@ -112,8 +124,8 @@
         </div>
         <div id="row-selection" class="hidden p-5 pb-8 space-y-5">
             <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl">
-                <div class="flex justify-between items-center mb-3"><span id="week-display" class="bg-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Week ?</span><span id="day-display" class="text-[10px] font-bold uppercase text-slate-400">Monday</span></div>
-                <p class="text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">Today's Targets</p>
+                <div class="flex justify-between items-center mb-3"><span id="week-display" class="bg-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Today</span><span id="day-display" class="text-[10px] font-bold uppercase text-slate-400"></span></div>
+                <p class="text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">Assigned Counts</p>
                 <div id="schedule-list" class="space-y-1.5"></div>
             </div>
             <div class="bg-white p-4 rounded-2xl border shadow-sm">
@@ -287,48 +299,186 @@ function showAuditorModal(){document.getElementById('auditor-name-input').value=
 function saveAuditorName(){auditorName=document.getElementById('auditor-name-input').value.trim()||"Floor";localStorage.setItem('auditorName',auditorName);document.getElementById('auditor-name-btn').textContent='👤 '+auditorName;document.getElementById('auditor-modal').classList.add('hidden');}
 
 // ===== SCHEDULE =====
-function getScheduleContext(){const n=new Date(),s=new Date("2026-03-30T00:00:00"),w=Math.floor((n-s)/(7*864e5));return{week:((w%4)+4)%4+1,day:n.getDay(),dayName:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][n.getDay()]};}
-
-// Valid aisle rows: A-H, J-N, P (no I or O)
 const AISLE_ROWS = "ABCDEFGHJKLMNP".split("");
+let cloudAssignments = []; // pulled from cloud: [{type, value, description}]
 
-function getTodaysSchedule(){
-    const c=getScheduleContext(),s=[],w13=(c.week===1||c.week===3);
-    if([1,3,5].includes(c.day)) s.push({aisle:"FRESH",desc:"14 Items",isFresh:true},{aisle:"H",desc:"Bins 23-End"},{aisle:"J",desc:"Bins 23-End"});
-    if(c.day===1) s.push({aisle:"WA",desc:"Entire Row"},{aisle:"WK",desc:"Entire Row"});
-    else if(c.day===2){s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WC",desc:"Entire Row"},{aisle:"WD",desc:"Entire Row"},{aisle:"WF",desc:"Entire Row"},{aisle:"WL",desc:"Entire Row"},{aisle:"WG",desc:"Bins 23-End"});}
-    else if(c.day===3) s.push({aisle:"WE",desc:"Entire Row"},{aisle:"WM",desc:"Entire Row"});
-    else if(c.day===4){s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WF",desc:"Bins 23-End"},{aisle:"WN",desc:"Entire Row"},{aisle:"WG",desc:w13?"Entire Row":"Bins 23-End"});}
-    else if(c.day===5) s.push({aisle:"WB",desc:"Bins 23-End (SR)"},{aisle:"WC",desc:"Bins 23-End (SR)"},{aisle:"WP",desc:"Entire Row"});
-    return s;
+function isFreshDay() {
+    const day = new Date().getDay();
+    return day === 1 || day === 3 || day === 5; // Mon, Wed, Fri
+}
+
+function getDayName() {
+    return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+}
+
+function getAssignedAisles() {
+    // Returns Set of aisle letters that are assigned (e.g. 'F', 'G')
+    const set = new Set();
+    cloudAssignments.forEach(a => {
+        if (a.type === 'aisle') {
+            // value is "WF" or "WF:00-25"
+            const letter = a.value.replace('W','').split(':')[0];
+            if (letter) set.add(letter);
+        }
+    });
+    return set;
 }
 
 function initSetupGrid(){
     const g=document.getElementById('row-grid');
     g.innerHTML="";
-    const ctx=getScheduleContext(), sched=getTodaysSchedule();
-    document.getElementById('week-display').innerText=`Week ${ctx.week}`;
-    document.getElementById('day-display').innerText=ctx.dayName;
-    document.getElementById('schedule-list').innerHTML=sched.map(s=>
-        s.isFresh
-            ? `<button onclick="startFreshCycle()" class="w-full text-left py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all"><span>🧊 ${s.aisle}: ${s.desc}</span><span class="text-white/60">▶</span></button>`
-            : `<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${s.aisle}</span> <span class="text-slate-400 font-semibold">${s.desc}</span></div>`
-    ).join('');
+    const assignedAisles = getAssignedAisles();
+    const hasAssignments = cloudAssignments.length > 0;
+    
+    // Header
+    document.getElementById('week-display').innerText = getDayName();
+    document.getElementById('day-display').innerText = hasAssignments ? `${cloudAssignments.length} assigned` : 'No assignments';
 
+    // Build schedule list from cloud assignments + FRESH
+    const schedList = document.getElementById('schedule-list');
+    let schedHTML = '';
+
+    // FRESH on MWF (always)
+    if (isFreshDay()) {
+        schedHTML += `<button onclick="startFreshCycle()" class="w-full text-left py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all mb-1.5"><span>🧊 FRESH: 14 SKUs</span><span class="text-white/60">▶</span></button>`;
+    }
+
+    // Cloud assignments
+    if (hasAssignments) {
+        cloudAssignments.forEach(a => {
+            if (a.type === 'product') {
+                schedHTML += `<button onclick="startProductCycleFromAssignment('${a.value}')" class="w-full text-left py-2 px-3 bg-orange-500/10 rounded-xl flex justify-between items-center text-xs font-bold active:scale-[0.98] transition-all mb-1"><span class="text-orange-600">📦 ${a.description || a.value}</span><span class="text-orange-400">▶</span></button>`;
+            } else {
+                schedHTML += `<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${a.value.split(':')[0]}</span> <span class="text-slate-400 font-semibold">${a.description || ''}</span></div>`;
+            }
+        });
+    } else {
+        schedHTML += `<div class="py-2 px-3 text-xs text-slate-400 italic">No assignments — count any aisle</div>`;
+    }
+
+    schedList.innerHTML = schedHTML;
+
+    // Build aisle grid with assigned aisles highlighted
     AISLE_ROWS.forEach(row=>{
         const bc=Object.keys(sapBinIndex).filter(b=>b.includes(`W${row}`)).length;
+        const isAssigned = assignedAisles.has(row);
         const btn=document.createElement('button');
-        btn.className='row-btn bg-white border-2 border-slate-100 p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden';
-        btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span><span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`;
-        btn.onclick=()=>{
-            selectBin(`W${row}00A`);
-        };
+        btn.className=`row-btn ${isAssigned ? 'bg-blue-50 border-2 border-blue-400' : 'bg-white border-2 border-slate-100'} p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden`;
+        btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span>${isAssigned ? '<span class="absolute top-0.5 left-1 text-[7px] text-blue-500 font-black">●</span>' : ''}<span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`;
+        btn.onclick=()=>{ selectBin(`W${row}00A`); };
         g.appendChild(btn);
     });
     syncCloud();
 }
+
+function startProductCycleFromAssignment(sku) {
+    document.getElementById('prod-cycle-input').value = sku;
+    startProductCycle();
+}
 // ===== CLOUD =====
-async function syncCloud(){try{const r=await fetch(API_URL);const d=await r.json();cloudReport=d.report||[];updateProgressUI();}catch{}drainQueue();}
+// Track which assignment IDs we've already responded to locally
+let respondedIds = JSON.parse(localStorage.getItem('respondedIds') || '{}'); // {id: 'accepted'|'declined'}
+
+async function syncCloud(){
+    try{
+        const r=await fetch(API_URL);
+        const d=await r.json();
+        cloudReport=d.report||[];
+        updateProgressUI();
+        // Check for assignment changes
+        const newAssign = d.assignments || [];
+        const oldJSON = JSON.stringify(cloudAssignments);
+        const newJSON = JSON.stringify(newAssign);
+        if (oldJSON !== newJSON) {
+            cloudAssignments = newAssign;
+            if (!document.getElementById('setup-screen').classList.contains('hidden')) {
+                initSetupGrid();
+            }
+        }
+        // Render notification banners for pending assignments
+        renderNotifications();
+    }catch{}
+    drainQueue();
+}
+
+function renderNotifications() {
+    const container = document.getElementById('notif-container');
+    // Find assignments that are pending and we haven't locally responded to
+    const pending = cloudAssignments.filter(a => 
+        a.status === 'pending' && !respondedIds[a.id]
+    );
+
+    if (pending.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'block';
+    container.innerHTML = '';
+
+    pending.forEach(a => {
+        const icon = a.type === 'product' ? '📦' : '📍';
+        const desc = a.description || a.value;
+        const banner = document.createElement('div');
+        banner.className = 'notif-banner notif-enter';
+        banner.innerHTML = `
+            <div class="flex items-start gap-3">
+                <span class="text-2xl notif-icon-pulse">${icon}</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-white/60">New Cycle Count</p>
+                    <p class="text-sm font-black leading-tight">${desc}</p>
+                    <p class="text-[10px] text-white/50 font-semibold mt-0.5">From ${a.assignedBy || 'Control Center'}</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="respondToAssignment('${a.id}','accepted')" class="flex-1 bg-white/20 hover:bg-white/30 text-white py-3 rounded-xl font-black text-xs uppercase active:scale-[0.97] transition-all backdrop-blur">✓ Accept</button>
+                <button onclick="respondToAssignment('${a.id}','declined')" class="flex-1 bg-white/10 hover:bg-white/20 text-white/70 py-3 rounded-xl font-black text-xs uppercase active:scale-[0.97] transition-all">✗ Decline</button>
+            </div>`;
+        container.appendChild(banner);
+    });
+}
+
+async function respondToAssignment(id, status) {
+    haptic();
+    // Immediately update local state so banner disappears
+    respondedIds[id] = status;
+    localStorage.setItem('respondedIds', JSON.stringify(respondedIds));
+    renderNotifications();
+
+    const statusText = status === 'accepted' ? 'Accepted' : 'Declined';
+    showToast(`${statusText}`, status === 'accepted' ? 'green' : 'orange');
+
+    // Send response to cloud
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'respondAssignment',
+                id: id,
+                status: status,
+                respondedBy: auditorName || 'Floor'
+            })
+        });
+    } catch {
+        // Queued for later
+        enqueuePost({ action: 'respondAssignment', id, status, respondedBy: auditorName || 'Floor' });
+    }
+
+    // If accepted and it's a product assignment, auto-navigate to it
+    if (status === 'accepted') {
+        const assignment = cloudAssignments.find(a => a.id === id);
+        if (assignment) {
+            if (assignment.type === 'product') {
+                document.getElementById('prod-cycle-input').value = assignment.value;
+                startProductCycle();
+            } else if (assignment.type === 'aisle') {
+                const aisleLetter = assignment.value.replace('W','').split(':')[0];
+                if (aisleLetter) selectBin(`W${aisleLetter}00A`);
+            }
+        }
+    }
+}
 function updateProgressUI(){const f=new Set(cloudReport.map(i=>i.scanBin));AISLE_ROWS.forEach(r=>{const b=document.getElementById(`badge-${r}`);if(b)b.innerText=Array.from(f).filter(bin=>bin&&bin.includes(`W${r}`)).length;});document.getElementById('total-progress').innerText=`${f.size} Done`;if(currentActiveBin)document.getElementById('bin-done-badge').classList.toggle('hidden',!f.has(currentActiveBin));document.getElementById('rpt-finalized').textContent=new Set(cloudReport.map(i=>i.scanBin)).size;const items=cloudReport.filter(i=>i.hu!=='EMPTY_BIN');const disc=items.filter(i=>i.type!=='ok').length;document.getElementById('rpt-discrep').textContent=disc;if(items.length>0)document.getElementById('rpt-accuracy').textContent=Math.round(((items.length-disc)/items.length)*100)+'%';}
 function updateBinProgress(){const t=currentBinItems.length,d=currentBinItems.filter(i=>i.verified||i.isMissing).length;document.getElementById('bin-progress-bar').style.width=t>0?Math.round((d/t)*100)+'%':'0%';document.getElementById('bin-progress-text').textContent=`${d} / ${t}`;const btn=document.getElementById('btn-confirm-all');(t-d>1&&t-d===t)?btn.classList.remove('hidden'):btn.classList.add('hidden');}
 function confirmAllRemaining(){haptic();let c=0;currentBinItems.forEach(i=>{if(!i.verified&&!i.isMissing){i.countQty=i.sapQty;i.verified=true;c++;}});showToast(`${c} confirmed`,'green');renderAuditList();}

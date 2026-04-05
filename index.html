@@ -321,8 +321,7 @@ function initSetupGrid(){
         btn.className='row-btn bg-white border-2 border-slate-100 p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden';
         btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span><span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`;
         btn.onclick=()=>{
-            const sb=ALL_SAP_BINS.find(b=>b.includes(`W${row}`))||`W${row}00A`;
-            selectBin(sb);
+            selectBin(`W${row}00A`);
         };
         g.appendChild(btn);
     });

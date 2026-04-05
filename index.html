@@ -254,6 +254,37 @@
 <div id="auditor-modal" class="hidden fixed inset-0 modal-backdrop z-[120] p-4 flex items-center justify-center"><div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl"><h2 class="text-lg font-black uppercase text-slate-800">Your Name</h2><input type="text" id="auditor-name-input" placeholder="e.g. Albert" class="w-full p-4 bg-slate-50 border-2 rounded-xl font-bold outline-none focus:border-blue-500 text-center text-lg"><button onclick="saveAuditorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase shadow-lg">Save</button></div></div>
 <div id="photo-viewer" class="hidden fixed inset-0 bg-black/90 z-[130] flex items-center justify-center p-4" onclick="this.classList.add('hidden')"><img id="photo-viewer-img" class="max-w-full max-h-full rounded-xl shadow-2xl"></div>
 
+<!-- Cycle Count Trigger Prompt -->
+<div id="cycle-count-prompt" class="hidden fixed inset-0 modal-backdrop z-[125] p-4 flex items-center justify-center">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+        <div class="text-center mb-5">
+            <div class="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">⚠️</div>
+            <h2 class="text-lg font-black uppercase text-slate-800">Unknown Item Found</h2>
+            <p class="text-[11px] text-slate-400 font-semibold mt-1" id="ccp-reason">No HU on material</p>
+        </div>
+        <div class="bg-slate-50 rounded-2xl p-4 space-y-2 mb-5">
+            <div class="flex justify-between items-center">
+                <span class="text-[9px] font-black text-slate-400 uppercase">Product</span>
+                <span id="ccp-product" class="mono font-black text-blue-600"></span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-[9px] font-black text-slate-400 uppercase">Description</span>
+                <span id="ccp-desc" class="text-[11px] font-semibold text-slate-600 text-right max-w-[180px] truncate"></span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-[9px] font-black text-slate-400 uppercase">Qty Found</span>
+                <span id="ccp-qty" class="mono font-black text-slate-700"></span>
+            </div>
+        </div>
+        <p class="text-[11px] text-center text-slate-500 font-semibold mb-5">This item may be improperly consumed. Would you like to perform a <span class="font-black text-blue-600">full product cycle count</span> across all bins?</p>
+        <input type="hidden" id="ccp-product-val">
+        <div class="flex gap-3">
+            <button onclick="declineCycleCountTrigger()" class="flex-1 py-4 bg-slate-100 text-slate-500 rounded-xl font-black uppercase text-[10px] active:scale-[0.97] transition-all">Not Now</button>
+            <button onclick="acceptCycleCountTrigger()" class="flex-[2] py-4 bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-lg active:scale-[0.97] transition-all">Count Now</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
 
@@ -740,7 +771,135 @@ function closeBinMoveModal(){document.getElementById('bin-move-modal').classList
 function saveBinMove(){const b=document.getElementById('move-actual-bin').value.trim().toUpperCase();if(b)currentBinItems[binMoveTargetIndex].actualBin=b;closeBinMoveModal();renderAuditList();}
 function toggleAddForm(){haptic();const m=document.getElementById('add-item-modal');m.classList.toggle('hidden');if(!m.classList.contains('hidden')){['add-hu','add-prod','add-batch','add-qty'].forEach(id=>document.getElementById(id).value='');document.getElementById('smart-fill-badge').classList.add('hidden');setTimeout(()=>document.getElementById('add-hu').focus(),100);}}
 function autoLookupExtra(input){const hu=input.value.trim();if(hu.length<8){document.getElementById('smart-fill-badge').classList.add('hidden');return;}const m=sapHUIndex.get(hu);if(m){document.getElementById('smart-fill-badge').classList.remove('hidden');document.getElementById('add-prod').value=m.product;document.getElementById('add-batch').value=m.batch;document.getElementById('add-qty').focus();}}
-function submitExtra(){const hu=document.getElementById('add-hu').value.trim(),prod=document.getElementById('add-prod').value.trim(),qty=parseFloat(document.getElementById('add-qty').value)||0;if(!hu||qty<=0){showToast('Need HU and count','red');return;}const m=sapHUIndex.get(hu)||{};currentBinItems.push({hu,product:prod,batch:document.getElementById('add-batch').value,desc:m.desc||"FOUND",sapQty:m.sapQty||0,sapBin:m.sapBin||"",countQty:qty,verified:true,isMissing:false,isExtra:true,note:"",actualBin:null,photoBase64:null,photoUrl:null});toggleAddForm();showToast('Item added','green');renderAuditList();}
+function submitExtra(){
+    const hu=document.getElementById('add-hu').value.trim();
+    const prod=document.getElementById('add-prod').value.trim();
+    const qty=parseFloat(document.getElementById('add-qty').value)||0;
+    if(!prod||qty<=0){showToast('Need product # and count','red');return;}
+    
+    const huMatch=hu ? sapHUIndex.get(hu) : null;
+    const isNoHU = !hu || hu === '0' || hu.trim() === '';
+    const isUnknownHU = hu && !isNoHU && !huMatch;
+    const needsCycleCountPrompt = isNoHU || isUnknownHU;
+    
+    // Add the item to current bin regardless
+    currentBinItems.push({
+        hu: hu || '0',
+        product: prod,
+        batch: document.getElementById('add-batch').value,
+        desc: huMatch ? huMatch.desc : "FOUND (No HU)",
+        sapQty: huMatch ? huMatch.sapQty : 0,
+        sapBin: huMatch ? huMatch.sapBin : "",
+        countQty: qty,
+        verified: true,
+        isMissing: false,
+        isExtra: true,
+        note: isUnknownHU ? `Unknown HU: ${hu}` : (isNoHU ? 'No HU on material' : ''),
+        actualBin: null,
+        photoBase64: null,
+        photoUrl: null
+    });
+    toggleAddForm();
+    showToast('Item added','green');
+    renderAuditList();
+    
+    // If no valid HU, prompt for product cycle count
+    if (needsCycleCountPrompt && prod) {
+        setTimeout(() => {
+            showCycleCountPrompt(prod, qty, isUnknownHU ? `Unknown HU: ${hu}` : 'No HU on material');
+        }, 500);
+    }
+}
+
+function showCycleCountPrompt(product, qty, reason) {
+    const desc = sapMasterData.find(i => i.product === product)?.desc || product;
+    const modal = document.getElementById('cycle-count-prompt');
+    document.getElementById('ccp-product').textContent = product;
+    document.getElementById('ccp-desc').textContent = desc;
+    document.getElementById('ccp-qty').textContent = qty;
+    document.getElementById('ccp-reason').textContent = reason;
+    document.getElementById('ccp-product-val').value = product;
+    modal.classList.remove('hidden');
+}
+
+function closeCycleCountPrompt() {
+    document.getElementById('cycle-count-prompt').classList.add('hidden');
+}
+
+async function acceptCycleCountTrigger() {
+    const prod = document.getElementById('ccp-product-val').value;
+    const reason = document.getElementById('ccp-reason').textContent;
+    closeCycleCountPrompt();
+    haptic();
+    
+    // Notify Control Center via assignment
+    const triggerId = 'CC' + Date.now();
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'triggerCycleCount',
+                id: triggerId,
+                product: prod,
+                reason: reason,
+                triggeredBy: auditorName || 'Floor',
+                status: 'accepted',
+                bin: currentActiveBin
+            })
+        });
+    } catch {
+        enqueuePost({
+            action: 'triggerCycleCount',
+            id: triggerId,
+            product: prod,
+            reason: reason,
+            triggeredBy: auditorName || 'Floor',
+            status: 'accepted',
+            bin: currentActiveBin
+        });
+    }
+    
+    showToast('Cycle count triggered','blue');
+    
+    // Launch product cycle count
+    document.getElementById('prod-cycle-input').value = prod;
+    startProductCycle();
+}
+
+async function declineCycleCountTrigger() {
+    const prod = document.getElementById('ccp-product-val').value;
+    const reason = document.getElementById('ccp-reason').textContent;
+    closeCycleCountPrompt();
+    
+    // Still notify Control Center so they know
+    const triggerId = 'CC' + Date.now();
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'triggerCycleCount',
+                id: triggerId,
+                product: prod,
+                reason: reason,
+                triggeredBy: auditorName || 'Floor',
+                status: 'declined',
+                bin: currentActiveBin
+            })
+        });
+    } catch {
+        enqueuePost({
+            action: 'triggerCycleCount',
+            id: triggerId,
+            product: prod,
+            reason: reason,
+            triggeredBy: auditorName || 'Floor',
+            status: 'declined',
+            bin: currentActiveBin
+        });
+    }
+    
+    showToast('Cycle count skipped','orange');
+}
 
 function finalizeBin(){if(!currentActiveBin)return;const unf=currentBinItems.filter(i=>!i.verified&&!i.isMissing);if(unf.length>0){showToast(`${unf.length} not verified`,'red');return;}haptic();let itemsToLog=currentBinItems.length===0?[{hu:"EMPTY_BIN",product:"NONE",desc:"Confirmed Empty",batch:"",sapBin:"",scannedBin:currentActiveBin,sapQty:0,countQty:0,type:'ok',note:"",photoUrl:""}]:currentBinItems.map(i=>{let type='ok';if(i.isMissing)type='miss';else if(i.isExtra)type='inactive';else if(i.countQty!==i.sapQty)type='adj';return{hu:i.hu,product:i.product,desc:i.desc,batch:i.batch,sapBin:i.sapBin,scannedBin:i.actualBin||currentActiveBin,sapQty:i.sapQty,countQty:i.countQty,type,note:i.note||"",photoUrl:i.photoUrl||""};});itemsToLog.forEach(item=>cloudReport.push({scanBin:item.scannedBin,...item}));updateProgressUI();enqueuePost({action:'logAudit',user:auditorName||"Floor",bin:currentActiveBin,items:itemsToLog});showToast('Bin finalized','blue');if(currentActiveBin.startsWith("PRODUCT:"))leaveAisle();else stepBin(1);}
 

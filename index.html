@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -46,32 +45,29 @@
         @keyframes spin { to{transform:rotate(360deg)} }
         .spinner { width:16px; height:16px; border:2px solid white; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; display:inline-block; }
 
-```
-    /* ===== FRESH MODE STYLES ===== */
-    .fresh-card { background:white; border:2px solid #e2e8f0; border-radius:1.25rem; overflow:hidden; transition:all 0.2s; }
-    .fresh-card.counted { border-color:#a7f3d0; background:linear-gradient(135deg,#ecfdf5,#fff 70%); }
-    .fresh-card.has-variance { border-color:#fbbf24; }
-    .fresh-stepper { min-width:64px; min-height:64px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:900; border-radius:1rem; transition:all 0.1s; -webkit-user-select:none; user-select:none; }
-    .fresh-stepper:active { transform:scale(0.88); }
-    .fresh-qty-input { width:100%; text-align:center; font-size:3rem; font-weight:900; color:#1e40af; background:transparent; border:none; outline:none; font-family:'JetBrains Mono',monospace; }
-    .fresh-qty-input::placeholder { color:#cbd5e1; }
-    .condition-tag { padding:5px 12px; border-radius:99px; font-size:10px; font-weight:800; text-transform:uppercase; border:2px solid transparent; cursor:pointer; transition:all 0.15s; -webkit-user-select:none; user-select:none; }
-    .condition-tag:active { transform:scale(0.93); }
-    .condition-tag.active { border-color:currentColor; }
-    .fresh-sap-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; font-size:11px; }
-    .fresh-sap-row:nth-child(odd) { background:#f8fafc; }
-    .fresh-header { background:linear-gradient(135deg,#0e7490,#0891b2); color:white; }
+        /* ===== FRESH MODE STYLES ===== */
+        .fresh-card { background:white; border:2px solid #e2e8f0; border-radius:1.25rem; overflow:hidden; transition:all 0.2s; }
+        .fresh-card.counted { border-color:#a7f3d0; background:linear-gradient(135deg,#ecfdf5,#fff 70%); }
+        .fresh-card.has-variance { border-color:#fbbf24; }
+        .fresh-stepper { min-width:64px; min-height:64px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:900; border-radius:1rem; transition:all 0.1s; -webkit-user-select:none; user-select:none; }
+        .fresh-stepper:active { transform:scale(0.88); }
+        .fresh-qty-input { width:100%; text-align:center; font-size:3rem; font-weight:900; color:#1e40af; background:transparent; border:none; outline:none; font-family:'JetBrains Mono',monospace; }
+        .fresh-qty-input::placeholder { color:#cbd5e1; }
+        .condition-tag { padding:5px 12px; border-radius:99px; font-size:10px; font-weight:800; text-transform:uppercase; border:2px solid transparent; cursor:pointer; transition:all 0.15s; -webkit-user-select:none; user-select:none; }
+        .condition-tag:active { transform:scale(0.93); }
+        .condition-tag.active { border-color:currentColor; }
+        .fresh-sap-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; font-size:11px; }
+        .fresh-sap-row:nth-child(odd) { background:#f8fafc; }
+        .fresh-header { background:linear-gradient(135deg,#0e7490,#0891b2); color:white; }
 
-    /* Notification banner */
-    .notif-banner { background:linear-gradient(135deg,#1e40af,#2563eb); color:white; padding:12px 16px; display:flex; flex-direction:column; gap:8px; box-shadow:0 4px 20px rgba(37,99,235,0.3); z-index:55; }
-    .notif-banner.urgent { background:linear-gradient(135deg,#dc2626,#ef4444); box-shadow:0 4px 20px rgba(239,68,68,0.3); }
-    @keyframes notif-slide { 0%{transform:translateY(-100%);opacity:0} 100%{transform:translateY(0);opacity:1} }
-    .notif-enter { animation:notif-slide 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
-    @keyframes notif-pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
-    .notif-icon-pulse { animation:notif-pulse 1.5s infinite; }
-</style>
-```
-
+        /* Notification banner */
+        .notif-banner { background:linear-gradient(135deg,#1e40af,#2563eb); color:white; padding:12px 16px; display:flex; flex-direction:column; gap:8px; box-shadow:0 4px 20px rgba(37,99,235,0.3); z-index:55; }
+        .notif-banner.urgent { background:linear-gradient(135deg,#dc2626,#ef4444); box-shadow:0 4px 20px rgba(239,68,68,0.3); }
+        @keyframes notif-slide { 0%{transform:translateY(-100%);opacity:0} 100%{transform:translateY(0);opacity:1} }
+        .notif-enter { animation:notif-slide 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes notif-pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+        .notif-icon-pulse { animation:notif-pulse 1.5s infinite; }
+    </style>
 </head>
 <body class="bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
 
@@ -97,11 +93,9 @@
 </nav>
 
 <!-- Notification Banner (hidden by default, shown when new pending assignments arrive) -->
-
 <div id="notif-container" class="shrink-0" style="display:none;"></div>
 
 <!-- ===== AUDIT VIEW (Standard Bin Mode) ===== -->
-
 <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
     <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col overflow-y-auto">
         <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center p-8">
@@ -145,33 +139,29 @@
         </div>
     </div>
 
-```
-<!-- Bin Header (standard mode) -->
-<div id="bin-header" class="px-4 py-3 bg-white border-b shrink-0">
-    <div class="flex gap-2 items-center">
-        <button onclick="stepBin(-1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">◀</button>
-        <div class="flex-1 relative"><input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-3.5 px-5 bg-slate-50 border-2 rounded-xl text-lg mono text-blue-700 font-bold uppercase outline-none focus:border-blue-400" onchange="selectBin(this.value)"><span id="bin-done-badge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">DONE</span></div>
-        <button onclick="stepBin(1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">▶</button>
+    <!-- Bin Header (standard mode) -->
+    <div id="bin-header" class="px-4 py-3 bg-white border-b shrink-0">
+        <div class="flex gap-2 items-center">
+            <button onclick="stepBin(-1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">◀</button>
+            <div class="flex-1 relative"><input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-3.5 px-5 bg-slate-50 border-2 rounded-xl text-lg mono text-blue-700 font-bold uppercase outline-none focus:border-blue-400" onchange="selectBin(this.value)"><span id="bin-done-badge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">DONE</span></div>
+            <button onclick="stepBin(1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">▶</button>
+        </div>
+        <div class="mt-2 flex items-center gap-3"><div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="bin-progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div></div><span id="bin-progress-text" class="text-[10px] font-black text-slate-400 mono min-w-[50px] text-right">0 / 0</span></div>
     </div>
-    <div class="mt-2 flex items-center gap-3"><div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="bin-progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div></div><span id="bin-progress-text" class="text-[10px] font-black text-slate-400 mono min-w-[50px] text-right">0 / 0</span></div>
-</div>
-<div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[260px]"></div>
+    <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[260px]"></div>
 
-<!-- Bottom Bar (standard mode) -->
-<div id="standard-bottom-bar" class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50">
-    <div class="flex gap-2 mb-3">
-        <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97]">+ Found Item</button>
-        <button onclick="confirmAllRemaining()" id="btn-confirm-all" class="flex-1 bg-emerald-50 border-2 border-emerald-300 text-emerald-700 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] hidden">✓ Confirm All</button>
-        <button onclick="leaveAisle()" class="w-14 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center text-lg border border-slate-200 active:bg-slate-200">🚪</button>
+    <!-- Bottom Bar (standard mode) -->
+    <div id="standard-bottom-bar" class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50">
+        <div class="flex gap-2 mb-3">
+            <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97]">+ Found Item</button>
+            <button onclick="confirmAllRemaining()" id="btn-confirm-all" class="flex-1 bg-emerald-50 border-2 border-emerald-300 text-emerald-700 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] hidden">✓ Confirm All</button>
+            <button onclick="leaveAisle()" class="w-14 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center text-lg border border-slate-200 active:bg-slate-200">🚪</button>
+        </div>
+        <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;"><span>Finalize & Next Bin</span><span class="swipe-hint text-white/50">→</span></button>
     </div>
-    <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;"><span>Finalize & Next Bin</span><span class="swipe-hint text-white/50">→</span></button>
-</div>
-```
-
 </main>
 
 <!-- ===== FRESH COUNT VIEW ===== -->
-
 <main id="view-fresh" class="flex-1 flex flex-col overflow-hidden hidden">
     <!-- Fresh Header -->
     <div class="fresh-header px-4 py-4 shrink-0">
@@ -189,37 +179,33 @@
             </div>
         </div>
     </div>
-
-```
-<!-- Fresh List -->
-<div id="fresh-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[200px]"></div>
-
-<!-- Fresh Bottom Bar -->
-<div class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50" id="fresh-bottom-bar" style="display:none;">
-    <div class="flex gap-2 mb-3">
-        <div class="flex-1 bg-white border rounded-xl p-2 text-center">
-            <p class="text-[8px] font-black text-slate-400 uppercase">SAP Total</p>
-            <p id="fresh-sap-total" class="text-lg font-black text-slate-600 mono">0</p>
+    
+    <!-- Fresh List -->
+    <div id="fresh-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[200px]"></div>
+    
+    <!-- Fresh Bottom Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50" id="fresh-bottom-bar" style="display:none;">
+        <div class="flex gap-2 mb-3">
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">SAP Total</p>
+                <p id="fresh-sap-total" class="text-lg font-black text-slate-600 mono">0</p>
+            </div>
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">Your Count</p>
+                <p id="fresh-count-total" class="text-lg font-black text-blue-600 mono">0</p>
+            </div>
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">Variance</p>
+                <p id="fresh-variance-total" class="text-lg font-black mono">0</p>
+            </div>
         </div>
-        <div class="flex-1 bg-white border rounded-xl p-2 text-center">
-            <p class="text-[8px] font-black text-slate-400 uppercase">Your Count</p>
-            <p id="fresh-count-total" class="text-lg font-black text-blue-600 mono">0</p>
-        </div>
-        <div class="flex-1 bg-white border rounded-xl p-2 text-center">
-            <p class="text-[8px] font-black text-slate-400 uppercase">Variance</p>
-            <p id="fresh-variance-total" class="text-lg font-black mono">0</p>
-        </div>
+        <button onclick="finalizeFresh()" class="w-full bg-cyan-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;">
+            <span>Submit Fresh Count</span>
+        </button>
     </div>
-    <button onclick="finalizeFresh()" class="w-full bg-cyan-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;">
-        <span>Submit Fresh Count</span>
-    </button>
-</div>
-```
-
 </main>
 
 <!-- ===== REPORT VIEW ===== -->
-
 <main id="view-report" class="flex-1 flex flex-col overflow-hidden hidden">
     <div class="p-4 space-y-3 overflow-y-auto flex-1">
         <div class="flex gap-2">
@@ -232,7 +218,6 @@
 </main>
 
 <!-- ===== MODALS (same as before) ===== -->
-
 <div id="add-item-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-end sm:items-center justify-center">
     <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center"><h2 class="text-xl font-black uppercase">Found Item</h2><span id="smart-fill-badge" class="hidden bg-green-100 text-green-700 text-[9px] font-black px-2 py-1 rounded-full">Auto-filled</span></div>
@@ -911,6 +896,5 @@ window.onload = () => {
     setInterval(checkForDataRefresh, 120000);
 };
 </script>
-
 </body>
 </html>

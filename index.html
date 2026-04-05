@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -45,21 +46,24 @@
         @keyframes spin { to{transform:rotate(360deg)} }
         .spinner { width:16px; height:16px; border:2px solid white; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; display:inline-block; }
 
-        /* ===== FRESH MODE STYLES ===== */
-        .fresh-card { background:white; border:2px solid #e2e8f0; border-radius:1.25rem; overflow:hidden; transition:all 0.2s; }
-        .fresh-card.counted { border-color:#a7f3d0; background:linear-gradient(135deg,#ecfdf5,#fff 70%); }
-        .fresh-card.has-variance { border-color:#fbbf24; }
-        .fresh-stepper { min-width:64px; min-height:64px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:900; border-radius:1rem; transition:all 0.1s; -webkit-user-select:none; user-select:none; }
-        .fresh-stepper:active { transform:scale(0.88); }
-        .fresh-qty-input { width:100%; text-align:center; font-size:3rem; font-weight:900; color:#1e40af; background:transparent; border:none; outline:none; font-family:'JetBrains Mono',monospace; }
-        .fresh-qty-input::placeholder { color:#cbd5e1; }
-        .condition-tag { padding:5px 12px; border-radius:99px; font-size:10px; font-weight:800; text-transform:uppercase; border:2px solid transparent; cursor:pointer; transition:all 0.15s; -webkit-user-select:none; user-select:none; }
-        .condition-tag:active { transform:scale(0.93); }
-        .condition-tag.active { border-color:currentColor; }
-        .fresh-sap-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; font-size:11px; }
-        .fresh-sap-row:nth-child(odd) { background:#f8fafc; }
-        .fresh-header { background:linear-gradient(135deg,#0e7490,#0891b2); color:white; }
-    </style>
+```
+    /* ===== FRESH MODE STYLES ===== */
+    .fresh-card { background:white; border:2px solid #e2e8f0; border-radius:1.25rem; overflow:hidden; transition:all 0.2s; }
+    .fresh-card.counted { border-color:#a7f3d0; background:linear-gradient(135deg,#ecfdf5,#fff 70%); }
+    .fresh-card.has-variance { border-color:#fbbf24; }
+    .fresh-stepper { min-width:64px; min-height:64px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:900; border-radius:1rem; transition:all 0.1s; -webkit-user-select:none; user-select:none; }
+    .fresh-stepper:active { transform:scale(0.88); }
+    .fresh-qty-input { width:100%; text-align:center; font-size:3rem; font-weight:900; color:#1e40af; background:transparent; border:none; outline:none; font-family:'JetBrains Mono',monospace; }
+    .fresh-qty-input::placeholder { color:#cbd5e1; }
+    .condition-tag { padding:5px 12px; border-radius:99px; font-size:10px; font-weight:800; text-transform:uppercase; border:2px solid transparent; cursor:pointer; transition:all 0.15s; -webkit-user-select:none; user-select:none; }
+    .condition-tag:active { transform:scale(0.93); }
+    .condition-tag.active { border-color:currentColor; }
+    .fresh-sap-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; font-size:11px; }
+    .fresh-sap-row:nth-child(odd) { background:#f8fafc; }
+    .fresh-header { background:linear-gradient(135deg,#0e7490,#0891b2); color:white; }
+</style>
+```
+
 </head>
 <body class="bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
 
@@ -85,6 +89,7 @@
 </nav>
 
 <!-- ===== AUDIT VIEW (Standard Bin Mode) ===== -->
+
 <main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
     <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col overflow-y-auto">
         <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center p-8">
@@ -128,29 +133,33 @@
         </div>
     </div>
 
-    <!-- Bin Header (standard mode) -->
-    <div id="bin-header" class="px-4 py-3 bg-white border-b shrink-0">
-        <div class="flex gap-2 items-center">
-            <button onclick="stepBin(-1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">◀</button>
-            <div class="flex-1 relative"><input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-3.5 px-5 bg-slate-50 border-2 rounded-xl text-lg mono text-blue-700 font-bold uppercase outline-none focus:border-blue-400" onchange="selectBin(this.value)"><span id="bin-done-badge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">DONE</span></div>
-            <button onclick="stepBin(1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">▶</button>
-        </div>
-        <div class="mt-2 flex items-center gap-3"><div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="bin-progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div></div><span id="bin-progress-text" class="text-[10px] font-black text-slate-400 mono min-w-[50px] text-right">0 / 0</span></div>
+```
+<!-- Bin Header (standard mode) -->
+<div id="bin-header" class="px-4 py-3 bg-white border-b shrink-0">
+    <div class="flex gap-2 items-center">
+        <button onclick="stepBin(-1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">◀</button>
+        <div class="flex-1 relative"><input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-3.5 px-5 bg-slate-50 border-2 rounded-xl text-lg mono text-blue-700 font-bold uppercase outline-none focus:border-blue-400" onchange="selectBin(this.value)"><span id="bin-done-badge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">DONE</span></div>
+        <button onclick="stepBin(1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">▶</button>
     </div>
-    <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[260px]"></div>
+    <div class="mt-2 flex items-center gap-3"><div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="bin-progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div></div><span id="bin-progress-text" class="text-[10px] font-black text-slate-400 mono min-w-[50px] text-right">0 / 0</span></div>
+</div>
+<div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[260px]"></div>
 
-    <!-- Bottom Bar (standard mode) -->
-    <div id="standard-bottom-bar" class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50">
-        <div class="flex gap-2 mb-3">
-            <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97]">+ Found Item</button>
-            <button onclick="confirmAllRemaining()" id="btn-confirm-all" class="flex-1 bg-emerald-50 border-2 border-emerald-300 text-emerald-700 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] hidden">✓ Confirm All</button>
-            <button onclick="leaveAisle()" class="w-14 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center text-lg border border-slate-200 active:bg-slate-200">🚪</button>
-        </div>
-        <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;"><span>Finalize & Next Bin</span><span class="swipe-hint text-white/50">→</span></button>
+<!-- Bottom Bar (standard mode) -->
+<div id="standard-bottom-bar" class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50">
+    <div class="flex gap-2 mb-3">
+        <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97]">+ Found Item</button>
+        <button onclick="confirmAllRemaining()" id="btn-confirm-all" class="flex-1 bg-emerald-50 border-2 border-emerald-300 text-emerald-700 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] hidden">✓ Confirm All</button>
+        <button onclick="leaveAisle()" class="w-14 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center text-lg border border-slate-200 active:bg-slate-200">🚪</button>
     </div>
+    <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;"><span>Finalize & Next Bin</span><span class="swipe-hint text-white/50">→</span></button>
+</div>
+```
+
 </main>
 
 <!-- ===== FRESH COUNT VIEW ===== -->
+
 <main id="view-fresh" class="flex-1 flex flex-col overflow-hidden hidden">
     <!-- Fresh Header -->
     <div class="fresh-header px-4 py-4 shrink-0">
@@ -168,33 +177,37 @@
             </div>
         </div>
     </div>
-    
-    <!-- Fresh List -->
-    <div id="fresh-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[200px]"></div>
-    
-    <!-- Fresh Bottom Bar -->
-    <div class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50" id="fresh-bottom-bar" style="display:none;">
-        <div class="flex gap-2 mb-3">
-            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
-                <p class="text-[8px] font-black text-slate-400 uppercase">SAP Total</p>
-                <p id="fresh-sap-total" class="text-lg font-black text-slate-600 mono">0</p>
-            </div>
-            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
-                <p class="text-[8px] font-black text-slate-400 uppercase">Your Count</p>
-                <p id="fresh-count-total" class="text-lg font-black text-blue-600 mono">0</p>
-            </div>
-            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
-                <p class="text-[8px] font-black text-slate-400 uppercase">Variance</p>
-                <p id="fresh-variance-total" class="text-lg font-black mono">0</p>
-            </div>
+
+```
+<!-- Fresh List -->
+<div id="fresh-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[200px]"></div>
+
+<!-- Fresh Bottom Bar -->
+<div class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50" id="fresh-bottom-bar" style="display:none;">
+    <div class="flex gap-2 mb-3">
+        <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+            <p class="text-[8px] font-black text-slate-400 uppercase">SAP Total</p>
+            <p id="fresh-sap-total" class="text-lg font-black text-slate-600 mono">0</p>
         </div>
-        <button onclick="finalizeFresh()" class="w-full bg-cyan-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;">
-            <span>Submit Fresh Count</span>
-        </button>
+        <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+            <p class="text-[8px] font-black text-slate-400 uppercase">Your Count</p>
+            <p id="fresh-count-total" class="text-lg font-black text-blue-600 mono">0</p>
+        </div>
+        <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+            <p class="text-[8px] font-black text-slate-400 uppercase">Variance</p>
+            <p id="fresh-variance-total" class="text-lg font-black mono">0</p>
+        </div>
     </div>
+    <button onclick="finalizeFresh()" class="w-full bg-cyan-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;">
+        <span>Submit Fresh Count</span>
+    </button>
+</div>
+```
+
 </main>
 
 <!-- ===== REPORT VIEW ===== -->
+
 <main id="view-report" class="flex-1 flex flex-col overflow-hidden hidden">
     <div class="p-4 space-y-3 overflow-y-auto flex-1">
         <div class="flex gap-2">
@@ -207,6 +220,7 @@
 </main>
 
 <!-- ===== MODALS (same as before) ===== -->
+
 <div id="add-item-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-end sm:items-center justify-center">
     <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center"><h2 class="text-xl font-black uppercase">Found Item</h2><span id="smart-fill-badge" class="hidden bg-green-100 text-green-700 text-[9px] font-black px-2 py-1 rounded-full">Auto-filled</span></div>
@@ -274,11 +288,49 @@ function saveAuditorName(){auditorName=document.getElementById('auditor-name-inp
 
 // ===== SCHEDULE =====
 function getScheduleContext(){const n=new Date(),s=new Date("2026-03-30T00:00:00"),w=Math.floor((n-s)/(7*864e5));return{week:((w%4)+4)%4+1,day:n.getDay(),dayName:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][n.getDay()]};}
-function getTodaysSchedule(){const c=getScheduleContext(),s=[],w13=(c.week===1||c.week===3);if([1,3,5].includes(c.day))s.push({aisle:"FRESH",desc:"14 Items",isFresh:true},{aisle:"H",desc:"Bins 23-End"},{aisle:"J",desc:"Bins 23-End"});if(c.day===1)s.push({aisle:"WA",desc:"Entire Row"},{aisle:"WK",desc:"Entire Row"});else if(c.day===2){s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WC",desc:"Entire Row"},{aisle:"WD",desc:"Entire Row"},{aisle:"WF",desc:"Entire Row"},{aisle:"WL",desc:"Entire Row"},{aisle:"WG",desc:"Bins 23-End"});}else if(c.day===3)s.push({aisle:"WE",desc:"Entire Row"},{aisle:"WM",desc:"Entire Row"});else if(c.day===4){s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WF",desc:"Bins 23-End"},{aisle:"WN",desc:"Entire Row"},{aisle:"WG",desc:w13?"Entire Row":"Bins 23-End"});}else if(c.day===5)s.push({aisle:"WB",desc:"Bins 23-End (SR)"},{aisle:"WC",desc:"Bins 23-End (SR)"},{aisle:"WP",desc:"Entire Row"});return s;}
 
+// Valid aisle rows: A-H, J-N, P (no I or O)
+const AISLE_ROWS = "ABCDEFGHJKLMNP".split("");
+
+function getTodaysSchedule(){
+    const c=getScheduleContext(),s=[],w13=(c.week===1||c.week===3);
+    if([1,3,5].includes(c.day)) s.push({aisle:"FRESH",desc:"14 Items",isFresh:true},{aisle:"H",desc:"Bins 23-End"},{aisle:"J",desc:"Bins 23-End"});
+    if(c.day===1) s.push({aisle:"WA",desc:"Entire Row"},{aisle:"WK",desc:"Entire Row"});
+    else if(c.day===2){s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WC",desc:"Entire Row"},{aisle:"WD",desc:"Entire Row"},{aisle:"WF",desc:"Entire Row"},{aisle:"WL",desc:"Entire Row"},{aisle:"WG",desc:"Bins 23-End"});}
+    else if(c.day===3) s.push({aisle:"WE",desc:"Entire Row"},{aisle:"WM",desc:"Entire Row"});
+    else if(c.day===4){s.push({aisle:"WB",desc:"Bins 00-25"},{aisle:"WF",desc:"Bins 23-End"},{aisle:"WN",desc:"Entire Row"},{aisle:"WG",desc:w13?"Entire Row":"Bins 23-End"});}
+    else if(c.day===5) s.push({aisle:"WB",desc:"Bins 23-End (SR)"},{aisle:"WC",desc:"Bins 23-End (SR)"},{aisle:"WP",desc:"Entire Row"});
+    return s;
+}
+
+function initSetupGrid(){
+    const g=document.getElementById('row-grid');
+    g.innerHTML="";
+    const ctx=getScheduleContext(), sched=getTodaysSchedule();
+    document.getElementById('week-display').innerText=`Week ${ctx.week}`;
+    document.getElementById('day-display').innerText=ctx.dayName;
+    document.getElementById('schedule-list').innerHTML=sched.map(s=>
+        s.isFresh
+            ? `<button onclick="startFreshCycle()" class="w-full text-left py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all"><span>🧊 ${s.aisle}: ${s.desc}</span><span class="text-white/60">▶</span></button>`
+            : `<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${s.aisle}</span> <span class="text-slate-400 font-semibold">${s.desc}</span></div>`
+    ).join('');
+
+    AISLE_ROWS.forEach(row=>{
+        const bc=ALL_SAP_BINS.filter(b=>b.includes(`W${row}`)).length;
+        const btn=document.createElement('button');
+        btn.className='row-btn bg-white border-2 border-slate-100 p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden';
+        btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span><span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`;
+        btn.onclick=()=>{
+            const sb=ALL_SAP_BINS.find(b=>b.includes(`W${row}`))||`W${row}00A`;
+            selectBin(sb);
+        };
+        g.appendChild(btn);
+    });
+    syncCloud();
+}
 // ===== CLOUD =====
 async function syncCloud(){try{const r=await fetch(API_URL);const d=await r.json();cloudReport=d.report||[];updateProgressUI();}catch{}drainQueue();}
-function updateProgressUI(){const f=new Set(cloudReport.map(i=>i.scanBin));"ABCDEFGHIJKLMNOP".split("").forEach(r=>{const b=document.getElementById(`badge-${r}`);if(b)b.innerText=Array.from(f).filter(bin=>bin&&bin.includes(`W${r}`)).length;});document.getElementById('total-progress').innerText=`${f.size} Done`;if(currentActiveBin)document.getElementById('bin-done-badge').classList.toggle('hidden',!f.has(currentActiveBin));document.getElementById('rpt-finalized').textContent=new Set(cloudReport.map(i=>i.scanBin)).size;const items=cloudReport.filter(i=>i.hu!=='EMPTY_BIN');const disc=items.filter(i=>i.type!=='ok').length;document.getElementById('rpt-discrep').textContent=disc;if(items.length>0)document.getElementById('rpt-accuracy').textContent=Math.round(((items.length-disc)/items.length)*100)+'%';}
+function updateProgressUI(){const f=new Set(cloudReport.map(i=>i.scanBin));AISLE_ROWS.forEach(r=>{const b=document.getElementById(`badge-${r}`);if(b)b.innerText=Array.from(f).filter(bin=>bin&&bin.includes(`W${r}`)).length;});document.getElementById('total-progress').innerText=`${f.size} Done`;if(currentActiveBin)document.getElementById('bin-done-badge').classList.toggle('hidden',!f.has(currentActiveBin));document.getElementById('rpt-finalized').textContent=new Set(cloudReport.map(i=>i.scanBin)).size;const items=cloudReport.filter(i=>i.hu!=='EMPTY_BIN');const disc=items.filter(i=>i.type!=='ok').length;document.getElementById('rpt-discrep').textContent=disc;if(items.length>0)document.getElementById('rpt-accuracy').textContent=Math.round(((items.length-disc)/items.length)*100)+'%';}
 function updateBinProgress(){const t=currentBinItems.length,d=currentBinItems.filter(i=>i.verified||i.isMissing).length;document.getElementById('bin-progress-bar').style.width=t>0?Math.round((d/t)*100)+'%':'0%';document.getElementById('bin-progress-text').textContent=`${d} / ${t}`;const btn=document.getElementById('btn-confirm-all');(t-d>1&&t-d===t)?btn.classList.remove('hidden'):btn.classList.add('hidden');}
 function confirmAllRemaining(){haptic();let c=0;currentBinItems.forEach(i=>{if(!i.verified&&!i.isMissing){i.countQty=i.sapQty;i.verified=true;c++;}});showToast(`${c} confirmed`,'green');renderAuditList();}
 
@@ -586,7 +638,8 @@ function renderReportView(){const c=document.getElementById('report-list');c.inn
 function rebuildIndexes(){sapBinIndex={};sapHUIndex=new Map();const u=new Set();sapMasterData.forEach(i=>{if(!sapBinIndex[i.sapBin])sapBinIndex[i.sapBin]=[];sapBinIndex[i.sapBin].push(i);sapHUIndex.set(i.hu,i);if(i.sapBin)u.add(i.sapBin);});ALL_SAP_BINS=Array.from(u).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));document.getElementById('stat-loaded').textContent=sapMasterData.length;document.getElementById('stat-bins').textContent=ALL_SAP_BINS.length;}
 function clearAllData(){if(confirm("Reset all data?")){localStorage.clear();location.reload();}}
 function handleFileUpload(event){const r=new FileReader();r.onload=(e)=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});sapMasterData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(row=>({sapBin:String(row['Storage Bin']||"").trim().toUpperCase(),hu:String(row['Handling Unit']||"").trim(),product:String(row['Product']||""),batch:String(row['Batch']||"").trim(),desc:row['Product Short Description']||"",sapQty:parseFloat(row['Quantity'])||0}));localStorage.setItem('sapMasterData',JSON.stringify(sapMasterData));rebuildIndexes();document.getElementById('upload-prompt').classList.add('hidden');document.getElementById('row-selection').classList.remove('hidden');initSetupGrid();showToast(`${sapMasterData.length} items loaded`,'blue');};r.readAsArrayBuffer(event.target.files[0]);}
-function initSetupGrid(){const g=document.getElementById('row-grid');g.innerHTML="";const ctx=getScheduleContext(),sched=getTodaysSchedule();document.getElementById('week-display').innerText=`Week ${ctx.week}`;document.getElementById('day-display').innerText=ctx.dayName;document.getElementById('schedule-list').innerHTML=sched.map(s=>s.isFresh?`<button onclick="startFreshCycle()" class="w-full text-left py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all"><span>🧊 ${s.aisle}: ${s.desc}</span><span class="text-white/60">▶</span></button>`:`<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${s.aisle}</span> <span class="text-slate-400 font-semibold">${s.desc}</span></div>`).join('');"ABCDEFGHIJKLMNOP".split("").forEach(row=>{const bc=ALL_SAP_BINS.filter(b=>b.includes(`W${row}`)).length;const btn=document.createElement('button');btn.className='row-btn bg-white border-2 border-slate-100 p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden';btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span><span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`;btn.onclick=()=>{const sb=ALL_SAP_BINS.find(b=>b.includes(`W${row}`))||`W${row}00A`;selectBin(sb);};g.appendChild(btn);});syncCloud();}
+
+
 
 // ===== CLOUD SAP DATA PULL =====
 let sapDataTimestamp = localStorage.getItem('sapDataTimestamp') || null;
@@ -690,5 +743,6 @@ window.onload = () => {
     setInterval(checkForDataRefresh, 120000);
 };
 </script>
+
 </body>
 </html>

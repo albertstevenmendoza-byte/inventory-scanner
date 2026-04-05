@@ -789,7 +789,16 @@ function rebuildIndexes(){
     document.getElementById('stat-loaded').textContent=sapMasterData.length;
     document.getElementById('stat-bins').textContent=Object.keys(sapBinIndex).length;
 }
-function clearAllData(){if(confirm("Reset all data?")){localStorage.clear();location.reload();}}
+function clearAllData(){
+    if(confirm("Full reset? This clears ALL data, offline queue, and cached SAP data.")){
+        // Kill any pending fetches by clearing the queue immediately
+        offlineQueue = [];
+        try { localStorage.clear(); } catch(e) {}
+        try { sessionStorage.clear(); } catch(e) {}
+        // Force hard reload bypassing cache
+        window.location.href = window.location.pathname + '?reset=' + Date.now();
+    }
+}
 function handleFileUpload(event){const r=new FileReader();r.onload=(e)=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});sapMasterData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(row=>({sapBin:String(row['Storage Bin']||"").trim().toUpperCase(),hu:String(row['Handling Unit']||"").trim(),product:String(row['Product']||""),batch:String(row['Batch']||"").trim(),desc:row['Product Short Description']||"",sapQty:parseFloat(row['Quantity'])||0}));localStorage.setItem('sapMasterData',JSON.stringify(sapMasterData));rebuildIndexes();document.getElementById('upload-prompt').classList.add('hidden');document.getElementById('row-selection').classList.remove('hidden');initSetupGrid();showToast(`${sapMasterData.length} items loaded`,'blue');};r.readAsArrayBuffer(event.target.files[0]);}
 
 
@@ -874,25 +883,30 @@ async function checkForDataRefresh() {
 }
 
 window.onload = () => {
+    // If we just did a hard reset, clean the URL and start fresh
+    if (window.location.search.includes('reset')) {
+        window.history.replaceState({}, '', window.location.pathname);
+        // Everything is already cleared — just show the upload/cloud pull screen
+        updateQueueBadge();
+        pullCloudSAPData();
+        return;
+    }
+
     if (auditorName) document.getElementById('auditor-name-btn').textContent = '👤 ' + auditorName;
     
     if (sapMasterData.length > 0) {
-        // We have cached data — show it immediately, then check for updates
         rebuildIndexes();
         document.getElementById('upload-prompt').classList.add('hidden');
         document.getElementById('row-selection').classList.remove('hidden');
         initSetupGrid();
-        // Silently check for newer cloud data
         checkForDataRefresh();
     } else {
-        // No cache — pull from cloud
         pullCloudSAPData();
     }
     
     updateQueueBadge();
     setInterval(syncCloud, 8000);
     setInterval(drainQueue, 15000);
-    // Check for data refresh every 2 minutes
     setInterval(checkForDataRefresh, 120000);
 };
 </script>

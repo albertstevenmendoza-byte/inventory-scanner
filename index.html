@@ -822,7 +822,10 @@ async function pullCloudSAPData() {
     loadMeta.classList.add('hidden');
 
     try {
-        const res = await fetch(API_URL + '?type=sapdata');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch(API_URL + '?type=sapdata', { signal: controller.signal });
+        clearTimeout(timeout);
         const data = await res.json();
 
         if (data.sapData && data.sapData.length > 0) {
@@ -838,7 +841,6 @@ async function pullCloudSAPData() {
             initSetupGrid();
             showToast(`${sapMasterData.length} items from cloud`, 'blue');
         } else {
-            // No cloud data — show manual upload option
             loadIcon.textContent = '📭';
             loadTitle.textContent = 'No Cloud Data';
             loadSub.textContent = 'Ask your lead to upload SAP data from Control Center';
@@ -846,7 +848,6 @@ async function pullCloudSAPData() {
             loadActions.classList.remove('hidden');
         }
     } catch (err) {
-        // Offline — try local cache
         if (sapMasterData.length > 0) {
             rebuildIndexes();
             document.getElementById('upload-prompt').classList.add('hidden');
@@ -855,8 +856,8 @@ async function pullCloudSAPData() {
             showToast('Using cached data (offline)', 'orange');
         } else {
             loadIcon.textContent = '📵';
-            loadTitle.textContent = 'Offline';
-            loadSub.textContent = 'Cannot reach cloud — upload a local file or try again';
+            loadTitle.textContent = 'Could Not Connect';
+            loadSub.textContent = err.name === 'AbortError' ? 'Request timed out — check connection' : 'Cannot reach cloud — upload a local file or try again';
             loadSpinner.classList.add('hidden');
             loadActions.classList.remove('hidden');
         }
@@ -883,13 +884,10 @@ async function checkForDataRefresh() {
 }
 
 window.onload = () => {
-    // If we just did a hard reset, clean the URL and start fresh
+    // If we just did a hard reset, clean the URL
     if (window.location.search.includes('reset')) {
         window.history.replaceState({}, '', window.location.pathname);
-        // Everything is already cleared — just show the upload/cloud pull screen
-        updateQueueBadge();
-        pullCloudSAPData();
-        return;
+        // Variables are already empty from cleared localStorage — that's fine
     }
 
     if (auditorName) document.getElementById('auditor-name-btn').textContent = '👤 ' + auditorName;

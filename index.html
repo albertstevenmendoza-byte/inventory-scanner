@@ -819,6 +819,7 @@ function showCycleCountPrompt(product, qty, reason) {
     document.getElementById('ccp-qty').textContent = qty;
     document.getElementById('ccp-reason').textContent = reason;
     document.getElementById('ccp-product-val').value = product;
+    modal.dataset.sent = ''; // reset guard
     modal.classList.remove('hidden');
 }
 
@@ -827,76 +828,54 @@ function closeCycleCountPrompt() {
 }
 
 async function acceptCycleCountTrigger() {
+    const modal = document.getElementById('cycle-count-prompt');
+    if (modal.dataset.sent) return; // prevent double tap
+    modal.dataset.sent = 'true';
+    
     const prod = document.getElementById('ccp-product-val').value;
     const reason = document.getElementById('ccp-reason').textContent;
     closeCycleCountPrompt();
     haptic();
     
-    // Notify Control Center via assignment
     const triggerId = 'CC' + Date.now();
-    try {
-        await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'triggerCycleCount',
-                id: triggerId,
-                product: prod,
-                reason: reason,
-                triggeredBy: auditorName || 'Floor',
-                status: 'accepted',
-                bin: currentActiveBin
-            })
-        });
-    } catch {
-        enqueuePost({
-            action: 'triggerCycleCount',
-            id: triggerId,
-            product: prod,
-            reason: reason,
-            triggeredBy: auditorName || 'Floor',
-            status: 'accepted',
-            bin: currentActiveBin
-        });
-    }
+    const payload = {
+        action: 'triggerCycleCount',
+        id: triggerId,
+        product: prod,
+        reason: reason,
+        triggeredBy: auditorName || 'Floor',
+        status: 'accepted',
+        bin: currentActiveBin
+    };
+    try { await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); }
+    catch { enqueuePost(payload); }
     
     showToast('Cycle count triggered','blue');
-    
-    // Launch product cycle count
     document.getElementById('prod-cycle-input').value = prod;
     startProductCycle();
 }
 
 async function declineCycleCountTrigger() {
+    const modal = document.getElementById('cycle-count-prompt');
+    if (modal.dataset.sent) return; // prevent double tap
+    modal.dataset.sent = 'true';
+    
     const prod = document.getElementById('ccp-product-val').value;
     const reason = document.getElementById('ccp-reason').textContent;
     closeCycleCountPrompt();
     
-    // Still notify Control Center so they know
     const triggerId = 'CC' + Date.now();
-    try {
-        await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'triggerCycleCount',
-                id: triggerId,
-                product: prod,
-                reason: reason,
-                triggeredBy: auditorName || 'Floor',
-                status: 'declined',
-                bin: currentActiveBin
-            })
-        });
-    } catch {
-        enqueuePost({
-            action: 'triggerCycleCount',
-            id: triggerId,
-            product: prod,
-            reason: reason,
-            triggeredBy: auditorName || 'Floor',
-            status: 'declined',
-            bin: currentActiveBin
-        });
-    }
+    const payload = {
+        action: 'triggerCycleCount',
+        id: triggerId,
+        product: prod,
+        reason: reason,
+        triggeredBy: auditorName || 'Floor',
+        status: 'declined',
+        bin: currentActiveBin
+    };
+    try { await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); }
+    catch { enqueuePost(payload); }
     
     showToast('Cycle count skipped','orange');
 }

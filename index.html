@@ -60,6 +60,17 @@
         .fresh-sap-row:nth-child(odd) { background:#f8fafc; }
         .fresh-header { background:linear-gradient(135deg,#0e7490,#0891b2); color:white; }
 
+        /* Fresh checklist items */
+        .fresh-hu-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; border:2px solid #e2e8f0; background:white; transition:all 0.15s; }
+        .fresh-hu-item:active { transform:scale(0.98); }
+        .fresh-hu-item.checked { border-color:#a7f3d0; background:linear-gradient(135deg,#ecfdf5,#fff 60%); }
+        .fresh-hu-item.missing { border-color:#fca5a5; background:#fef2f2; opacity:0.7; }
+        .fresh-check { width:28px; height:28px; border-radius:8px; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:white; transition:all 0.15s; flex-shrink:0; }
+        .fresh-check.on { background:#059669; border-color:#059669; }
+        .fresh-check.miss { background:#dc2626; border-color:#dc2626; }
+        .fresh-hu-qty { width:70px; text-align:center; font-size:18px; font-weight:900; color:#1e40af; background:#eff6ff; border:2px solid #bfdbfe; border-radius:10px; padding:6px 4px; outline:none; font-family:'JetBrains Mono',monospace; }
+        .fresh-hu-qty:focus { border-color:#2563eb; }
+
         /* Notification banner */
         .notif-banner { background:linear-gradient(135deg,#1e40af,#2563eb); color:white; padding:12px 16px; display:flex; flex-direction:column; gap:8px; box-shadow:0 4px 20px rgba(37,99,235,0.3); z-index:55; }
         .notif-banner.urgent { background:linear-gradient(135deg,#dc2626,#ef4444); box-shadow:0 4px 20px rgba(239,68,68,0.3); }
@@ -168,15 +179,9 @@
         <div class="flex justify-between items-center">
             <div>
                 <h2 class="text-lg font-black uppercase tracking-tight">🧊 Fresh Count</h2>
-                <p id="fresh-progress-text" class="text-[10px] font-bold text-cyan-100">0 of 14 SKUs counted</p>
+                <p id="fresh-progress-text" class="text-[10px] font-bold text-cyan-100">0 / 0 items checked</p>
             </div>
-            <div class="flex items-center gap-2">
-                <div id="fresh-mode-toggle" class="flex bg-white/20 rounded-lg overflow-hidden">
-                    <button onclick="setFreshMode('quick')" id="fresh-mode-quick" class="px-3 py-1.5 text-[9px] font-black uppercase bg-white text-cyan-700">Quick</button>
-                    <button onclick="setFreshMode('detailed')" id="fresh-mode-detailed" class="px-3 py-1.5 text-[9px] font-black uppercase text-white/70">Detailed</button>
-                </div>
-                <button onclick="leaveFresh()" class="bg-white/20 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase">✕ Exit</button>
-            </div>
+            <button onclick="leaveFresh()" class="bg-white/20 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase">✕ Exit</button>
         </div>
     </div>
     
@@ -299,8 +304,7 @@ let offlineQueue=JSON.parse(localStorage.getItem('offlineQueue'))||[];
 let annotCanvas,annotCtx,annotColor='#ef4444',annotSize=6,isDrawing=false,annotHistory=[],currentPhotoBase64=null;
 
 // ===== FRESH STATE =====
-let freshMode = 'quick'; // 'quick' or 'detailed'
-let freshData = []; // [{sku, desc, sapTotal, sapItems:[], countQty, condition, note, photoBase64, photoUrl}]
+let freshData = []; // [{sku, desc, items:[{hu,huShort,sapBin,sapQty,checked,missing,countQty}], expanded, note, ...}]
 let freshNoteTarget = null; // index into freshData
 
 // ===== OFFLINE QUEUE =====
@@ -504,30 +508,37 @@ function confirmAllRemaining(){haptic();let c=0;currentBinItems.forEach(i=>{if(!
 // ===========================
 function startFreshCycle() {
     const matches = sapMasterData.filter(i => FRESH_SKUS.includes(i.product));
-    // Build product-centric tally: group all HUs by SKU
+    if (!matches.length) { showToast('No FRESH items','red'); return; }
+
+    // Build HU-level checklist grouped by SKU
     const grouped = {};
-    FRESH_SKUS.forEach(sku => { grouped[sku] = { items: [], totalQty: 0, desc: '' }; });
+    FRESH_SKUS.forEach(sku => { grouped[sku] = { desc: '', items: [] }; });
     matches.forEach(item => {
         if (grouped[item.product]) {
-            grouped[item.product].items.push(item);
-            grouped[item.product].totalQty += item.sapQty;
+            grouped[item.product].items.push({
+                hu: item.hu,
+                huShort: item.hu ? item.hu.slice(-4) : '????',
+                sapBin: item.sapBin,
+                sapQty: item.sapQty,
+                batch: item.batch,
+                checked: false,
+                missing: false,
+                countQty: null // null = not yet, number = entered
+            });
             if (!grouped[item.product].desc) grouped[item.product].desc = item.desc;
         }
     });
 
-    freshData = FRESH_SKUS.map(sku => ({
+    freshData = FRESH_SKUS.filter(sku => grouped[sku].items.length > 0).map(sku => ({
         sku,
-        desc: grouped[sku]?.desc || '',
-        sapTotal: grouped[sku]?.totalQty || 0,
-        sapItems: grouped[sku]?.items || [],
-        countQty: null, // null = not yet counted, 0 = explicitly zero
-        condition: '', // '', 'ok', 'short-dated', 'damaged', 'overstocked'
+        desc: grouped[sku].desc,
+        items: grouped[sku].items,
+        expanded: true, // start expanded
         note: '',
         photoBase64: null,
         photoUrl: null
     }));
 
-    // Show fresh view
     document.getElementById('view-audit').classList.add('hidden');
     document.getElementById('view-report').classList.add('hidden');
     document.getElementById('view-fresh').classList.remove('hidden');
@@ -537,9 +548,8 @@ function startFreshCycle() {
 }
 
 function leaveFresh() {
-    if (freshData.some(f => f.countQty !== null)) {
-        if (!confirm('You have unsaved counts. Leave Fresh mode?')) return;
-    }
+    const anyChecked = freshData.some(g => g.items.some(i => i.checked || i.missing));
+    if (anyChecked && !confirm('You have unsaved counts. Leave Fresh mode?')) return;
     document.getElementById('view-fresh').classList.add('hidden');
     document.getElementById('view-audit').classList.remove('hidden');
     document.getElementById('fresh-bottom-bar').style.display = 'none';
@@ -547,112 +557,130 @@ function leaveFresh() {
     freshData = [];
 }
 
-function setFreshMode(mode) {
-    freshMode = mode;
-    document.getElementById('fresh-mode-quick').className = `px-3 py-1.5 text-[9px] font-black uppercase ${mode==='quick'?'bg-white text-cyan-700':'text-white/70'}`;
-    document.getElementById('fresh-mode-detailed').className = `px-3 py-1.5 text-[9px] font-black uppercase ${mode==='detailed'?'bg-white text-cyan-700':'text-white/70'}`;
-    renderFreshList();
-}
-
 function renderFreshList() {
     const container = document.getElementById('fresh-list');
     container.innerHTML = '';
-    const counted = freshData.filter(f => f.countQty !== null).length;
-    document.getElementById('fresh-progress-text').textContent = `${counted} of ${freshData.length} SKUs counted`;
 
-    freshData.forEach((item, idx) => {
-        const isCounted = item.countQty !== null;
-        const variance = isCounted ? item.countQty - item.sapTotal : null;
-        const hasVariance = variance !== null && variance !== 0;
+    let totalItems = 0, checkedItems = 0;
+    freshData.forEach(g => { g.items.forEach(i => { totalItems++; if (i.checked || i.missing) checkedItems++; }); });
+    document.getElementById('fresh-progress-text').textContent = `${checkedItems} / ${totalItems} items checked`;
+
+    freshData.forEach((group, gIdx) => {
+        const allDone = group.items.every(i => i.checked || i.missing);
+        const doneCount = group.items.filter(i => i.checked || i.missing).length;
+        const sapTotal = group.items.reduce((s, i) => s + i.sapQty, 0);
+        const countTotal = group.items.filter(i => i.checked).reduce((s, i) => s + (i.countQty !== null ? i.countQty : i.sapQty), 0);
+
         const card = document.createElement('div');
-        card.className = `fresh-card ${isCounted ? 'counted' : ''} ${hasVariance ? 'has-variance' : ''}`;
+        card.className = `fresh-card ${allDone ? 'counted' : ''}`;
 
-        let detailSection = '';
-        if (freshMode === 'detailed' && item.sapItems.length > 0) {
-            detailSection = `
-                <div class="px-4 pb-3">
-                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">SAP Breakdown (${item.sapItems.length} HUs)</p>
-                    <div class="space-y-0.5 max-h-[120px] overflow-y-auto">
-                        ${item.sapItems.map(si => `<div class="fresh-sap-row"><span class="mono text-slate-500 font-semibold">${si.sapBin}</span><span class="mono text-slate-400 text-[10px]">HU ${si.hu}</span><span class="mono font-bold">${si.sapQty}</span></div>`).join('')}
+        // SKU header (tap to expand/collapse)
+        let headerHTML = `
+            <div onclick="toggleFreshGroup(${gIdx})" class="p-4 flex justify-between items-center active:bg-slate-50 cursor-pointer">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="mono font-black text-sm text-slate-800">${group.sku}</span>
+                        <span class="text-[9px] font-black px-2 py-0.5 rounded-full ${allDone ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${doneCount}/${group.items.length}</span>
                     </div>
-                </div>`;
+                    <p class="text-[10px] text-slate-500 font-semibold">${group.desc}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <p class="text-[7px] font-black text-slate-400 uppercase">SAP</p>
+                        <p class="mono font-black text-slate-300 leading-none">${sapTotal}</p>
+                    </div>
+                    <span class="text-slate-300 text-xs">${group.expanded ? '▼' : '▶'}</span>
+                </div>
+            </div>`;
+
+        // HU checklist items
+        let itemsHTML = '';
+        if (group.expanded) {
+            itemsHTML = '<div class="px-3 pb-3 space-y-2">';
+            group.items.forEach((item, iIdx) => {
+                const isChecked = item.checked;
+                const isMissing = item.missing;
+                const qty = item.countQty !== null ? item.countQty : '';
+                const statusClass = isChecked ? 'checked' : (isMissing ? 'missing' : '');
+                const checkClass = isChecked ? 'on' : (isMissing ? 'miss' : '');
+                const checkIcon = isChecked ? '✓' : (isMissing ? '✕' : '');
+
+                itemsHTML += `
+                    <div class="fresh-hu-item ${statusClass}">
+                        <div onclick="toggleFreshCheck(${gIdx},${iIdx})" class="fresh-check ${checkClass}">${checkIcon}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="mono font-bold text-slate-700 text-sm">···${item.huShort}</span>
+                                <span class="text-[9px] text-slate-400 font-semibold">${item.sapBin}</span>
+                            </div>
+                            <p class="text-[9px] text-slate-400 font-semibold">SAP: ${item.sapQty}</p>
+                        </div>
+                        <input type="number" inputmode="numeric" value="${qty}" placeholder="${item.sapQty}"
+                            class="fresh-hu-qty" 
+                            onfocus="this.select()"
+                            oninput="setFreshItemQty(${gIdx},${iIdx},this.value)"
+                            ${isMissing ? 'disabled' : ''}>
+                        <button onclick="toggleFreshMissing(${gIdx},${iIdx})" 
+                            class="text-[9px] font-black px-2 py-1.5 rounded-lg border-2 transition-all ${isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-200 text-slate-300'}">
+                            ${isMissing ? 'MISS' : 'Miss'}
+                        </button>
+                    </div>`;
+            });
+
+            // Note/photo for the whole SKU group
+            const hasNote = group.note || group.photoBase64;
+            itemsHTML += `<button onclick="openFreshNoteModal(${gIdx})" class="chip w-full justify-center mt-1 ${hasNote ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-white border border-dashed border-slate-200 text-slate-400'}">
+                ${group.photoBase64 ? '📷 ' : ''}📝 ${group.note ? group.note.substring(0,35) : 'Add Note / Photo'}
+            </button>`;
+            itemsHTML += '</div>';
         }
 
-        const conditionTags = [
-            { key:'ok', label:'OK', color:'text-emerald-600 bg-emerald-50' },
-            { key:'short-dated', label:'Short Dated', color:'text-amber-600 bg-amber-50' },
-            { key:'damaged', label:'Damaged', color:'text-red-600 bg-red-50' },
-            { key:'overstocked', label:'Overstocked', color:'text-purple-600 bg-purple-50' }
-        ];
-
-        card.innerHTML = `
-            <div class="p-4 pb-2">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-0.5">
-                            <span class="mono font-black text-sm text-slate-800">${item.sku}</span>
-                            ${isCounted ? `<span class="text-[8px] font-black ${hasVariance ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'} px-2 py-0.5 rounded-full">${hasVariance ? (variance > 0 ? '+' : '') + variance : '✓ Match'}</span>` : ''}
-                        </div>
-                        <p class="text-[11px] text-slate-500 font-semibold leading-tight">${item.desc}</p>
-                    </div>
-                    <div class="text-right ml-3">
-                        <p class="text-[7px] font-black text-slate-400 uppercase">SAP</p>
-                        <p class="text-2xl mono font-black text-slate-300 leading-none">${item.sapTotal}</p>
-                        <p class="text-[8px] text-slate-300 font-bold">${item.sapItems.length} HUs</p>
-                    </div>
-                </div>
-
-                <!-- Quick count stepper -->
-                <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100 mb-3">
-                    <button onclick="freshAdjust(${idx},-10)" class="fresh-stepper bg-white shadow-sm text-slate-300 active:bg-slate-100 text-lg">−10</button>
-                    <button onclick="freshAdjust(${idx},-1)" class="fresh-stepper bg-white shadow-sm text-slate-400 active:bg-slate-100">−</button>
-                    <input type="number" inputmode="numeric" value="${isCounted ? item.countQty : ''}" 
-                        oninput="freshSetQty(${idx},this.value)" placeholder="—"
-                        class="fresh-qty-input">
-                    <button onclick="freshAdjust(${idx},1)" class="fresh-stepper bg-white shadow-sm text-blue-600 active:bg-blue-50">+</button>
-                    <button onclick="freshAdjust(${idx},10)" class="fresh-stepper bg-white shadow-sm text-blue-600 active:bg-blue-50 text-lg">+10</button>
-                </div>
-
-                <!-- Condition tags -->
-                <div class="flex flex-wrap gap-1.5 mb-2">
-                    ${conditionTags.map(ct => `<span class="condition-tag ${ct.color} ${item.condition===ct.key?'active':''}" onclick="freshSetCondition(${idx},'${ct.key}')">${ct.label}</span>`).join('')}
-                </div>
-
-                <!-- Note/Photo chip -->
-                <button onclick="openFreshNoteModal(${idx})" class="chip w-full justify-center ${(item.note||item.photoBase64)?'bg-amber-50 border border-amber-300 text-amber-700':'bg-white border border-dashed border-slate-200 text-slate-400'}">
-                    ${item.photoBase64?'📷 ':''}📝 ${item.note ? item.note.substring(0,35) : 'Add Note / Photo'}
-                </button>
-            </div>
-            ${detailSection}`;
+        card.innerHTML = headerHTML + itemsHTML;
         container.appendChild(card);
     });
 
     updateFreshTotals();
 }
 
-function freshAdjust(idx, delta) {
-    haptic();
-    const item = freshData[idx];
-    if (item.countQty === null) item.countQty = 0;
-    item.countQty = Math.max(0, item.countQty + delta);
+function toggleFreshGroup(gIdx) {
+    freshData[gIdx].expanded = !freshData[gIdx].expanded;
     renderFreshList();
 }
 
-function freshSetQty(idx, val) {
-    const v = val === '' ? null : (parseFloat(val) || 0);
-    freshData[idx].countQty = v;
+function toggleFreshCheck(gIdx, iIdx) {
+    haptic();
+    const item = freshData[gIdx].items[iIdx];
+    if (item.missing) { item.missing = false; } // unmiss first if needed
+    item.checked = !item.checked;
+    if (item.checked && item.countQty === null) {
+        item.countQty = item.sapQty; // default to SAP qty when checking
+    }
+    if (!item.checked) { item.countQty = null; }
+    renderFreshList();
+}
+
+function toggleFreshMissing(gIdx, iIdx) {
+    haptic();
+    const item = freshData[gIdx].items[iIdx];
+    item.missing = !item.missing;
+    if (item.missing) { item.checked = false; item.countQty = 0; }
+    else { item.countQty = null; }
+    renderFreshList();
+}
+
+function setFreshItemQty(gIdx, iIdx, val) {
+    const item = freshData[gIdx].items[iIdx];
+    item.countQty = val === '' ? null : (parseFloat(val) || 0);
+    if (item.countQty !== null && !item.checked) { item.checked = true; }
     updateFreshTotals();
 }
 
-function freshSetCondition(idx, cond) {
-    haptic();
-    freshData[idx].condition = freshData[idx].condition === cond ? '' : cond;
-    renderFreshList();
-}
-
 function updateFreshTotals() {
-    const sapTotal = freshData.reduce((s, f) => s + f.sapTotal, 0);
-    const countTotal = freshData.reduce((s, f) => s + (f.countQty || 0), 0);
+    let sapTotal = 0, countTotal = 0;
+    freshData.forEach(g => g.items.forEach(i => {
+        sapTotal += i.sapQty;
+        if (i.checked) countTotal += (i.countQty !== null ? i.countQty : i.sapQty);
+    }));
     const variance = countTotal - sapTotal;
     document.getElementById('fresh-sap-total').textContent = sapTotal;
     document.getElementById('fresh-count-total').textContent = countTotal;
@@ -661,49 +689,59 @@ function updateFreshTotals() {
     vEl.className = `text-lg font-black mono ${variance === 0 ? 'text-emerald-600' : (variance > 0 ? 'text-purple-600' : 'text-red-600')}`;
 }
 
-function openFreshNoteModal(idx) {
-    freshNoteTarget = idx;
-    noteTargetIndex = null; // distinguish from standard mode
-    const item = freshData[idx];
-    document.getElementById('note-modal-context').innerText = `FRESH: ${item.sku} — ${item.desc}`;
-    document.getElementById('note-text').value = item.note || "";
-    currentPhotoBase64 = item.photoBase64 || null;
+function openFreshNoteModal(gIdx) {
+    freshNoteTarget = gIdx;
+    noteTargetIndex = null;
+    const group = freshData[gIdx];
+    document.getElementById('note-modal-context').innerText = `FRESH: ${group.sku} — ${group.desc}`;
+    document.getElementById('note-text').value = group.note || "";
+    currentPhotoBase64 = group.photoBase64 || null;
     document.getElementById('photo-upload-status').classList.add('hidden');
     if (currentPhotoBase64) { showPhotoEditor(); } else { document.getElementById('photo-editor').classList.add('hidden'); document.getElementById('photo-empty-state').classList.remove('hidden'); }
     document.getElementById('note-modal').classList.remove('hidden');
 }
 
 function finalizeFresh() {
-    const uncounted = freshData.filter(f => f.countQty === null);
-    if (uncounted.length > 0) {
-        if (!confirm(`${uncounted.length} SKU(s) haven't been counted yet. Submit anyway? (Uncounted items will be recorded as 0)`)) return;
-        uncounted.forEach(f => f.countQty = 0);
+    let unchecked = 0;
+    freshData.forEach(g => g.items.forEach(i => { if (!i.checked && !i.missing) unchecked++; }));
+    if (unchecked > 0) {
+        if (!confirm(`${unchecked} item(s) not checked. Submit anyway?`)) return;
     }
     haptic();
 
-    // Build items to log — one row per SKU (product-level summary)
-    const itemsToLog = freshData.map(f => ({
-        hu: `FRESH_${f.sku}`,
-        product: f.sku,
-        desc: f.desc,
-        batch: f.condition || '',
-        sapBin: 'FRESH',
-        scannedBin: 'FRESH',
-        sapQty: f.sapTotal,
-        countQty: f.countQty || 0,
-        type: (f.countQty || 0) === f.sapTotal ? 'ok' : 'adj',
-        note: [f.condition ? `[${f.condition.toUpperCase()}]` : '', f.note || ''].filter(Boolean).join(' '),
-        photoUrl: f.photoUrl || ''
-    }));
+    // Build items to log — one row per HU
+    const itemsToLog = [];
+    freshData.forEach(g => {
+        g.items.forEach(i => {
+            const qty = i.checked ? (i.countQty !== null ? i.countQty : i.sapQty) : 0;
+            let type = 'ok';
+            if (i.missing) type = 'miss';
+            else if (qty !== i.sapQty) type = 'adj';
+            itemsToLog.push({
+                hu: i.hu,
+                product: g.sku,
+                desc: g.desc,
+                batch: i.batch || '',
+                sapBin: i.sapBin,
+                scannedBin: i.sapBin,
+                sapQty: i.sapQty,
+                countQty: qty,
+                type: type,
+                note: g.note || '',
+                photoUrl: g.photoUrl || ''
+            });
+        });
+    });
 
-    itemsToLog.forEach(item => cloudReport.push({ scanBin: 'FRESH', ...item }));
+    itemsToLog.forEach(item => cloudReport.push({ scanBin: item.scannedBin, ...item }));
     updateProgressUI();
     enqueuePost({ action: 'logAudit', user: auditorName || "Floor", bin: 'PRODUCT: FRESH', items: itemsToLog });
 
-    const variance = freshData.reduce((s, f) => s + ((f.countQty || 0) - f.sapTotal), 0);
-    showToast(`Fresh submitted (${variance >= 0 ? '+' : ''}${variance} variance)`, 'cyan');
-    
-    // Return to setup
+    const sapT = itemsToLog.reduce((s,i) => s+i.sapQty, 0);
+    const cntT = itemsToLog.reduce((s,i) => s+i.countQty, 0);
+    const v = cntT - sapT;
+    showToast(`Fresh submitted (${v >= 0 ? '+' : ''}${v} variance)`, 'cyan');
+
     document.getElementById('view-fresh').classList.add('hidden');
     document.getElementById('view-audit').classList.remove('hidden');
     document.getElementById('fresh-bottom-bar').style.display = 'none';

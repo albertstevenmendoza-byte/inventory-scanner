@@ -313,7 +313,10 @@
     <div class="bin-header">
         <div class="bin-nav">
             <button class="bin-nav-btn" onclick="stepBin(-1)">◀</button>
-            <input type="text" id="bin-input" class="bin-input" placeholder="SCAN BIN..." onchange="selectBin(this.value)">
+            <div style="flex:1;position:relative;">
+                <input type="text" id="bin-input" class="bin-input" placeholder="SCAN BIN..." onchange="selectBin(this.value)">
+                <span id="bin-counted-badge" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);padding:3px 8px;border-radius:6px;font-size:9px;font-weight:800;text-transform:uppercase;">Counted ✓</span>
+            </div>
             <button class="bin-nav-btn" onclick="stepBin(1)">▶</button>
         </div>
         <div class="bin-progress">
@@ -740,15 +743,22 @@ function buildAisleGrid() {
 
     AISLE_ROWS.forEach(row => {
         const binCount = Object.keys(binIndex).filter(b => b.includes(`W${row}`)).length;
-        const doneCount = [...completedBins].filter(b => b.includes(`W${row}`)).length + cloudReport.filter(r => r.scanBin && r.scanBin.includes(`W${row}`)).length;
+        // Count unique bins done from both local and cloud
+        const doneBinsForRow = new Set();
+        completedBins.forEach(b => { if (b.includes(`W${row}`)) doneBinsForRow.add(b); });
+        cloudReport.forEach(r => { if (r.scanBin && r.scanBin.includes(`W${row}`)) doneBinsForRow.add(r.scanBin); });
+        const doneCount = doneBinsForRow.size;
         const isAssigned = assigned.has(row);
+        const allDone = binCount > 0 && doneCount >= binCount;
         const btn = document.createElement('button');
         btn.className = `aisle-btn ${isAssigned ? 'assigned' : ''}`;
+        if (allDone) btn.style.cssText += 'border-color:var(--green-border);background:var(--green-bg);';
         const pct = binCount > 0 ? Math.min(100, Math.round((doneCount / binCount) * 100)) : 0;
         btn.innerHTML = `
             <div class="aisle-fill" style="height:${pct}%"></div>
-            <span style="position:relative;z-index:1">${row}</span>
-            <span class="aisle-count">${binCount}</span>`;
+            <span style="position:relative;z-index:1;${allDone ? 'color:var(--green)' : ''}">${row}</span>
+            <span class="aisle-count" style="${doneCount > 0 ? 'color:var(--green);font-weight:800;' : ''}">${doneCount}/${binCount}</span>
+            ${allDone ? '<span style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--green);font-weight:800;z-index:1;">✓ DONE</span>' : ''}`;
         btn.onclick = () => selectBin(`W${row}00A`);
         grid.appendChild(btn);
     });
@@ -802,10 +812,23 @@ function selectBin(binStr) {
     currentPhase = 1;
     document.getElementById('bin-input').value = currentBin;
     document.getElementById('count-title').textContent = currentBin;
+
+    // Show counted badge if this bin was already finalized
+    const alreadyCounted = isBinCounted(currentBin);
+    document.getElementById('bin-counted-badge').style.display = alreadyCounted ? 'inline' : 'none';
+    // Style the bin input to signal counted state
+    const binInput = document.getElementById('bin-input');
+    binInput.style.borderColor = alreadyCounted ? 'var(--green-border)' : '';
+    binInput.style.background = alreadyCounted ? 'var(--green-bg)' : '';
+
     switchScreen('count');
     showHint('check');
     renderHUList();
     updatePhase();
+}
+
+function isBinCounted(bin) {
+    return completedBins.has(bin) || cloudReport.some(r => r.scanBin === bin);
 }
 
 // Build the complete physical bin list for an aisle letter
@@ -898,9 +921,22 @@ function renderHUList() {
     const container = document.getElementById('hu-list');
     container.innerHTML = '';
 
+    // Show already-counted banner if this bin was previously finalized
+    const alreadyCounted = isBinCounted(currentBin);
+    if (alreadyCounted) {
+        container.innerHTML += `
+            <div style="background:var(--green-bg);border:1.5px solid var(--green-border);border-radius:var(--radius);padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">✅</span>
+                <div>
+                    <div style="font-size:12px;font-weight:800;color:var(--green);">Already Counted</div>
+                    <div style="font-size:10px;color:var(--text-2);font-weight:600;">This bin was finalized earlier. Counting again will replace the previous results.</div>
+                </div>
+            </div>`;
+    }
+
     // Empty bin message
     if (currentItems.length === 0 && currentBin) {
-        container.innerHTML = `
+        container.innerHTML += `
             <div class="empty-state">
                 <div class="es-icon">📭</div>
                 <p>SAP shows this bin as empty</p>

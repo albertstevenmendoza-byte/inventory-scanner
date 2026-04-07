@@ -224,6 +224,9 @@
     <div class="app-header">
         <h1>Cycle Counter</h1>
         <div class="header-right">
+            <button id="refresh-btn" onclick="refreshAll()" style="background:var(--surface-2);color:var(--text-2);padding:8px 12px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;">
+                <span id="refresh-icon" style="display:inline-block;transition:transform 0.3s;">↻</span> Refresh
+            </button>
             <div id="sync-dot" class="sync-dot"></div>
             <button class="name-btn" onclick="showNameModal()">👤 <span id="name-display">Set Name</span></button>
         </div>
@@ -616,6 +619,52 @@ function saveName() {
     localStorage.setItem('auditorName2', auditorName);
     document.getElementById('name-display').textContent = auditorName;
     document.getElementById('modal-name').style.display = 'none';
+}
+
+// ===== REFRESH =====
+async function refreshAll() {
+    const btn = document.getElementById('refresh-btn');
+    const icon = document.getElementById('refresh-icon');
+    // Spin the icon and disable button
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.5';
+    icon.style.transform = 'rotate(360deg)';
+    
+    try {
+        // 1. Re-pull SAP master data from cloud
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 15000);
+        const sapRes = await fetch(API_URL + '?type=sapdata', { signal: controller.signal });
+        const sapData = await sapRes.json();
+        if (sapData.sapData && sapData.sapData.length > 0) {
+            sapMaster = sapData.sapData;
+            localStorage.setItem('sap2', JSON.stringify(sapMaster));
+            buildIndexes();
+        }
+
+        // 2. Re-pull report data (audit results, assignments, triggers)
+        const reportRes = await fetch(API_URL);
+        const reportData = await reportRes.json();
+        cloudReport = reportData.report || [];
+        cloudAssignments = reportData.assignments || [];
+
+        // 3. Rebuild completed bins set from cloud data (replaces stale local cache)
+        completedBins = new Set(cloudReport.map(r => r.scanBin).filter(Boolean));
+        localStorage.setItem('doneBins2', JSON.stringify([...completedBins]));
+
+        // 4. Rebuild UI
+        buildAisleGrid();
+        buildSchedule();
+        updateDoneCount();
+        toast(`Refreshed · ${sapMaster.length} items`, 'blue');
+    } catch (err) {
+        toast('Refresh failed — check connection', 'red');
+    }
+
+    // Reset button
+    btn.style.pointerEvents = '';
+    btn.style.opacity = '';
+    setTimeout(() => { icon.style.transform = ''; }, 300);
 }
 
 // ===== SCREENS =====

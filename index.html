@@ -37,21 +37,8 @@
 <body>
 <div id="toast" style="position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; padding:12px 24px; border-radius:20px; color:white; font-weight:800; display:none;"></div>
 
-<!-- SCREEN: LOCKOUT -->
-<div id="screen-lockout" class="screen">
-    <div class="setup-hero" style="padding-top: 100px;">
-        <div class="icon">🔒</div>
-        <h2 style="font-size: 24px; font-weight: 900; color: var(--red);">System Locked</h2>
-        <p style="margin-top: 10px; color: var(--text-2); font-weight: 500;">Counting is disabled because there is no inventory data in the cloud.</p>
-        <div style="background: var(--red-bg); border: 1.5px solid var(--red-border); padding: 20px; border-radius: 16px; margin: 30px 20px; font-size: 13px; color: var(--red); font-weight: 700; line-height: 1.5;">
-            The manager must upload a fresh SAP Inventory Snapshot from the Control Center to begin.
-        </div>
-        <button onclick="refreshAll()" class="primary-btn" style="width: auto; padding: 16px 40px; background: var(--accent); margin: 0 auto;">↻ Check for Data</button>
-    </div>
-</div>
-
 <!-- SCREEN: SETUP -->
-<div id="screen-setup" class="screen">
+<div id="screen-setup" class="screen active">
     <div class="app-header">
         <h1 style="font-size: 16px; font-weight: 900;">Cycle Counter</h1>
         <div style="display:flex; align-items:center; gap:12px;">
@@ -77,60 +64,31 @@
     let sapMaster = [], auditorName = localStorage.getItem('auditorName') || 'Floor User';
     
     function switchScreen(id) {
-        // Force lockout screen if no data is found
-        if (sapMaster.length === 0 && id !== 'lockout') {
-            id = 'lockout';
-        }
-
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         const target = document.getElementById('screen-' + id);
         if(target) target.classList.add('active');
-
-        const nav = document.querySelector('.bottom-bar');
-        if(nav) nav.style.display = (id === 'lockout') ? 'none' : 'flex';
+        
+        document.querySelectorAll('.secondary-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('onclick').includes(id));
+        });
     }
 
     async function pullCloudData() {
         try {
             const res = await fetch(API);
             const data = await res.json();
-            
-            // Check for 'inventory' key (returned by your doGet script)
-            if (data.inventory && data.inventory.length > 0) {
-                sapMaster = data.inventory;
-                showSetupReady();
-            } else {
-                sapMaster = []; 
-                switchScreen('lockout');
-            }
+            sapMaster = data.inventory || [];
+            showSetupReady();
         } catch (e) {
             console.error("Sync Error:", e);
-            if(sapMaster.length === 0) switchScreen('lockout');
+            showSetupReady(); // Still show interface even on error
         }
     }
 
     function showSetupReady() {
         document.getElementById('setup-loading').style.display = 'none';
         document.getElementById('setup-ready').style.display = 'block';
-        
-        const activeScreen = document.querySelector('.screen.active');
-        if (!activeScreen || activeScreen.id === 'screen-lockout') {
-            switchScreen('setup');
-        }
         buildAisleGrid();
-    }
-
-    async function refreshAll() {
-        const btn = event.target;
-        const originalText = btn.innerText;
-        btn.innerText = "Checking...";
-        await pullCloudData();
-        if(sapMaster.length > 0) {
-            toast("System Unlocked", "#16a34a");
-        } else {
-            toast("Still no data found", "#dc2626");
-            btn.innerText = originalText;
-        }
     }
 
     function buildAisleGrid() {
@@ -140,7 +98,7 @@
             const btn = document.createElement('button');
             btn.className = 'aisle-btn';
             btn.innerHTML = `<div class="aisle-fill" style="height:0%"></div><span style="position:relative;">${row}</span>`;
-            btn.onclick = () => alert('Aisle ' + row + ' Ready');
+            btn.onclick = () => toast(`Aisle ${row} selected`, "#3b6cf5");
             grid.appendChild(btn);
         });
     }
@@ -156,7 +114,7 @@
     window.onload = () => {
         document.getElementById('name-display').innerText = auditorName;
         pullCloudData();
-        setInterval(pullCloudData, 30000); // Check for data every 30s
+        setInterval(pullCloudData, 30000);
     };
 </script>
 </body>

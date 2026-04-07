@@ -319,6 +319,9 @@
             </div>
             <button class="bin-nav-btn" onclick="stepBin(1)">▶</button>
         </div>
+        <!-- Bin map strip: shows all bins in the aisle, scrolls to current -->
+        <div id="bin-map-strip" style="display:flex;gap:3px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
+        <style>#bin-map-strip::-webkit-scrollbar{display:none;}</style>
         <div class="bin-progress">
             <div class="bin-progress-bar"><div id="bin-progress-fill" class="bin-progress-fill" style="width:0%"></div></div>
             <span id="bin-progress-text" class="bin-progress-text">0 / 0</span>
@@ -824,11 +827,75 @@ function selectBin(binStr) {
     switchScreen('count');
     showHint('check');
     renderHUList();
+    renderBinMapStrip();
     updatePhase();
 }
 
 function isBinCounted(bin) {
     return completedBins.has(bin) || cloudReport.some(r => r.scanBin === bin);
+}
+
+function renderBinMapStrip() {
+    const strip = document.getElementById('bin-map-strip');
+    if (!strip || !currentBin) return;
+    strip.innerHTML = '';
+    const aisleChar = currentBin.charAt(1);
+    const allBins = getAllBinsForAisle(aisleChar);
+    
+    // Group by bin number (00, 01, 02...) — show one dot per number, not per slot
+    const binNums = {};
+    allBins.forEach(b => {
+        const num = b.substring(2, 4); // e.g. "00", "01"
+        if (!binNums[num]) binNums[num] = [];
+        binNums[num].push(b);
+    });
+
+    let activeEl = null;
+    Object.entries(binNums).forEach(([num, slots]) => {
+        const anyDone = slots.some(s => isBinCounted(s));
+        const hasSAP = slots.some(s => binIndex[s] && binIndex[s].length > 0);
+        const isCurrent = slots.some(s => s === currentBin);
+
+        const dot = document.createElement('button');
+        dot.style.cssText = `
+            min-width:${isCurrent ? '40px' : '28px'};height:28px;border-radius:7px;
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+            font-size:${isCurrent ? '11px' : '9px'};font-weight:800;
+            transition:all 0.15s;border:1.5px solid transparent;
+        `;
+
+        if (isCurrent) {
+            dot.style.background = 'var(--accent)';
+            dot.style.color = 'white';
+            dot.style.borderColor = 'var(--accent)';
+            dot.textContent = num;
+            activeEl = dot;
+        } else if (anyDone) {
+            dot.style.background = 'var(--green-bg)';
+            dot.style.color = 'var(--green)';
+            dot.style.borderColor = 'var(--green-border)';
+            dot.textContent = '✓';
+        } else if (hasSAP) {
+            dot.style.background = 'var(--surface-2)';
+            dot.style.color = 'var(--text-3)';
+            dot.style.borderColor = 'var(--border)';
+            dot.textContent = num;
+        } else {
+            dot.style.background = 'var(--surface-2)';
+            dot.style.color = 'var(--border)';
+            dot.textContent = '·';
+        }
+
+        dot.onclick = () => selectBin(slots[0]);
+        strip.appendChild(dot);
+    });
+
+    // Scroll to center the active bin
+    if (activeEl) {
+        setTimeout(() => {
+            activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }, 50);
+    }
 }
 
 // Build the complete physical bin list for an aisle letter

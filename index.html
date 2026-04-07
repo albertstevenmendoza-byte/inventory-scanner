@@ -6,138 +6,86 @@
     <title>Cycle Counter 2.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #f5f5f7; --surface: #ffffff; --surface-2: #f0f0f3; --surface-3: #e8e8ec; --border: #dcdce2;
-            --text: #1a1a1f; --text-2: #6b6b78; --text-3: #9898a6; --accent: #3b6cf5; --accent-glow: rgba(59,108,245,0.08);
-            --green: #16a34a; --green-bg: #f0fdf4; --green-border: #bbf7d0; --red: #dc2626; --red-bg: #fef2f2; --red-border: #fecaca;
-            --amber: #d97706; --amber-bg: #fffbeb; --amber-border: #fde68a; --cyan: #0891b2; --radius: 16px; --radius-sm: 10px;
-        }
+        :root { --bg: #f5f5f7; --surface: #ffffff; --surface-2: #f0f0f3; --surface-3: #e8e8ec; --border: #dcdce2; --text: #1a1a1f; --text-2: #6b6b78; --text-3: #9898a6; --accent: #3b6cf5; --green: #16a34a; --red: #dc2626; --amber: #d97706; --radius: 16px; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .mono { font-family: 'IBM Plex Mono', monospace; }
-        button { font-family: inherit; border: none; cursor: pointer; }
         .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
         .screen.active { display: flex; }
         .app-header { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); background: var(--surface); }
         .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
         .sync-dot.queued { background: var(--amber); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        .setup-hero { text-align: center; padding: 48px 32px; }
-        .setup-hero .icon { font-size: 56px; margin-bottom: 16px; }
-        .aisle-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 0 16px 20px; }
-        .aisle-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 24px 0; text-align: center; font-size: 24px; font-weight: 900; position: relative; overflow: hidden; }
-        .aisle-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(79,125,249,0.12), transparent); transition: height 0.5s; }
+        .aisle-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px; }
+        .aisle-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 24px 0; text-align: center; font-size: 24px; font-weight: 900; }
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid var(--border); display: flex; gap: 8px; }
         .primary-btn { width: 100%; padding: 18px; border-radius: var(--radius); font-size: 14px; font-weight: 800; text-transform: uppercase; background: var(--accent); color: white; }
-        .secondary-btn { flex: 1; padding: 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 800; background: var(--surface-2); color: var(--text-2); }
-        .secondary-btn.active { border: 1.5px solid var(--accent); color: var(--accent); }
-        .scroll-area { flex: 1; overflow-y: auto; padding-bottom: 100px; }
+        .input-box { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 10px; font-size: 16px; }
+        #toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; padding:12px 24px; border-radius:20px; color:white; font-weight:800; display:none; }
     </style>
 </head>
 <body>
 
-<div id="toast" style="position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; padding:12px 24px; border-radius:20px; color:white; font-weight:800; display:none;"></div>
+<div id="toast"></div>
 
 <!-- SCREEN: LOCKOUT -->
 <div id="screen-lockout" class="screen">
-    <div class="setup-hero" style="padding-top: 100px;">
-        <div class="icon">🔒</div>
-        <h2 style="font-size: 24px; font-weight: 900; color: var(--red);">System Locked</h2>
-        <p style="margin-top: 10px; color: var(--text-2); font-weight: 500;">Counting is disabled because there is no inventory data in the cloud.</p>
-        <div style="background: var(--red-bg); border: 1.5px solid var(--red-border); padding: 20px; border-radius: 16px; margin: 30px 20px; font-size: 13px; color: var(--red); font-weight: 700; line-height: 1.5;">
-            The manager must upload a fresh SAP Inventory Snapshot from the Control Center to begin.
-        </div>
-        <button onclick="refreshAll()" class="primary-btn" style="width: auto; padding: 16px 40px; background: var(--accent); margin: 0 auto;">↻ Check for Data</button>
+    <div style="text-align:center; padding-top:100px;">
+        <div style="font-size:50px;">🔒</div>
+        <h2>System Locked</h2>
+        <p>No inventory data found in cloud.</p>
+        <button onclick="pullCloudData()" class="primary-btn" style="width:200px; margin-top:20px;">↻ Refresh</button>
     </div>
 </div>
 
 <!-- SCREEN: SETUP -->
-<div id="screen-setup" class="screen">
+<div id="screen-setup" class="screen active">
     <div class="app-header">
         <h1 style="font-size: 16px; font-weight: 900;">Cycle Counter</h1>
         <div style="display:flex; align-items:center; gap:12px;">
             <div id="sync-dot" class="sync-dot"></div>
-            <button onclick="showNameModal()" id="name-display" style="font-size: 11px; font-weight: 800; color: var(--text-2); background: var(--surface-2); padding: 6px 12px; border-radius: 8px;">Set Name</button>
+            <button onclick="setName()" id="name-display" style="font-size: 11px; font-weight: 800; color: var(--text-2); background: var(--surface-2); padding: 6px 12px; border-radius: 8px;">Set Name</button>
         </div>
     </div>
-    <div class="scroll-area">
-        <div id="setup-loading" class="setup-hero"><div class="icon">📡</div><h2>Syncing...</h2></div>
-        <div id="setup-ready" style="display:none;">
-            <div style="padding: 20px 16px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--text-3); letter-spacing: 1px;">Select Aisle</div>
-            <div class="aisle-grid" id="aisle-grid"></div>
-        </div>
-    </div>
-    <div class="bottom-bar">
-        <button onclick="switchScreen('setup')" class="secondary-btn active">Count</button>
-        <button onclick="switchScreen('report')" class="secondary-btn">Report</button>
+    <div class="aisle-grid" id="aisle-grid"></div>
+</div>
+
+<!-- SCREEN: COUNT -->
+<div id="screen-count" class="screen">
+    <div class="app-header"><h1 id="active-bin">Bin: ---</h1><button onclick="switchScreen('setup')">✕</button></div>
+    <div style="padding:16px;">
+        <input type="text" id="hu-scan" class="input-box" placeholder="Scan HU...">
+        <input type="number" id="qty-input" class="input-box" placeholder="Actual Quantity">
+        <button onclick="submitScan()" class="primary-btn">Submit HU</button>
+        <div id="bin-items" style="margin-top:20px;"></div>
     </div>
 </div>
 
-<!-- (Other screens: screen-count, screen-report, etc. remain the same as your previous code) -->
-
 <script>
-    const API = "YOUR_APPS_SCRIPT_URL_HERE";
+    const API = "YOUR_APPS_SCRIPT_URL_HERE"; // <--- PASTE YOUR URL HERE
     let sapMaster = [], auditorName = localStorage.getItem('auditorName') || '';
     let offlineQueue = JSON.parse(localStorage.getItem('offQ') || '[]');
-    let completedBins = new Set(JSON.parse(localStorage.getItem('doneBins') || '[]'));
+    let currentBin = '';
 
     function switchScreen(id) {
-        // SYSTEM LOCK CHECK: If no inventory data, force Lockout screen
-        if (sapMaster.length === 0 && id !== 'lockout') {
-            id = 'lockout';
-        }
-
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        const target = document.getElementById('screen-' + id);
-        if(target) target.classList.add('active');
+        document.getElementById('screen-' + id).classList.add('active');
+    }
 
-        // Hide navigation bar on lockout
-        const nav = document.querySelector('.bottom-bar');
-        if(nav) nav.style.display = (id === 'lockout') ? 'none' : 'flex';
+    function setName() {
+        const n = prompt("Enter Name:");
+        if(n) { auditorName = n; localStorage.setItem('auditorName', n); document.getElementById('name-display').innerText = n; }
     }
 
     async function pullCloudData() {
-        if(API.includes("YOUR_APPS_SCRIPT")) return;
         try {
-            const res = await fetch(API + "?type=sapdata");
+            const res = await fetch(API);
             const data = await res.json();
-            if (data.sapData && data.sapData.length > 0) {
-                sapMaster = data.sapData;
-                buildIndexes();
-                showSetupReady();
-            } else {
-                sapMaster = []; // Ensure empty
-                switchScreen('lockout');
-            }
-        } catch (e) {
-            if(sapMaster.length === 0) switchScreen('lockout');
-        }
-    }
-
-    function showSetupReady() {
-        if (sapMaster.length === 0) return switchScreen('lockout');
-        
-        document.getElementById('setup-loading').style.display = 'none';
-        document.getElementById('setup-ready').style.display = 'block';
-        
-        // If we are currently locked, move back to setup
-        const activeScreen = document.querySelector('.screen.active').id;
-        if (activeScreen === 'screen-lockout') switchScreen('setup');
-        
-        buildAisleGrid();
-    }
-
-    async function refreshAll() {
-        const btn = event.target;
-        btn.innerText = "Checking...";
-        await pullCloudData();
-        if(sapMaster.length > 0) {
-            toast("System Unlocked", "#16a34a");
-            switchScreen('setup');
-        } else {
-            toast("Still no data found", "#dc2626");
-            btn.innerText = "↻ Check for Data";
-        }
+            if (data.inventory && data.inventory.length > 0) {
+                sapMaster = data.inventory;
+                buildAisleGrid();
+                switchScreen('setup');
+            } else { switchScreen('lockout'); }
+        } catch (e) { toast("Connection Error", "red"); }
     }
 
     function buildAisleGrid() {
@@ -146,26 +94,75 @@
         "ABCDEFGHJKLMNP".split("").forEach(row => {
             const btn = document.createElement('button');
             btn.className = 'aisle-btn';
-            btn.innerHTML = `<div class="aisle-fill" style="height:0%"></div><span style="position:relative;">${row}</span>`;
-            btn.onclick = () => selectBin(`W${row}00A`);
+            btn.innerText = row;
+            btn.onclick = () => { currentBin = `W${row}00A`; document.getElementById('active-bin').innerText = currentBin; switchScreen('count'); };
             grid.appendChild(btn);
         });
     }
 
-    function toast(msg, color) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.background = color;
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2500);
+    async function submitScan() {
+        const hu = document.getElementById('hu-scan').value;
+        const qty = document.getElementById('qty-input').value;
+        if(!hu || !qty) return toast("Fill all fields", "orange");
+
+        const sapItem = sapMaster.find(i => i.hu === hu) || {};
+        
+        const auditEntry = {
+            hu: hu,
+            prod: sapItem.prod || "Unknown",
+            desc: sapItem.desc || "Manual Entry",
+            sapBin: sapItem.bin || "Unknown",
+            scanBin: currentBin,
+            sapQty: sapItem.qty || 0,
+            countQty: parseFloat(qty),
+            type: !sapItem.bin ? 'adj' : (sapItem.bin !== currentBin ? 'move' : 'ok'),
+            unit: sapItem.unit || "PC",
+            auditor: auditorName || "Unknown"
+        };
+
+        offlineQueue.push(auditEntry);
+        localStorage.setItem('offQ', JSON.stringify(offlineQueue));
+        
+        document.getElementById('hu-scan').value = '';
+        document.getElementById('qty-input').value = '';
+        toast("Saved locally", "blue");
+        updateSyncUI();
+        syncQueue();
     }
 
-    function buildIndexes() { /* Logic for indexing HUs and Bins */ }
+    async function syncQueue() {
+        if (offlineQueue.length === 0 || API.includes("YOUR_URL")) return;
+        updateSyncUI();
+        try {
+            const res = await fetch(API, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'submitAudit', items: offlineQueue })
+            });
+            const result = await res.json();
+            if (result.success) {
+                offlineQueue = [];
+                localStorage.setItem('offQ', JSON.stringify([]));
+                toast("Synced to Cloud", "#16a34a");
+            }
+        } catch (e) { console.log("Offline"); }
+        updateSyncUI();
+    }
+
+    function updateSyncUI() {
+        const dot = document.getElementById('sync-dot');
+        dot.classList.toggle('queued', offlineQueue.length > 0);
+    }
+
+    function toast(msg, color) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.style.background = color; t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2000);
+    }
 
     window.onload = () => {
         if (auditorName) document.getElementById('name-display').innerText = auditorName;
         pullCloudData();
-        setInterval(pullCloudData, 30000); // Auto-check for data every 30s
+        setInterval(syncQueue, 30000);
     };
 </script>
 </body>

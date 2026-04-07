@@ -796,7 +796,7 @@ function selectBin(binStr) {
     currentItems = expected.map(i => ({
         hu: i.hu, product: i.product, desc: i.desc, batch: i.batch,
         sapBin: i.sapBin, sapQty: i.sapQty,
-        countQty: 0, status: 'pending', isExtra: false, note: '', photoUrl: ''
+        countQty: 0, status: 'pending', isExtra: false, note: '', photoUrl: '', photoBase64: null
     }));
 
     currentPhase = 1;
@@ -1129,7 +1129,7 @@ function submitExtra() {
         sapQty: huMatch ? huMatch.sapQty : 0,
         countQty: qty,
         status: 'confirmed',
-        isExtra: true, note: '', photoUrl: ''
+        isExtra: true, note: '', photoUrl: '', photoBase64: null
     });
 
     cancelExtra();

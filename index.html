@@ -432,6 +432,68 @@
     </div>
 </div>
 
+<!-- ===== MODAL: NOTE & PHOTO ===== -->
+<div id="modal-note" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeNoteModal()">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div class="modal-title">Note & Photo</div>
+            <span id="note-upload-status" style="display:none;font-size:9px;font-weight:800;color:var(--green);background:var(--green-bg);padding:4px 10px;border-radius:6px;"></span>
+        </div>
+        <div id="note-context" class="modal-sub"></div>
+
+        <div style="margin-bottom:16px;">
+            <div style="font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Note</div>
+            <textarea id="note-text" rows="3" placeholder="Describe issue..." style="width:100%;background:var(--surface-2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:14px;font-weight:500;color:var(--text);outline:none;resize:none;font-family:inherit;"></textarea>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <div style="font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Photo Evidence</div>
+            <div id="photo-capture-area">
+                <div id="photo-empty" style="display:flex;gap:8px;">
+                    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+                    <label for="camera-input" style="flex:1;background:var(--accent-glow);border:1.5px dashed rgba(59,108,245,0.2);border-radius:var(--radius-sm);padding:20px 0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+                        <span style="font-size:24px;">📷</span>
+                        <span style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;">Camera</span>
+                    </label>
+                    <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhoto(event)">
+                    <label for="gallery-input" style="flex:1;background:var(--surface-2);border:1.5px dashed var(--border);border-radius:var(--radius-sm);padding:20px 0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+                        <span style="font-size:24px;">🖼️</span>
+                        <span style="font-size:10px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Gallery</span>
+                    </label>
+                </div>
+                <div id="photo-preview-area" style="display:none;">
+                    <div style="position:relative;border-radius:var(--radius-sm);overflow:hidden;border:1.5px solid var(--border);background:var(--surface-2);">
+                        <img id="photo-preview-img" style="width:100%;display:block;max-height:240px;object-fit:contain;">
+                        <canvas id="annot-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;touch-action:none;"></canvas>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+                        <div style="display:flex;gap:6px;">
+                            <button onclick="setAnnotColor('#dc2626')" class="annot-color active" style="width:24px;height:24px;border-radius:50%;background:#dc2626;border:2px solid var(--border);"></button>
+                            <button onclick="setAnnotColor('#3b6cf5')" class="annot-color" style="width:24px;height:24px;border-radius:50%;background:#3b6cf5;border:2px solid var(--border);"></button>
+                            <button onclick="setAnnotColor('#16a34a')" class="annot-color" style="width:24px;height:24px;border-radius:50%;background:#16a34a;border:2px solid var(--border);"></button>
+                        </div>
+                        <div style="display:flex;gap:4px;">
+                            <button onclick="undoAnnot()" style="background:var(--surface-2);color:var(--text-3);padding:6px 10px;border-radius:6px;font-size:10px;font-weight:700;">Undo</button>
+                            <button onclick="removePhoto()" style="background:var(--red-bg);color:var(--red);padding:6px 10px;border-radius:6px;font-size:10px;font-weight:700;">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+            <button onclick="closeNoteModal()" class="secondary-btn" style="flex:1;padding:16px 0;">Cancel</button>
+            <button onclick="saveNote()" class="primary-btn blue" style="flex:2">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== PHOTO VIEWER ===== -->
+<div id="photo-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:250;display:none;align-items:center;justify-content:center;padding:24px;" onclick="this.style.display='none'">
+    <img id="photo-viewer-img" style="max-width:100%;max-height:100%;border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+</div>
+
 <!-- ===== MODAL: CYCLE COUNT TRIGGER ===== -->
 <div id="modal-cc-trigger" class="modal-overlay" style="display:none;">
     <div class="modal-sheet">
@@ -746,21 +808,33 @@ function selectBin(binStr) {
     updatePhase();
 }
 
-// Smart bin navigation: skip empty bins
+// Build the complete physical bin list for an aisle letter
+function getAllBinsForAisle(aisleChar) {
+    const bins = [];
+    const maxBin = (aisleChar === 'B' || aisleChar === 'C') ? 25 : 38;
+    for (let num = 0; num <= maxBin; num++) {
+        const numStr = String(num).padStart(2, '0');
+        ['A', 'B'].forEach(slot => {
+            bins.push(`W${aisleChar}${numStr}${slot}`);
+        });
+        // Slot C only on some aisles — include it universally, empty bins just show as empty
+        bins.push(`W${aisleChar}${numStr}C`);
+    }
+    return bins;
+}
+
 function stepBin(dir) {
-    // Get all bins for the current aisle
     if (!currentBin) return;
     const aisleChar = currentBin.charAt(1);
-    const aisleBins = Object.keys(binIndex).filter(b => b.charAt(1) === aisleChar).sort();
-    if (!aisleBins.length) { toast('No bins in this aisle', 'amber'); return; }
-    const idx = aisleBins.indexOf(currentBin);
+    const allBins = getAllBinsForAisle(aisleChar);
+    const idx = allBins.indexOf(currentBin);
     if (idx === -1) {
-        // Current bin not populated — find nearest
-        const nearest = dir > 0 ? aisleBins.find(b => b > currentBin) : [...aisleBins].reverse().find(b => b < currentBin);
+        // Current bin not in generated list — find nearest
+        const nearest = dir > 0 ? allBins.find(b => b > currentBin) : [...allBins].reverse().find(b => b < currentBin);
         if (nearest) selectBin(nearest);
-        else toast(dir > 0 ? 'Last bin' : 'First bin', 'blue');
+        else toast(dir > 0 ? 'End of aisle' : 'Start of aisle', 'blue');
     } else {
-        const next = aisleBins[idx + dir];
+        const next = allBins[idx + dir];
         if (next) selectBin(next);
         else toast(dir > 0 ? 'End of aisle' : 'Start of aisle', 'blue');
     }
@@ -877,6 +951,7 @@ function createHUCard(item, idx) {
 
     const qtyMatch = item.countQty === item.sapQty && item.status === 'confirmed';
     const showActions = item.status === 'pending' || item.status === 'adjusted';
+    const hasEvidence = item.note || item.photoBase64 || item.photoUrl;
 
     card.innerHTML = `
         <div class="hu-header">
@@ -900,13 +975,20 @@ function createHUCard(item, idx) {
                 <button class="hu-btn confirm" onclick="confirmHU(${idx})">Confirm ${item.sapQty}</button>
                 <button class="hu-btn miss-btn ${item.status === 'missing' ? 'active' : ''}" onclick="markMissing(${idx})">Missing</button>
             </div>
+            <button onclick="openNoteModal(${idx})" style="width:100%;margin-top:8px;padding:10px 14px;background:${hasEvidence ? 'var(--amber-bg)' : 'var(--surface-2)'};border:1.5px solid ${hasEvidence ? 'var(--amber-border)' : 'var(--border)'};border-radius:var(--radius-sm);font-size:11px;font-weight:700;color:${hasEvidence ? 'var(--amber)' : 'var(--text-3)'};text-align:left;display:flex;align-items:center;gap:6px;">
+                ${item.photoBase64 || item.photoUrl ? '📷 ' : ''}📝 ${item.note ? item.note.substring(0, 30) : 'Add Note / Photo'}
+            </button>
         ` : `
             ${item.status !== 'pending' ? `
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-2);border-radius:var(--radius-sm);">
                     <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Count</span>
                     <span class="mono" style="font-size:18px;font-weight:700;color:${qtyMatch ? 'var(--green)' : 'var(--amber)'};">${item.countQty}</span>
                 </div>
-                <button onclick="resetHU(${idx})" style="width:100%;margin-top:8px;padding:10px;background:none;color:var(--text-3);font-size:10px;font-weight:700;">↺ Undo</button>
+                <button onclick="openNoteModal(${idx})" style="width:100%;margin-top:8px;padding:10px 14px;background:${hasEvidence ? 'var(--amber-bg)' : 'var(--surface-2)'};border:1.5px solid ${hasEvidence ? 'var(--amber-border)' : 'var(--border)'};border-radius:var(--radius-sm);font-size:11px;font-weight:700;color:${hasEvidence ? 'var(--amber)' : 'var(--text-3)'};text-align:left;display:flex;align-items:center;gap:6px;">
+                    ${item.photoBase64 || item.photoUrl ? '📷 ' : ''}📝 ${item.note ? item.note.substring(0, 30) : 'Add Note / Photo'}
+                </button>
+                ${item.photoBase64 || item.photoUrl ? `<button onclick="viewPhoto(${idx})" style="width:100%;margin-top:4px;padding:8px;background:var(--accent-glow);border:1px solid rgba(59,108,245,0.15);border-radius:var(--radius-sm);font-size:10px;font-weight:700;color:var(--accent);text-align:center;">🔍 View Full Photo</button>` : ''}
+                <button onclick="resetHU(${idx})" style="width:100%;margin-top:4px;padding:10px;background:none;color:var(--text-3);font-size:10px;font-weight:700;">↺ Undo</button>
             ` : ''}
         `}`;
 
@@ -1255,6 +1337,181 @@ function closeVerification() {
     switchScreen('setup');
     buildAisleGrid();
     syncCloud();
+}
+
+// ===== NOTE & PHOTO =====
+let noteTargetIdx = null;
+let currentPhotoBase64 = null;
+let annotCanvas, annotCtx, annotColor = '#dc2626', annotSize = 5, isDrawing = false, annotHistory = [];
+
+function openNoteModal(idx) {
+    haptic();
+    noteTargetIdx = idx;
+    const item = currentItems[idx];
+    document.getElementById('note-context').textContent = `${item.product} — ${item.hu || 'No HU'} — Bin: ${currentBin}`;
+    document.getElementById('note-text').value = item.note || '';
+    currentPhotoBase64 = item.photoBase64 || null;
+    document.getElementById('note-upload-status').style.display = 'none';
+    if (currentPhotoBase64) {
+        showPhotoPreview();
+    } else {
+        document.getElementById('photo-empty').style.display = 'flex';
+        document.getElementById('photo-preview-area').style.display = 'none';
+    }
+    document.getElementById('modal-note').style.display = 'flex';
+}
+
+function closeNoteModal() {
+    document.getElementById('modal-note').style.display = 'none';
+    noteTargetIdx = null;
+    currentPhotoBase64 = null;
+}
+
+function handlePhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            // Resize for mobile
+            let w = img.width, h = img.height;
+            const maxW = 1200, maxH = 900;
+            if (w > maxW) { h = h * (maxW / w); w = maxW; }
+            if (h > maxH) { w = w * (maxH / h); h = maxH; }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            currentPhotoBase64 = c.toDataURL('image/jpeg', 0.75);
+            showPhotoPreview();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+
+function showPhotoPreview() {
+    document.getElementById('photo-empty').style.display = 'none';
+    document.getElementById('photo-preview-area').style.display = 'block';
+    const img = document.getElementById('photo-preview-img');
+    img.src = currentPhotoBase64;
+    img.onload = () => initAnnotCanvas();
+}
+
+function initAnnotCanvas() {
+    const img = document.getElementById('photo-preview-img');
+    annotCanvas = document.getElementById('annot-canvas');
+    annotCanvas.width = img.clientWidth;
+    annotCanvas.height = img.clientHeight;
+    annotCtx = annotCanvas.getContext('2d');
+    annotCtx.lineCap = 'round';
+    annotCtx.lineJoin = 'round';
+    annotHistory = [];
+    // Touch events
+    annotCanvas.addEventListener('touchstart', aStart, { passive: false });
+    annotCanvas.addEventListener('touchmove', aMove, { passive: false });
+    annotCanvas.addEventListener('touchend', aEnd, { passive: false });
+    annotCanvas.addEventListener('mousedown', aStart);
+    annotCanvas.addEventListener('mousemove', aMove);
+    annotCanvas.addEventListener('mouseup', aEnd);
+    annotCanvas.addEventListener('mouseleave', aEnd);
+}
+
+function aPos(e) {
+    const r = annotCanvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: (t.clientX - r.left) * (annotCanvas.width / r.width), y: (t.clientY - r.top) * (annotCanvas.height / r.height) };
+}
+function aStart(e) { e.preventDefault(); isDrawing = true; annotCtx.strokeStyle = annotColor; annotCtx.lineWidth = annotSize; annotCtx.beginPath(); const p = aPos(e); annotCtx.moveTo(p.x, p.y); annotHistory.push(annotCtx.getImageData(0, 0, annotCanvas.width, annotCanvas.height)); }
+function aMove(e) { if (!isDrawing) return; e.preventDefault(); const p = aPos(e); annotCtx.lineTo(p.x, p.y); annotCtx.stroke(); }
+function aEnd() { if (isDrawing) { isDrawing = false; annotCtx.closePath(); } }
+
+function setAnnotColor(c) {
+    annotColor = c;
+    document.querySelectorAll('.annot-color').forEach(b => {
+        b.classList.toggle('active', b.style.background === c || b.style.backgroundColor === c);
+        b.style.borderColor = b.classList.contains('active') ? 'var(--accent)' : 'var(--border)';
+    });
+}
+
+function undoAnnot() { if (annotHistory.length > 0) annotCtx.putImageData(annotHistory.pop(), 0, 0); }
+
+function removePhoto() {
+    currentPhotoBase64 = null;
+    document.getElementById('photo-preview-area').style.display = 'none';
+    document.getElementById('photo-empty').style.display = 'flex';
+    annotHistory = [];
+}
+
+function getCompositeImage() {
+    if (!currentPhotoBase64) return null;
+    const img = document.getElementById('photo-preview-img');
+    const c = document.createElement('canvas');
+    c.width = annotCanvas.width; c.height = annotCanvas.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    ctx.drawImage(annotCanvas, 0, 0);
+    return c.toDataURL('image/jpeg', 0.8);
+}
+
+function saveNote() {
+    if (noteTargetIdx === null) return;
+    const item = currentItems[noteTargetIdx];
+    item.note = document.getElementById('note-text').value.trim();
+    const composite = getCompositeImage();
+    if (composite) {
+        item.photoBase64 = composite;
+        item.photoUrl = null;
+        uploadPhoto(noteTargetIdx, composite);
+    } else if (!currentPhotoBase64) {
+        item.photoBase64 = null;
+        item.photoUrl = null;
+    }
+    closeNoteModal();
+    renderHUList();
+}
+
+async function uploadPhoto(idx, base64) {
+    const item = currentItems[idx];
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'uploadPhoto',
+                hu: item.hu,
+                bin: currentBin,
+                product: item.product,
+                imageData: base64
+            })
+        });
+        const result = await res.json();
+        if (result.success && result.url) {
+            item.photoUrl = result.url;
+            toast('Photo uploaded', 'green');
+            renderHUList();
+        } else {
+            throw new Error(result.error || 'No URL returned');
+        }
+    } catch {
+        toast('Photo queued', 'amber');
+        enqueue({
+            action: 'uploadPhoto',
+            hu: item.hu,
+            bin: currentBin,
+            product: item.product,
+            imageData: base64
+        });
+    }
+}
+
+function viewPhoto(idx) {
+    const item = currentItems[idx];
+    const src = item.photoUrl || item.photoBase64;
+    if (!src) return;
+    const viewer = document.getElementById('photo-viewer');
+    document.getElementById('photo-viewer-img').src = src;
+    viewer.style.display = 'flex';
 }
 
 // ===== FINALIZE BIN =====

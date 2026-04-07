@@ -36,6 +36,7 @@
 </head>
 <body>
 <div id="toast" style="position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; padding:12px 24px; border-radius:20px; color:white; font-weight:800; display:none;"></div>
+
 <!-- SCREEN: LOCKOUT -->
 <div id="screen-lockout" class="screen">
     <div class="setup-hero" style="padding-top: 100px;">
@@ -48,13 +49,14 @@
         <button onclick="refreshAll()" class="primary-btn" style="width: auto; padding: 16px 40px; background: var(--accent); margin: 0 auto;">↻ Check for Data</button>
     </div>
 </div>
+
 <!-- SCREEN: SETUP -->
 <div id="screen-setup" class="screen">
     <div class="app-header">
         <h1 style="font-size: 16px; font-weight: 900;">Cycle Counter</h1>
         <div style="display:flex; align-items:center; gap:12px;">
             <div id="sync-dot" class="sync-dot"></div>
-            <button onclick="showNameModal()" id="name-display" style="font-size: 11px; font-weight: 800; color: var(--text-2); background: var(--surface-2); padding: 6px 12px; border-radius: 8px;">Set Name</button>
+            <button id="name-display" style="font-size: 11px; font-weight: 800; color: var(--text-2); background: var(--surface-2); padding: 6px 12px; border-radius: 8px;">Floor Team</button>
         </div>
     </div>
     <div class="scroll-area">
@@ -69,15 +71,13 @@
         <button onclick="switchScreen('report')" class="secondary-btn">Report</button>
     </div>
 </div>
-<!-- (Other screens: screen-count, screen-report, etc. remain the same as your previous code) -->
+
 <script>
     const API = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
-    let sapMaster = [], auditorName = localStorage.getItem('auditorName') || '';
-    let offlineQueue = JSON.parse(localStorage.getItem('offQ') || '[]');
-    let completedBins = new Set(JSON.parse(localStorage.getItem('doneBins') || '[]'));
-
+    let sapMaster = [], auditorName = localStorage.getItem('auditorName') || 'Floor User';
+    
     function switchScreen(id) {
-        // SYSTEM LOCK CHECK: If no inventory data, force Lockout screen
+        // Force lockout screen if no data is found
         if (sapMaster.length === 0 && id !== 'lockout') {
             id = 'lockout';
         }
@@ -86,52 +86,50 @@
         const target = document.getElementById('screen-' + id);
         if(target) target.classList.add('active');
 
-        // Hide navigation bar on lockout
         const nav = document.querySelector('.bottom-bar');
         if(nav) nav.style.display = (id === 'lockout') ? 'none' : 'flex';
     }
 
     async function pullCloudData() {
-        if(API.includes("YOUR_APPS_SCRIPT")) return;
         try {
-            const res = await fetch(API + "?type=sapdata");
+            const res = await fetch(API);
             const data = await res.json();
-            if (data.sapData && data.sapData.length > 0) {
-                sapMaster = data.sapData;
-                buildIndexes();
+            
+            // Check for 'inventory' key (returned by your doGet script)
+            if (data.inventory && data.inventory.length > 0) {
+                sapMaster = data.inventory;
                 showSetupReady();
             } else {
-                sapMaster = []; // Ensure empty
+                sapMaster = []; 
                 switchScreen('lockout');
             }
         } catch (e) {
+            console.error("Sync Error:", e);
             if(sapMaster.length === 0) switchScreen('lockout');
         }
     }
 
     function showSetupReady() {
-        if (sapMaster.length === 0) return switchScreen('lockout');
-        
         document.getElementById('setup-loading').style.display = 'none';
         document.getElementById('setup-ready').style.display = 'block';
         
-        // If we are currently locked, move back to setup
-        const activeScreen = document.querySelector('.screen.active').id;
-        if (activeScreen === 'screen-lockout') switchScreen('setup');
-        
+        const activeScreen = document.querySelector('.screen.active');
+        if (!activeScreen || activeScreen.id === 'screen-lockout') {
+            switchScreen('setup');
+        }
         buildAisleGrid();
     }
 
     async function refreshAll() {
         const btn = event.target;
+        const originalText = btn.innerText;
         btn.innerText = "Checking...";
         await pullCloudData();
         if(sapMaster.length > 0) {
             toast("System Unlocked", "#16a34a");
-            switchScreen('setup');
         } else {
             toast("Still no data found", "#dc2626");
-            btn.innerText = "↻ Check for Data";
+            btn.innerText = originalText;
         }
     }
 
@@ -142,7 +140,7 @@
             const btn = document.createElement('button');
             btn.className = 'aisle-btn';
             btn.innerHTML = `<div class="aisle-fill" style="height:0%"></div><span style="position:relative;">${row}</span>`;
-            btn.onclick = () => selectBin(`W${row}00A`);
+            btn.onclick = () => alert('Aisle ' + row + ' Ready');
             grid.appendChild(btn);
         });
     }
@@ -155,12 +153,10 @@
         setTimeout(() => t.style.display = 'none', 2500);
     }
 
-    function buildIndexes() { /* Logic for indexing HUs and Bins */ }
-
     window.onload = () => {
-        if (auditorName) document.getElementById('name-display').innerText = auditorName;
+        document.getElementById('name-display').innerText = auditorName;
         pullCloudData();
-        setInterval(pullCloudData, 30000); // Auto-check for data every 30s
+        setInterval(pullCloudData, 30000); // Check for data every 30s
     };
 </script>
 </body>

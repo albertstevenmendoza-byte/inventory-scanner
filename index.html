@@ -3,119 +3,1071 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cycle Counter 2.0</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <title>SAP Auditor | Floor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #f5f5f7; --surface: #ffffff; --surface-2: #f0f0f3; --surface-3: #e8e8ec; --border: #dcdce2;
-            --text: #1a1a1f; --text-2: #6b6b78; --text-3: #9898a6; --accent: #3b6cf5; --accent-glow: rgba(59,108,245,0.08);
-            --green: #16a34a; --green-bg: #f0fdf4; --green-border: #bbf7d0; --red: #dc2626; --red-bg: #fef2f2; --red-border: #fecaca;
-            --amber: #d97706; --amber-bg: #fffbeb; --amber-border: #fde68a; --cyan: #0891b2; --radius: 16px; --radius-sm: 10px;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .mono { font-family: 'IBM Plex Mono', monospace; }
-        button { font-family: inherit; border: none; cursor: pointer; }
-        .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
-        .screen.active { display: flex; }
-        .app-header { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); background: var(--surface); }
-        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
-        .sync-dot.queued { background: var(--amber); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        .setup-hero { text-align: center; padding: 48px 32px; }
-        .setup-hero .icon { font-size: 56px; margin-bottom: 16px; }
-        .aisle-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 0 16px 20px; }
-        .aisle-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 24px 0; text-align: center; font-size: 24px; font-weight: 900; position: relative; overflow: hidden; }
-        .aisle-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(79,125,249,0.12), transparent); transition: height 0.5s; }
-        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid var(--border); display: flex; gap: 8px; }
-        .primary-btn { width: 100%; padding: 18px; border-radius: var(--radius); font-size: 14px; font-weight: 800; text-transform: uppercase; background: var(--accent); color: white; }
-        .secondary-btn { flex: 1; padding: 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 800; background: var(--surface-2); color: var(--text-2); }
-        .secondary-btn.active { border: 1.5px solid var(--accent); color: var(--accent); }
-        .scroll-area { flex: 1; overflow-y: auto; padding-bottom: 100px; }
+        :root { --blue:#2563eb; --green:#059669; --red:#dc2626; --purple:#7c3aed; --orange:#ea580c; --cyan:#0891b2; --slate-900:#0f172a; --slate-800:#1e293b; --slate-50:#f8fafc; }
+        * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'DM Sans',sans-serif; overscroll-behavior:none; }
+        .mono { font-family:'JetBrains Mono',monospace; }
+        .card-verified { border-left:6px solid var(--green); background:linear-gradient(135deg,#ecfdf5 0%,#fff 60%); }
+        .card-missing { border-left:6px solid var(--red); background:#fef2f2; opacity:0.65; }
+        .card-extra { border-left:6px solid var(--purple); background:#f5f3ff; }
+        .card-default { border-left:6px solid #cbd5e1; }
+        #audit-list,#fresh-list { -webkit-overflow-scrolling:touch; scrollbar-width:none; scroll-behavior:smooth; }
+        #audit-list::-webkit-scrollbar,#fresh-list::-webkit-scrollbar { display:none; }
+        #toast { position:fixed; top:env(safe-area-inset-top,16px); left:50%; transform:translateX(-50%) translateY(-120%); z-index:9999; pointer-events:none; transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.4s; opacity:0; }
+        #toast.show { transform:translateX(-50%) translateY(16px); opacity:1; }
+        .queue-badge { position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; background:var(--orange); color:white; border-radius:99px; font-size:9px; font-weight:900; display:flex; align-items:center; justify-content:center; border:2px solid var(--slate-900); }
+        @keyframes pulse-sync { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .sync-active { animation:pulse-sync 1.2s infinite; }
+        .nav-pill { transition:all 0.2s ease; }
+        .nav-pill.active { background:var(--blue); color:white; box-shadow:0 4px 12px rgba(37,99,235,0.3); }
+        .row-btn { position:relative; transition:all 0.15s ease; }
+        .row-btn:active { transform:scale(0.93); }
+        .row-btn .fill-bar { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(to top,rgba(37,99,235,0.15),transparent); transition:height 0.5s ease; }
+        @keyframes swipe-hint { 0%{transform:translateX(0);opacity:0.6} 50%{transform:translateX(-8px);opacity:1} 100%{transform:translateX(0);opacity:0.6} }
+        .swipe-hint { animation:swipe-hint 2s ease-in-out infinite; }
+        .bottom-bar { background:rgba(255,255,255,0.92); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border-top:1px solid rgba(0,0,0,0.06); }
+        .stepper-btn { min-width:56px; min-height:56px; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:900; border-radius:16px; transition:all 0.1s; }
+        .stepper-btn:active { transform:scale(0.9); }
+        .bin-nav-btn { min-width:48px; min-height:48px; display:flex; align-items:center; justify-content:center; border-radius:16px; font-weight:900; transition:all 0.1s; }
+        .bin-nav-btn:active { transform:scale(0.9); }
+        .modal-backdrop { background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); }
+        .chip { display:inline-flex; align-items:center; gap:4px; padding:6px 14px; border-radius:99px; font-size:11px; font-weight:700; transition:all 0.15s; cursor:pointer; }
+        .chip:active { transform:scale(0.95); }
+        .annotation-layer { position:relative; touch-action:none; }
+        .annotation-layer canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; }
+        .color-dot { width:28px; height:28px; border-radius:50%; border:3px solid white; box-shadow:0 1px 4px rgba(0,0,0,0.2); cursor:pointer; transition:transform 0.1s; }
+        .color-dot:active,.color-dot.active { transform:scale(1.2); box-shadow:0 0 0 2px var(--blue); }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .spinner { width:16px; height:16px; border:2px solid white; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; display:inline-block; }
+
+        /* ===== FRESH MODE STYLES ===== */
+        .fresh-card { background:white; border:2px solid #e2e8f0; border-radius:1.25rem; overflow:hidden; transition:all 0.2s; }
+        .fresh-card.counted { border-color:#a7f3d0; background:linear-gradient(135deg,#ecfdf5,#fff 70%); }
+        .fresh-card.has-variance { border-color:#fbbf24; }
+        .fresh-stepper { min-width:64px; min-height:64px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:900; border-radius:1rem; transition:all 0.1s; -webkit-user-select:none; user-select:none; }
+        .fresh-stepper:active { transform:scale(0.88); }
+        .fresh-qty-input { width:100%; text-align:center; font-size:3rem; font-weight:900; color:#1e40af; background:transparent; border:none; outline:none; font-family:'JetBrains Mono',monospace; }
+        .fresh-qty-input::placeholder { color:#cbd5e1; }
+        .condition-tag { padding:5px 12px; border-radius:99px; font-size:10px; font-weight:800; text-transform:uppercase; border:2px solid transparent; cursor:pointer; transition:all 0.15s; -webkit-user-select:none; user-select:none; }
+        .condition-tag:active { transform:scale(0.93); }
+        .condition-tag.active { border-color:currentColor; }
+        .fresh-sap-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; font-size:11px; }
+        .fresh-sap-row:nth-child(odd) { background:#f8fafc; }
+        .fresh-header { background:linear-gradient(135deg,#0e7490,#0891b2); color:white; }
+
+        /* Fresh checklist items */
+        .fresh-hu-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; border:2px solid #e2e8f0; background:white; transition:all 0.15s; }
+        .fresh-hu-item:active { transform:scale(0.98); }
+        .fresh-hu-item.checked { border-color:#a7f3d0; background:linear-gradient(135deg,#ecfdf5,#fff 60%); }
+        .fresh-hu-item.missing { border-color:#fca5a5; background:#fef2f2; opacity:0.7; }
+        .fresh-check { width:28px; height:28px; border-radius:8px; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:white; transition:all 0.15s; flex-shrink:0; }
+        .fresh-check.on { background:#059669; border-color:#059669; }
+        .fresh-check.miss { background:#dc2626; border-color:#dc2626; }
+        .fresh-hu-qty { width:70px; text-align:center; font-size:18px; font-weight:900; color:#1e40af; background:#eff6ff; border:2px solid #bfdbfe; border-radius:10px; padding:6px 4px; outline:none; font-family:'JetBrains Mono',monospace; }
+        .fresh-hu-qty:focus { border-color:#2563eb; }
+
+        /* Notification banner */
+        .notif-banner { background:linear-gradient(135deg,#1e40af,#2563eb); color:white; padding:12px 16px; display:flex; flex-direction:column; gap:8px; box-shadow:0 4px 20px rgba(37,99,235,0.3); z-index:55; }
+        .notif-banner.urgent { background:linear-gradient(135deg,#dc2626,#ef4444); box-shadow:0 4px 20px rgba(239,68,68,0.3); }
+        @keyframes notif-slide { 0%{transform:translateY(-100%);opacity:0} 100%{transform:translateY(0);opacity:1} }
+        .notif-enter { animation:notif-slide 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes notif-pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+        .notif-icon-pulse { animation:notif-pulse 1.5s infinite; }
     </style>
 </head>
-<body>
-<div id="toast" style="position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; padding:12px 24px; border-radius:20px; color:white; font-weight:800; display:none;"></div>
+<body class="bg-slate-50 flex flex-col h-[100dvh] overflow-hidden">
 
-<!-- SCREEN: SETUP -->
-<div id="screen-setup" class="screen active">
-    <div class="app-header">
-        <h1 style="font-size: 16px; font-weight: 900;">Cycle Counter</h1>
-        <div style="display:flex; align-items:center; gap:12px;">
-            <div id="sync-dot" class="sync-dot"></div>
-            <button id="name-display" style="font-size: 11px; font-weight: 800; color: var(--text-2); background: var(--surface-2); padding: 6px 12px; border-radius: 8px;">Floor Team</button>
+<div id="toast" class="px-5 py-3 rounded-2xl font-black text-xs uppercase shadow-2xl flex items-center gap-2">
+    <span id="toast-icon">✓</span><span id="toast-text">Synced</span>
+</div>
+
+<header class="bg-slate-900 text-white px-4 py-3 shrink-0 z-50 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+        <div class="bg-blue-600 w-9 h-9 rounded-xl flex items-center justify-center text-lg">📦</div>
+        <div><h1 class="text-sm font-black uppercase tracking-tight leading-none">SAP Auditor</h1><p class="text-[9px] text-blue-400 font-bold uppercase tracking-widest">Floor Unit</p></div>
+    </div>
+    <div class="flex items-center gap-2">
+        <div id="sync-indicator" class="relative"><div id="sync-dot" class="w-2 h-2 rounded-full bg-emerald-400"></div><div id="queue-count" class="queue-badge hidden">0</div></div>
+        <button id="auditor-name-btn" onclick="showAuditorModal()" class="bg-slate-800 text-slate-300 px-3 py-2 text-[10px] font-black rounded-lg uppercase truncate max-w-[80px]">👤 —</button>
+        <button onclick="clearAllData()" class="bg-slate-800/50 text-slate-500 px-3 py-2 text-[10px] font-black rounded-lg uppercase">Reset</button>
+    </div>
+</header>
+
+<nav class="bg-white border-b flex p-1.5 shrink-0 gap-1">
+    <button id="nav-audit" onclick="switchView('audit')" class="nav-pill active flex-1 py-3 text-[10px] font-black uppercase rounded-xl">Audit</button>
+    <button id="nav-report" onclick="switchView('report')" class="nav-pill flex-1 py-3 text-[10px] font-black uppercase text-slate-400 bg-slate-50 rounded-xl">Report</button>
+</nav>
+
+<!-- Notification Banner (hidden by default, shown when new pending assignments arrive) -->
+<div id="notif-container" class="shrink-0" style="display:none;"></div>
+
+<!-- ===== AUDIT VIEW (Standard Bin Mode) ===== -->
+<main id="view-audit" class="flex-1 flex flex-col overflow-hidden relative">
+    <div id="setup-screen" class="absolute inset-0 bg-slate-50 z-[60] flex flex-col overflow-y-auto">
+        <div id="upload-prompt" class="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <div class="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-4xl mb-6" id="load-icon">📋</div>
+            <h2 id="load-title" class="text-2xl font-black uppercase mb-1 text-slate-800">Loading SAP Data...</h2>
+            <p id="load-subtitle" class="text-sm text-slate-400 font-medium mb-6">Checking cloud for latest data</p>
+            <div id="load-spinner" class="mb-6"><div style="width:40px;height:40px;border:4px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;"></div></div>
+            <div id="load-actions" class="hidden space-y-3">
+                <button onclick="pullCloudSAPData()" class="bg-blue-600 text-white py-4 px-12 rounded-2xl font-black uppercase text-sm shadow-xl active:scale-95 transition-transform inline-block">↻ Retry Cloud Pull</button>
+                <p class="text-[10px] text-slate-300 font-bold uppercase">— or upload manually —</p>
+                <input type="file" id="sap-upload-main" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileUpload(event)">
+                <label for="sap-upload-main" class="bg-slate-200 text-slate-600 py-3 px-8 rounded-2xl font-black uppercase text-xs cursor-pointer active:scale-95 transition-transform inline-block">Select Local File</label>
+            </div>
+            <!-- Data freshness info -->
+            <div id="load-meta" class="hidden mt-4 bg-white border rounded-xl p-3 text-left w-full max-w-xs">
+                <p class="text-[9px] font-black text-emerald-600 uppercase mb-1">Cloud Data Available</p>
+                <p class="text-[10px] text-slate-500 font-semibold">📅 <span id="load-meta-time">—</span></p>
+                <p class="text-[10px] text-slate-500 font-semibold">📊 <span id="load-meta-rows">—</span> items</p>
+            </div>
+        </div>
+        <div id="row-selection" class="hidden p-5 pb-8 space-y-5">
+            <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-xl">
+                <div class="flex justify-between items-center mb-3"><span id="week-display" class="bg-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Today</span><span id="day-display" class="text-[10px] font-bold uppercase text-slate-400"></span></div>
+                <p class="text-[10px] font-black uppercase text-blue-400 mb-3 tracking-widest">Assigned Counts</p>
+                <div id="schedule-list" class="space-y-1.5"></div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border shadow-sm">
+                <p class="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Product Lookup</p>
+                <div class="flex gap-2">
+                    <input type="text" id="prod-cycle-input" placeholder="Enter Product #" class="flex-1 p-4 bg-slate-50 border-2 rounded-xl mono text-sm outline-none focus:border-blue-500">
+                    <button onclick="startProductCycle()" class="bg-orange-500 text-white px-5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95">Go</button>
+                </div>
+            </div>
+            <div class="flex justify-between items-end"><h2 class="text-xl font-black uppercase text-slate-800">Select Aisle</h2><span id="total-progress" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1 rounded-full">0 Done</span></div>
+            <div class="grid grid-cols-4 gap-3" id="row-grid"></div>
+            <div class="flex gap-2">
+                <div class="flex-1 bg-white border rounded-xl p-3 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Loaded</p><p id="stat-loaded" class="text-lg font-black text-slate-700 mono">0</p></div>
+                <div class="flex-1 bg-white border rounded-xl p-3 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Bins</p><p id="stat-bins" class="text-lg font-black text-slate-700 mono">0</p></div>
+                <div class="flex-1 bg-white border rounded-xl p-3 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Queued</p><p id="stat-queued" class="text-lg font-black text-orange-600 mono">0</p></div>
+            </div>
         </div>
     </div>
-    <div class="scroll-area">
-        <div id="setup-loading" class="setup-hero"><div class="icon">📡</div><h2>Syncing...</h2></div>
-        <div id="setup-ready" style="display:none;">
-            <div style="padding: 20px 16px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--text-3); letter-spacing: 1px;">Select Aisle</div>
-            <div class="aisle-grid" id="aisle-grid"></div>
+
+    <!-- Bin Header (standard mode) -->
+    <div id="bin-header" class="px-4 py-3 bg-white border-b shrink-0">
+        <div class="flex gap-2 items-center">
+            <button onclick="stepBin(-1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">◀</button>
+            <div class="flex-1 relative"><input type="text" id="bin-input" placeholder="SCAN BIN..." class="w-full py-3.5 px-5 bg-slate-50 border-2 rounded-xl text-lg mono text-blue-700 font-bold uppercase outline-none focus:border-blue-400" onchange="selectBin(this.value)"><span id="bin-done-badge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded-lg">DONE</span></div>
+            <button onclick="stepBin(1)" class="bin-nav-btn bg-slate-100 text-slate-400 active:bg-slate-200">▶</button>
+        </div>
+        <div class="mt-2 flex items-center gap-3"><div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="bin-progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div></div><span id="bin-progress-text" class="text-[10px] font-black text-slate-400 mono min-w-[50px] text-right">0 / 0</span></div>
+    </div>
+    <div id="audit-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[260px]"></div>
+
+    <!-- Bottom Bar (standard mode) -->
+    <div id="standard-bottom-bar" class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50">
+        <div class="flex gap-2 mb-3">
+            <button onclick="toggleAddForm()" class="flex-1 bg-white border-2 border-orange-500 text-orange-600 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97]">+ Found Item</button>
+            <button onclick="confirmAllRemaining()" id="btn-confirm-all" class="flex-1 bg-emerald-50 border-2 border-emerald-300 text-emerald-700 py-3.5 rounded-xl font-black uppercase text-[11px] active:scale-[0.97] hidden">✓ Confirm All</button>
+            <button onclick="leaveAisle()" class="w-14 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center text-lg border border-slate-200 active:bg-slate-200">🚪</button>
+        </div>
+        <button onclick="finalizeBin()" class="w-full bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;"><span>Finalize & Next Bin</span><span class="swipe-hint text-white/50">→</span></button>
+    </div>
+</main>
+
+<!-- ===== FRESH COUNT VIEW ===== -->
+<main id="view-fresh" class="flex-1 flex flex-col overflow-hidden hidden">
+    <!-- Fresh Header -->
+    <div class="fresh-header px-4 py-4 shrink-0">
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-black uppercase tracking-tight">🧊 Fresh Count</h2>
+                <p id="fresh-progress-text" class="text-[10px] font-bold text-cyan-100">0 / 0 items checked</p>
+            </div>
+            <button onclick="leaveFresh()" class="bg-white/20 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase">✕ Exit</button>
         </div>
     </div>
-    <div class="bottom-bar">
-        <button onclick="switchScreen('setup')" class="secondary-btn active">Count</button>
-        <button onclick="switchScreen('report')" class="secondary-btn">Report</button>
+    
+    <!-- Fresh List -->
+    <div id="fresh-list" class="flex-1 overflow-y-auto p-4 space-y-3 pb-[200px]"></div>
+    
+    <!-- Fresh Bottom Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bottom-bar p-4 shadow-2xl z-50" id="fresh-bottom-bar" style="display:none;">
+        <div class="flex gap-2 mb-3">
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">SAP Total</p>
+                <p id="fresh-sap-total" class="text-lg font-black text-slate-600 mono">0</p>
+            </div>
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">Your Count</p>
+                <p id="fresh-count-total" class="text-lg font-black text-blue-600 mono">0</p>
+            </div>
+            <div class="flex-1 bg-white border rounded-xl p-2 text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase">Variance</p>
+                <p id="fresh-variance-total" class="text-lg font-black mono">0</p>
+            </div>
+        </div>
+        <button onclick="finalizeFresh()" class="w-full bg-cyan-600 text-white rounded-xl font-black uppercase text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-2" style="padding:18px 0;">
+            <span>Submit Fresh Count</span>
+        </button>
+    </div>
+</main>
+
+<!-- ===== REPORT VIEW ===== -->
+<main id="view-report" class="flex-1 flex flex-col overflow-hidden hidden">
+    <div class="p-4 space-y-3 overflow-y-auto flex-1">
+        <div class="flex gap-2">
+            <div class="flex-1 bg-white border rounded-xl p-4 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Finalized</p><p id="rpt-finalized" class="text-2xl font-black text-blue-600 mono">0</p><p class="text-[9px] text-slate-400 font-bold">bins</p></div>
+            <div class="flex-1 bg-white border rounded-xl p-4 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Discrepancies</p><p id="rpt-discrep" class="text-2xl font-black text-red-500 mono">0</p><p class="text-[9px] text-slate-400 font-bold">items</p></div>
+            <div class="flex-1 bg-white border rounded-xl p-4 text-center"><p class="text-[9px] font-black text-slate-400 uppercase">Accuracy</p><p id="rpt-accuracy" class="text-2xl font-black text-emerald-600 mono">—</p><p class="text-[9px] text-slate-400 font-bold">raw</p></div>
+        </div>
+        <div id="report-list" class="space-y-2"></div>
+    </div>
+</main>
+
+<!-- ===== MODALS (same as before) ===== -->
+<div id="add-item-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center"><h2 class="text-xl font-black uppercase">Found Item</h2><span id="smart-fill-badge" class="hidden bg-green-100 text-green-700 text-[9px] font-black px-2 py-1 rounded-full">Auto-filled</span></div>
+        <div class="space-y-3">
+            <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">HU Number</label><input type="text" id="add-hu" placeholder="Scan or type (0 if missing)" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl mono font-bold outline-none focus:border-blue-500 mt-1" oninput="autoLookupExtra(this)"></div>
+            <div class="grid grid-cols-2 gap-2"><div><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Item #</label><input type="text" id="add-prod" placeholder="Product" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl outline-none mt-1"></div><div><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Batch</label><input type="text" id="add-batch" placeholder="Batch" class="w-full p-3.5 bg-slate-50 border-2 rounded-xl outline-none mt-1"></div></div>
+            <div><label class="text-[9px] font-black text-slate-400 uppercase ml-1">Physical Count</label><input type="number" id="add-qty" placeholder="0" class="w-full p-5 bg-blue-50 border-2 border-blue-200 rounded-xl font-black text-center text-3xl text-blue-700 outline-none mt-1"></div>
+        </div>
+        <div class="flex gap-3 pt-2"><button onclick="toggleAddForm()" class="flex-1 py-4 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="submitExtra()" class="flex-[2] bg-orange-500 text-white py-4 rounded-xl font-black uppercase shadow-lg active:scale-[0.97]">Add Item</button></div>
+    </div>
+</div>
+
+<div id="note-modal" class="hidden fixed inset-0 modal-backdrop z-[110] flex flex-col">
+    <div class="flex-1 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-5 pb-3 shrink-0"><div class="flex justify-between items-center mb-1"><h2 class="text-lg font-black uppercase text-slate-800">Note & Photo</h2><span id="photo-upload-status" class="hidden text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-full"></span></div><p id="note-modal-context" class="text-[11px] text-slate-500 font-semibold"></p></div>
+            <div class="flex-1 overflow-y-auto px-5 space-y-4 pb-5">
+                <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Note</label><textarea id="note-text" rows="2" placeholder="Describe issue..." class="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none text-sm resize-none focus:border-blue-500 mt-1"></textarea></div>
+                <div><label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Photo Evidence</label>
+                    <div class="mt-2">
+                        <div id="photo-capture-area"><div id="photo-empty-state" class="flex gap-2"><input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoCapture(event)"><label for="camera-input" class="flex-1 bg-blue-50 border-2 border-dashed border-blue-200 rounded-xl py-6 flex flex-col items-center gap-1 cursor-pointer active:bg-blue-100"><span class="text-2xl">📷</span><span class="text-[10px] font-black text-blue-600 uppercase">Take Photo</span></label><input type="file" id="gallery-input" accept="image/*" class="hidden" onchange="handlePhotoCapture(event)"><label for="gallery-input" class="flex-1 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl py-6 flex flex-col items-center gap-1 cursor-pointer active:bg-slate-100"><span class="text-2xl">🖼️</span><span class="text-[10px] font-black text-slate-500 uppercase">Gallery</span></label></div></div>
+                        <div id="photo-editor" class="hidden"><div class="annotation-layer rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100" id="annotation-container" style="position:relative;"><img id="photo-preview" class="w-full block" style="max-height:300px;object-fit:contain;background:#f1f5f9;"><canvas id="annotation-canvas"></canvas></div><div class="flex items-center justify-between mt-3 px-1"><div class="flex items-center gap-2"><div class="color-dot active" style="background:#ef4444" onclick="setAnnotColor('#ef4444',this)"></div><div class="color-dot" style="background:#2563eb" onclick="setAnnotColor('#2563eb',this)"></div><div class="color-dot" style="background:#16a34a" onclick="setAnnotColor('#16a34a',this)"></div><div class="color-dot" style="background:#000" onclick="setAnnotColor('#000',this)"></div><div class="w-px h-6 bg-slate-200 mx-1"></div><button onclick="setAnnotSize(3)" id="pen-thin" class="text-[9px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">Thin</button><button onclick="setAnnotSize(6)" id="pen-med" class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Med</button><button onclick="setAnnotSize(12)" id="pen-thick" class="text-[9px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">Thick</button></div><div class="flex gap-1"><button onclick="undoAnnotation()" class="text-[10px] font-black text-slate-400 bg-white border px-3 py-1.5 rounded-lg">Undo</button><button onclick="clearAnnotations()" class="text-[10px] font-black text-red-400 bg-white border px-3 py-1.5 rounded-lg">Clear</button></div></div><button onclick="removePhoto()" class="w-full mt-2 py-2 text-[10px] font-black text-red-400 uppercase">✕ Remove Photo</button></div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-5 pt-3 border-t flex gap-3 shrink-0"><button onclick="closeNoteModal()" class="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="saveNoteAndPhoto()" class="flex-[2] bg-blue-600 text-white py-3.5 rounded-xl font-black uppercase shadow-lg active:scale-[0.97]">Save</button></div>
+        </div>
+    </div>
+</div>
+
+<div id="bin-move-modal" class="hidden fixed inset-0 modal-backdrop z-[110] p-4 flex items-center justify-center">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl"><h2 class="text-lg font-black uppercase text-slate-800">Record Bin Move</h2><p id="move-modal-context" class="text-[11px] text-slate-500 font-semibold"></p><div class="bg-slate-50 p-3 rounded-xl border-2"><p class="text-[9px] font-black uppercase text-slate-400">SAP Bin</p><p id="move-sap-bin" class="mono font-black text-slate-700"></p></div><input type="text" id="move-actual-bin" placeholder="Scan Actual Bin" class="w-full p-4 bg-blue-50 border-2 border-blue-200 rounded-xl mono font-bold text-blue-700 uppercase outline-none focus:border-blue-500 text-center text-lg"><div class="flex gap-3"><button onclick="closeBinMoveModal()" class="flex-1 py-3.5 text-slate-400 font-black uppercase text-[10px]">Cancel</button><button onclick="saveBinMove()" class="flex-[2] bg-purple-600 text-white py-3.5 rounded-xl font-black uppercase shadow-lg">Confirm</button></div></div>
+</div>
+<div id="auditor-modal" class="hidden fixed inset-0 modal-backdrop z-[120] p-4 flex items-center justify-center"><div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl"><h2 class="text-lg font-black uppercase text-slate-800">Your Name</h2><input type="text" id="auditor-name-input" placeholder="e.g. Albert" class="w-full p-4 bg-slate-50 border-2 rounded-xl font-bold outline-none focus:border-blue-500 text-center text-lg"><button onclick="saveAuditorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase shadow-lg">Save</button></div></div>
+<div id="photo-viewer" class="hidden fixed inset-0 bg-black/90 z-[130] flex items-center justify-center p-4" onclick="this.classList.add('hidden')"><img id="photo-viewer-img" class="max-w-full max-h-full rounded-xl shadow-2xl"></div>
+
+<!-- Cycle Count Trigger Prompt -->
+<div id="cycle-count-prompt" class="hidden fixed inset-0 modal-backdrop z-[125] p-4 flex items-center justify-center">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+        <div class="text-center mb-5">
+            <div class="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">⚠️</div>
+            <h2 class="text-lg font-black uppercase text-slate-800">Unknown Item Found</h2>
+            <p class="text-[11px] text-slate-400 font-semibold mt-1" id="ccp-reason">No HU on material</p>
+        </div>
+        <div class="bg-slate-50 rounded-2xl p-4 space-y-2 mb-5">
+            <div class="flex justify-between items-center">
+                <span class="text-[9px] font-black text-slate-400 uppercase">Product</span>
+                <span id="ccp-product" class="mono font-black text-blue-600"></span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-[9px] font-black text-slate-400 uppercase">Description</span>
+                <span id="ccp-desc" class="text-[11px] font-semibold text-slate-600 text-right max-w-[180px] truncate"></span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-[9px] font-black text-slate-400 uppercase">Qty Found</span>
+                <span id="ccp-qty" class="mono font-black text-slate-700"></span>
+            </div>
+        </div>
+        <p class="text-[11px] text-center text-slate-500 font-semibold mb-5">This item may be improperly consumed. Would you like to perform a <span class="font-black text-blue-600">full product cycle count</span> across all bins?</p>
+        <input type="hidden" id="ccp-product-val">
+        <div class="flex gap-3">
+            <button onclick="declineCycleCountTrigger()" class="flex-1 py-4 bg-slate-100 text-slate-500 rounded-xl font-black uppercase text-[10px] active:scale-[0.97] transition-all">Not Now</button>
+            <button onclick="acceptCycleCountTrigger()" class="flex-[2] py-4 bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-lg active:scale-[0.97] transition-all">Count Now</button>
+        </div>
     </div>
 </div>
 
 <script>
-    const API = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
-    let sapMaster = [], auditorName = localStorage.getItem('auditorName') || 'Floor User';
+const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
+
+let ALL_SAP_BINS = [];
+const FRESH_SKUS = ["3305704","3307506","3307509","3307515","3307518","3307525","3307710","3308356","3309009","3309016","3309017","3309019","3309138","3309139"];
+let sapMasterData = JSON.parse(localStorage.getItem('sapMasterData'))||[];
+let sapBinIndex={}, sapHUIndex=new Map(), expandedBins=new Set();
+let currentBinItems=[], currentActiveBin="", cloudReport=[];
+let noteTargetIndex=null, binMoveTargetIndex=null;
+let auditorName=localStorage.getItem('auditorName')||"";
+let offlineQueue=JSON.parse(localStorage.getItem('offlineQueue'))||[];
+let annotCanvas,annotCtx,annotColor='#ef4444',annotSize=6,isDrawing=false,annotHistory=[],currentPhotoBase64=null;
+
+// ===== FRESH STATE =====
+let freshData = []; // [{sku, desc, items:[{hu,huShort,sapBin,sapQty,checked,missing,countQty}], expanded, note, ...}]
+let freshNoteTarget = null; // index into freshData
+
+// ===== OFFLINE QUEUE =====
+function enqueuePost(p){offlineQueue.push(p);localStorage.setItem('offlineQueue',JSON.stringify(offlineQueue));updateQueueBadge();drainQueue();}
+async function drainQueue(){if(!offlineQueue.length)return;let ok=0;for(const p of[...offlineQueue]){try{const r=await fetch(API_URL,{method:'POST',body:JSON.stringify(p)});if(r.ok){ok++;offlineQueue.shift();}else break;}catch{break;}}localStorage.setItem('offlineQueue',JSON.stringify(offlineQueue));updateQueueBadge();if(ok>0)showToast(`${ok} synced`,'green');}
+function updateQueueBadge(){const el=document.getElementById('queue-count'),dot=document.getElementById('sync-dot'),sq=document.getElementById('stat-queued');if(offlineQueue.length>0){el.classList.remove('hidden');el.textContent=offlineQueue.length;dot.className='w-2 h-2 rounded-full bg-orange-400 sync-active';}else{el.classList.add('hidden');dot.className='w-2 h-2 rounded-full bg-emerald-400';}if(sq)sq.textContent=offlineQueue.length;}
+
+// ===== UTILS =====
+function haptic(){if(navigator.vibrate)navigator.vibrate(30);}
+function showToast(msg,color='green'){const t=document.getElementById('toast');const c={green:'bg-emerald-600 text-white',red:'bg-red-600 text-white',blue:'bg-blue-600 text-white',orange:'bg-orange-500 text-white',cyan:'bg-cyan-600 text-white'};t.className=`${c[color]||c.green} px-5 py-3 rounded-2xl font-black text-xs uppercase shadow-2xl flex items-center gap-2`;t.style.cssText='position:fixed;top:env(safe-area-inset-top,16px);left:50%;z-index:9999;pointer-events:none;transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.4s;';document.getElementById('toast-text').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function showAuditorModal(){document.getElementById('auditor-name-input').value=auditorName;document.getElementById('auditor-modal').classList.remove('hidden');}
+function saveAuditorName(){auditorName=document.getElementById('auditor-name-input').value.trim()||"Floor";localStorage.setItem('auditorName',auditorName);document.getElementById('auditor-name-btn').textContent='👤 '+auditorName;document.getElementById('auditor-modal').classList.add('hidden');}
+
+// ===== SCHEDULE =====
+const AISLE_ROWS = "ABCDEFGHJKLMNP".split("");
+let cloudAssignments = []; // pulled from cloud: [{type, value, description}]
+
+function isFreshDay() {
+    const day = new Date().getDay();
+    return day === 1 || day === 3 || day === 5; // Mon, Wed, Fri
+}
+
+function getDayName() {
+    return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+}
+
+function getAssignedAisles() {
+    // Returns Set of aisle letters that are assigned (e.g. 'F', 'G')
+    const set = new Set();
+    cloudAssignments.forEach(a => {
+        if (a.type === 'aisle') {
+            // value is "WF" or "WF:00-25"
+            const letter = a.value.replace('W','').split(':')[0];
+            if (letter) set.add(letter);
+        }
+    });
+    return set;
+}
+
+function initSetupGrid(){
+    const g=document.getElementById('row-grid');
+    g.innerHTML="";
+    const assignedAisles = getAssignedAisles();
+    const hasAssignments = cloudAssignments.length > 0;
     
-    function switchScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        const target = document.getElementById('screen-' + id);
-        if(target) target.classList.add('active');
-        
-        document.querySelectorAll('.secondary-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('onclick').includes(id));
-        });
+    // Header
+    document.getElementById('week-display').innerText = getDayName();
+    document.getElementById('day-display').innerText = hasAssignments ? `${cloudAssignments.length} assigned` : 'No assignments';
+
+    // Build schedule list from cloud assignments + FRESH
+    const schedList = document.getElementById('schedule-list');
+    let schedHTML = '';
+
+    // FRESH on MWF (always)
+    if (isFreshDay()) {
+        schedHTML += `<button onclick="startFreshCycle()" class="w-full text-left py-2.5 px-4 bg-cyan-600/90 hover:bg-cyan-600 rounded-xl flex justify-between items-center text-white text-xs font-bold active:scale-[0.98] transition-all mb-1.5"><span>🧊 FRESH: 14 SKUs</span><span class="text-white/60">▶</span></button>`;
     }
 
-    async function pullCloudData() {
-        try {
-            const res = await fetch(API);
-            const data = await res.json();
-            sapMaster = data.inventory || [];
-            showSetupReady();
-        } catch (e) {
-            console.error("Sync Error:", e);
-            showSetupReady(); // Still show interface even on error
+    // Cloud assignments
+    if (hasAssignments) {
+        cloudAssignments.forEach(a => {
+            if (a.type === 'product') {
+                schedHTML += `<button onclick="startProductCycleFromAssignment('${a.value}')" class="w-full text-left py-2 px-3 bg-orange-500/10 rounded-xl flex justify-between items-center text-xs font-bold active:scale-[0.98] transition-all mb-1"><span class="text-orange-600">📦 ${a.description || a.value}</span><span class="text-orange-400">▶</span></button>`;
+            } else {
+                schedHTML += `<div class="py-1.5 px-3 text-xs"><span class="text-blue-400 font-black">${a.value.split(':')[0]}</span> <span class="text-slate-400 font-semibold">${a.description || ''}</span></div>`;
+            }
+        });
+    } else {
+        schedHTML += `<div class="py-2 px-3 text-xs text-slate-400 italic">No assignments — count any aisle</div>`;
+    }
+
+    schedList.innerHTML = schedHTML;
+
+    // Build aisle grid with assigned aisles highlighted
+    AISLE_ROWS.forEach(row=>{
+        const bc=Object.keys(sapBinIndex).filter(b=>b.includes(`W${row}`)).length;
+        const isAssigned = assignedAisles.has(row);
+        const btn=document.createElement('button');
+        btn.className=`row-btn ${isAssigned ? 'bg-blue-50 border-2 border-blue-400' : 'bg-white border-2 border-slate-100'} p-4 rounded-xl font-black text-lg text-slate-700 relative overflow-hidden`;
+        btn.innerHTML=`<div class="fill-bar" id="fill-${row}"></div><span class="relative z-10">${row}</span>${isAssigned ? '<span class="absolute top-0.5 left-1 text-[7px] text-blue-500 font-black">●</span>' : ''}<span id="badge-${row}" class="absolute top-1 right-1.5 text-[8px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md z-10">0</span><span class="absolute bottom-1 left-1.5 text-[7px] font-bold text-slate-300 z-10">${bc}</span>`;
+        btn.onclick=()=>{ selectBin(`W${row}00A`); };
+        g.appendChild(btn);
+    });
+    syncCloud();
+}
+
+function startProductCycleFromAssignment(sku) {
+    document.getElementById('prod-cycle-input').value = sku;
+    startProductCycle();
+}
+// ===== CLOUD =====
+// Track which assignment IDs we've already responded to locally
+let respondedIds = JSON.parse(localStorage.getItem('respondedIds') || '{}'); // {id: 'accepted'|'declined'}
+
+async function syncCloud(){
+    try{
+        const r=await fetch(API_URL);
+        const d=await r.json();
+        cloudReport=d.report||[];
+        updateProgressUI();
+        // Check for assignment changes
+        const newAssign = d.assignments || [];
+        const oldJSON = JSON.stringify(cloudAssignments);
+        const newJSON = JSON.stringify(newAssign);
+        if (oldJSON !== newJSON) {
+            cloudAssignments = newAssign;
+            if (!document.getElementById('setup-screen').classList.contains('hidden')) {
+                initSetupGrid();
+            }
+        }
+        // Render notification banners for pending assignments
+        renderNotifications();
+    }catch{}
+    drainQueue();
+}
+
+function renderNotifications() {
+    const container = document.getElementById('notif-container');
+    // Find assignments that are pending and we haven't locally responded to
+    const pending = cloudAssignments.filter(a => 
+        a.status === 'pending' && !respondedIds[a.id]
+    );
+
+    if (pending.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'block';
+    container.innerHTML = '';
+
+    pending.forEach(a => {
+        const icon = a.type === 'product' ? '📦' : '📍';
+        const desc = a.description || a.value;
+        const banner = document.createElement('div');
+        banner.className = 'notif-banner notif-enter';
+        banner.innerHTML = `
+            <div class="flex items-start gap-3">
+                <span class="text-2xl notif-icon-pulse">${icon}</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-white/60">New Cycle Count</p>
+                    <p class="text-sm font-black leading-tight">${desc}</p>
+                    <p class="text-[10px] text-white/50 font-semibold mt-0.5">From ${a.assignedBy || 'Control Center'}</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="respondToAssignment('${a.id}','accepted')" class="flex-1 bg-white/20 hover:bg-white/30 text-white py-3 rounded-xl font-black text-xs uppercase active:scale-[0.97] transition-all backdrop-blur">✓ Accept</button>
+                <button onclick="respondToAssignment('${a.id}','declined')" class="flex-1 bg-white/10 hover:bg-white/20 text-white/70 py-3 rounded-xl font-black text-xs uppercase active:scale-[0.97] transition-all">✗ Decline</button>
+            </div>`;
+        container.appendChild(banner);
+    });
+}
+
+async function respondToAssignment(id, status) {
+    haptic();
+    // Immediately update local state so banner disappears
+    respondedIds[id] = status;
+    localStorage.setItem('respondedIds', JSON.stringify(respondedIds));
+    renderNotifications();
+
+    const statusText = status === 'accepted' ? 'Accepted' : 'Declined';
+    showToast(`${statusText}`, status === 'accepted' ? 'green' : 'orange');
+
+    // Send response to cloud
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'respondAssignment',
+                id: id,
+                status: status,
+                respondedBy: auditorName || 'Floor'
+            })
+        });
+    } catch {
+        // Queued for later
+        enqueuePost({ action: 'respondAssignment', id, status, respondedBy: auditorName || 'Floor' });
+    }
+
+    // If accepted and it's a product assignment, auto-navigate to it
+    if (status === 'accepted') {
+        const assignment = cloudAssignments.find(a => a.id === id);
+        if (assignment) {
+            if (assignment.type === 'product') {
+                document.getElementById('prod-cycle-input').value = assignment.value;
+                startProductCycle();
+            } else if (assignment.type === 'aisle') {
+                const aisleLetter = assignment.value.replace('W','').split(':')[0];
+                if (aisleLetter) selectBin(`W${aisleLetter}00A`);
+            }
         }
     }
+}
+function updateProgressUI(){const f=new Set(cloudReport.map(i=>i.scanBin));AISLE_ROWS.forEach(r=>{const b=document.getElementById(`badge-${r}`);if(b)b.innerText=Array.from(f).filter(bin=>bin&&bin.includes(`W${r}`)).length;});document.getElementById('total-progress').innerText=`${f.size} Done`;if(currentActiveBin)document.getElementById('bin-done-badge').classList.toggle('hidden',!f.has(currentActiveBin));document.getElementById('rpt-finalized').textContent=new Set(cloudReport.map(i=>i.scanBin)).size;const items=cloudReport.filter(i=>i.hu!=='EMPTY_BIN');const disc=items.filter(i=>i.type!=='ok').length;document.getElementById('rpt-discrep').textContent=disc;if(items.length>0)document.getElementById('rpt-accuracy').textContent=Math.round(((items.length-disc)/items.length)*100)+'%';}
+function updateBinProgress(){const t=currentBinItems.length,d=currentBinItems.filter(i=>i.verified||i.isMissing).length;document.getElementById('bin-progress-bar').style.width=t>0?Math.round((d/t)*100)+'%':'0%';document.getElementById('bin-progress-text').textContent=`${d} / ${t}`;const btn=document.getElementById('btn-confirm-all');(t-d>1&&t-d===t)?btn.classList.remove('hidden'):btn.classList.add('hidden');}
+function confirmAllRemaining(){haptic();let c=0;currentBinItems.forEach(i=>{if(!i.verified&&!i.isMissing){i.countQty=i.sapQty;i.verified=true;c++;}});showToast(`${c} confirmed`,'green');renderAuditList();}
 
-    function showSetupReady() {
-        document.getElementById('setup-loading').style.display = 'none';
-        document.getElementById('setup-ready').style.display = 'block';
-        buildAisleGrid();
+// ===========================
+// ===== FRESH COUNT MODE =====
+// ===========================
+function startFreshCycle() {
+    const matches = sapMasterData.filter(i => FRESH_SKUS.includes(i.product));
+    if (!matches.length) { showToast('No FRESH items','red'); return; }
+
+    // Build HU-level checklist grouped by SKU
+    const grouped = {};
+    FRESH_SKUS.forEach(sku => { grouped[sku] = { desc: '', items: [] }; });
+    matches.forEach(item => {
+        if (grouped[item.product]) {
+            grouped[item.product].items.push({
+                hu: item.hu,
+                huShort: item.hu ? item.hu.slice(-4) : '????',
+                sapBin: item.sapBin,
+                sapQty: item.sapQty,
+                batch: item.batch,
+                checked: false,
+                missing: false,
+                countQty: null // null = not yet, number = entered
+            });
+            if (!grouped[item.product].desc) grouped[item.product].desc = item.desc;
+        }
+    });
+
+    freshData = FRESH_SKUS.filter(sku => grouped[sku].items.length > 0).map(sku => ({
+        sku,
+        desc: grouped[sku].desc,
+        items: grouped[sku].items,
+        expanded: true, // start expanded
+        note: '',
+        photoBase64: null,
+        photoUrl: null
+    }));
+
+    document.getElementById('view-audit').classList.add('hidden');
+    document.getElementById('view-report').classList.add('hidden');
+    document.getElementById('view-fresh').classList.remove('hidden');
+    document.getElementById('fresh-bottom-bar').style.display = 'block';
+    document.getElementById('standard-bottom-bar').style.display = 'none';
+    renderFreshList();
+}
+
+function leaveFresh() {
+    const anyChecked = freshData.some(g => g.items.some(i => i.checked || i.missing));
+    if (anyChecked && !confirm('You have unsaved counts. Leave Fresh mode?')) return;
+    document.getElementById('view-fresh').classList.add('hidden');
+    document.getElementById('view-audit').classList.remove('hidden');
+    document.getElementById('fresh-bottom-bar').style.display = 'none';
+    document.getElementById('standard-bottom-bar').style.display = 'block';
+    freshData = [];
+}
+
+function renderFreshList() {
+    const container = document.getElementById('fresh-list');
+    container.innerHTML = '';
+
+    let totalItems = 0, checkedItems = 0;
+    freshData.forEach(g => { g.items.forEach(i => { totalItems++; if (i.checked || i.missing) checkedItems++; }); });
+    document.getElementById('fresh-progress-text').textContent = `${checkedItems} / ${totalItems} items checked`;
+
+    freshData.forEach((group, gIdx) => {
+        const allDone = group.items.every(i => i.checked || i.missing);
+        const doneCount = group.items.filter(i => i.checked || i.missing).length;
+        const sapTotal = group.items.reduce((s, i) => s + i.sapQty, 0);
+        const countTotal = group.items.filter(i => i.checked).reduce((s, i) => s + (i.countQty !== null ? i.countQty : i.sapQty), 0);
+
+        const card = document.createElement('div');
+        card.className = `fresh-card ${allDone ? 'counted' : ''}`;
+
+        // SKU header (tap to expand/collapse)
+        let headerHTML = `
+            <div onclick="toggleFreshGroup(${gIdx})" class="p-4 flex justify-between items-center active:bg-slate-50 cursor-pointer">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="mono font-black text-sm text-slate-800">${group.sku}</span>
+                        <span class="text-[9px] font-black px-2 py-0.5 rounded-full ${allDone ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${doneCount}/${group.items.length}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 font-semibold">${group.desc}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <p class="text-[7px] font-black text-slate-400 uppercase">SAP</p>
+                        <p class="mono font-black text-slate-300 leading-none">${sapTotal}</p>
+                    </div>
+                    <span class="text-slate-300 text-xs">${group.expanded ? '▼' : '▶'}</span>
+                </div>
+            </div>`;
+
+        // HU checklist items
+        let itemsHTML = '';
+        if (group.expanded) {
+            itemsHTML = '<div class="px-3 pb-3 space-y-2">';
+            group.items.forEach((item, iIdx) => {
+                const isChecked = item.checked;
+                const isMissing = item.missing;
+                const qty = item.countQty !== null ? item.countQty : '';
+                const statusClass = isChecked ? 'checked' : (isMissing ? 'missing' : '');
+                const checkClass = isChecked ? 'on' : (isMissing ? 'miss' : '');
+                const checkIcon = isChecked ? '✓' : (isMissing ? '✕' : '');
+
+                itemsHTML += `
+                    <div class="fresh-hu-item ${statusClass}">
+                        <div onclick="toggleFreshCheck(${gIdx},${iIdx})" class="fresh-check ${checkClass}">${checkIcon}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="mono font-bold text-slate-700 text-sm">···${item.huShort}</span>
+                                <span class="text-[9px] text-slate-400 font-semibold">${item.sapBin}</span>
+                            </div>
+                            <p class="text-[9px] text-slate-400 font-semibold">SAP: ${item.sapQty}</p>
+                        </div>
+                        <input type="number" inputmode="numeric" value="${qty}" placeholder="${item.sapQty}"
+                            class="fresh-hu-qty" 
+                            onfocus="this.select()"
+                            oninput="setFreshItemQty(${gIdx},${iIdx},this.value)"
+                            ${isMissing ? 'disabled' : ''}>
+                        <button onclick="toggleFreshMissing(${gIdx},${iIdx})" 
+                            class="text-[9px] font-black px-2 py-1.5 rounded-lg border-2 transition-all ${isMissing ? 'bg-red-600 border-red-600 text-white' : 'border-slate-200 text-slate-300'}">
+                            ${isMissing ? 'MISS' : 'Miss'}
+                        </button>
+                    </div>`;
+            });
+
+            // Note/photo for the whole SKU group
+            const hasNote = group.note || group.photoBase64;
+            itemsHTML += `<button onclick="openFreshNoteModal(${gIdx})" class="chip w-full justify-center mt-1 ${hasNote ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-white border border-dashed border-slate-200 text-slate-400'}">
+                ${group.photoBase64 ? '📷 ' : ''}📝 ${group.note ? group.note.substring(0,35) : 'Add Note / Photo'}
+            </button>`;
+            itemsHTML += '</div>';
+        }
+
+        card.innerHTML = headerHTML + itemsHTML;
+        container.appendChild(card);
+    });
+
+    updateFreshTotals();
+}
+
+function toggleFreshGroup(gIdx) {
+    freshData[gIdx].expanded = !freshData[gIdx].expanded;
+    renderFreshList();
+}
+
+function toggleFreshCheck(gIdx, iIdx) {
+    haptic();
+    const item = freshData[gIdx].items[iIdx];
+    if (item.missing) { item.missing = false; } // unmiss first if needed
+    item.checked = !item.checked;
+    if (item.checked && item.countQty === null) {
+        item.countQty = item.sapQty; // default to SAP qty when checking
     }
+    if (!item.checked) { item.countQty = null; }
+    renderFreshList();
+}
 
-    function buildAisleGrid() {
-        const grid = document.getElementById('aisle-grid');
-        grid.innerHTML = '';
-        "ABCDEFGHJKLMNP".split("").forEach(row => {
-            const btn = document.createElement('button');
-            btn.className = 'aisle-btn';
-            btn.innerHTML = `<div class="aisle-fill" style="height:0%"></div><span style="position:relative;">${row}</span>`;
-            btn.onclick = () => toast(`Aisle ${row} selected`, "#3b6cf5");
-            grid.appendChild(btn);
+function toggleFreshMissing(gIdx, iIdx) {
+    haptic();
+    const item = freshData[gIdx].items[iIdx];
+    item.missing = !item.missing;
+    if (item.missing) { item.checked = false; item.countQty = 0; }
+    else { item.countQty = null; }
+    renderFreshList();
+}
+
+function setFreshItemQty(gIdx, iIdx, val) {
+    const item = freshData[gIdx].items[iIdx];
+    item.countQty = val === '' ? null : (parseFloat(val) || 0);
+    if (item.countQty !== null && !item.checked) { item.checked = true; }
+    updateFreshTotals();
+}
+
+function updateFreshTotals() {
+    let sapTotal = 0, countTotal = 0;
+    freshData.forEach(g => g.items.forEach(i => {
+        sapTotal += i.sapQty;
+        if (i.checked) countTotal += (i.countQty !== null ? i.countQty : i.sapQty);
+    }));
+    const variance = countTotal - sapTotal;
+    document.getElementById('fresh-sap-total').textContent = sapTotal;
+    document.getElementById('fresh-count-total').textContent = countTotal;
+    const vEl = document.getElementById('fresh-variance-total');
+    vEl.textContent = (variance >= 0 ? '+' : '') + variance;
+    vEl.className = `text-lg font-black mono ${variance === 0 ? 'text-emerald-600' : (variance > 0 ? 'text-purple-600' : 'text-red-600')}`;
+}
+
+function openFreshNoteModal(gIdx) {
+    freshNoteTarget = gIdx;
+    noteTargetIndex = null;
+    const group = freshData[gIdx];
+    document.getElementById('note-modal-context').innerText = `FRESH: ${group.sku} — ${group.desc}`;
+    document.getElementById('note-text').value = group.note || "";
+    currentPhotoBase64 = group.photoBase64 || null;
+    document.getElementById('photo-upload-status').classList.add('hidden');
+    if (currentPhotoBase64) { showPhotoEditor(); } else { document.getElementById('photo-editor').classList.add('hidden'); document.getElementById('photo-empty-state').classList.remove('hidden'); }
+    document.getElementById('note-modal').classList.remove('hidden');
+}
+
+function finalizeFresh() {
+    let unchecked = 0;
+    freshData.forEach(g => g.items.forEach(i => { if (!i.checked && !i.missing) unchecked++; }));
+    if (unchecked > 0) {
+        if (!confirm(`${unchecked} item(s) not checked. Submit anyway?`)) return;
+    }
+    haptic();
+
+    // Build items to log — one row per HU
+    const itemsToLog = [];
+    freshData.forEach(g => {
+        g.items.forEach(i => {
+            const qty = i.checked ? (i.countQty !== null ? i.countQty : i.sapQty) : 0;
+            let type = 'ok';
+            if (i.missing) type = 'miss';
+            else if (qty !== i.sapQty) type = 'adj';
+            itemsToLog.push({
+                hu: i.hu,
+                product: g.sku,
+                desc: g.desc,
+                batch: i.batch || '',
+                sapBin: i.sapBin,
+                scannedBin: i.sapBin,
+                sapQty: i.sapQty,
+                countQty: qty,
+                type: type,
+                note: g.note || '',
+                photoUrl: g.photoUrl || ''
+            });
         });
-    }
+    });
 
-    function toast(msg, color) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.background = color;
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2500);
-    }
+    itemsToLog.forEach(item => cloudReport.push({ scanBin: item.scannedBin, ...item }));
+    updateProgressUI();
+    enqueuePost({ action: 'logAudit', user: auditorName || "Floor", bin: 'PRODUCT: FRESH', items: itemsToLog });
 
-    window.onload = () => {
-        document.getElementById('name-display').innerText = auditorName;
-        pullCloudData();
-        setInterval(pullCloudData, 30000);
+    const sapT = itemsToLog.reduce((s,i) => s+i.sapQty, 0);
+    const cntT = itemsToLog.reduce((s,i) => s+i.countQty, 0);
+    const v = cntT - sapT;
+    showToast(`Fresh submitted (${v >= 0 ? '+' : ''}${v} variance)`, 'cyan');
+
+    document.getElementById('view-fresh').classList.add('hidden');
+    document.getElementById('view-audit').classList.remove('hidden');
+    document.getElementById('fresh-bottom-bar').style.display = 'none';
+    document.getElementById('standard-bottom-bar').style.display = 'block';
+    freshData = [];
+}
+
+// ===== PHOTO / ANNOTATION (shared between standard and FRESH) =====
+function handlePhotoCapture(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(e)=>{const img=new Image();img.onload=()=>{const maxW=1200,maxH=900;let w=img.width,h=img.height;if(w>maxW){h=h*(maxW/w);w=maxW;}if(h>maxH){w=w*(maxH/h);h=maxH;}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);currentPhotoBase64=c.toDataURL('image/jpeg',0.75);showPhotoEditor();};img.src=e.target.result;};reader.readAsDataURL(file);event.target.value='';}
+function showPhotoEditor(){document.getElementById('photo-empty-state').classList.add('hidden');document.getElementById('photo-editor').classList.remove('hidden');const p=document.getElementById('photo-preview');p.src=currentPhotoBase64;p.onload=()=>initAnnotationCanvas();}
+function initAnnotationCanvas(){const img=document.getElementById('photo-preview');annotCanvas=document.getElementById('annotation-canvas');annotCanvas.width=img.clientWidth;annotCanvas.height=img.clientHeight;annotCanvas.style.width=img.clientWidth+'px';annotCanvas.style.height=img.clientHeight+'px';annotCtx=annotCanvas.getContext('2d');annotCtx.lineCap='round';annotCtx.lineJoin='round';annotHistory=[];annotCanvas.addEventListener('touchstart',annotStart,{passive:false});annotCanvas.addEventListener('touchmove',annotMove,{passive:false});annotCanvas.addEventListener('touchend',annotEnd,{passive:false});annotCanvas.addEventListener('mousedown',annotStart);annotCanvas.addEventListener('mousemove',annotMove);annotCanvas.addEventListener('mouseup',annotEnd);annotCanvas.addEventListener('mouseleave',annotEnd);}
+function getAnnotPos(e){const r=annotCanvas.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)*(annotCanvas.width/r.width),y:(t.clientY-r.top)*(annotCanvas.height/r.height)};}
+function annotStart(e){e.preventDefault();isDrawing=true;annotCtx.strokeStyle=annotColor;annotCtx.lineWidth=annotSize;annotCtx.beginPath();const p=getAnnotPos(e);annotCtx.moveTo(p.x,p.y);annotHistory.push(annotCtx.getImageData(0,0,annotCanvas.width,annotCanvas.height));}
+function annotMove(e){if(!isDrawing)return;e.preventDefault();const p=getAnnotPos(e);annotCtx.lineTo(p.x,p.y);annotCtx.stroke();}
+function annotEnd(){if(isDrawing){isDrawing=false;annotCtx.closePath();}}
+function setAnnotColor(c,el){annotColor=c;document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('active'));if(el)el.classList.add('active');}
+function setAnnotSize(s){annotSize=s;document.getElementById('pen-thin').className=`text-[9px] font-black ${s===3?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;document.getElementById('pen-med').className=`text-[9px] font-black ${s===6?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;document.getElementById('pen-thick').className=`text-[9px] font-black ${s===12?'text-blue-600 bg-blue-50':'text-slate-500 bg-slate-100'} px-2 py-1 rounded-lg`;}
+function undoAnnotation(){if(annotHistory.length>0)annotCtx.putImageData(annotHistory.pop(),0,0);}
+function clearAnnotations(){annotCtx.clearRect(0,0,annotCanvas.width,annotCanvas.height);annotHistory=[];}
+function removePhoto(){currentPhotoBase64=null;document.getElementById('photo-editor').classList.add('hidden');document.getElementById('photo-empty-state').classList.remove('hidden');annotHistory=[];}
+function getCompositeImage(){if(!currentPhotoBase64)return null;const img=document.getElementById('photo-preview');const c=document.createElement('canvas');c.width=annotCanvas.width;c.height=annotCanvas.height;const ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);ctx.drawImage(annotCanvas,0,0);return c.toDataURL('image/jpeg',0.8);}
+
+// ===== NOTE MODAL (shared — detects fresh vs standard) =====
+function openNoteModal(idx){haptic();noteTargetIndex=idx;freshNoteTarget=null;const item=currentBinItems[idx];document.getElementById('note-modal-context').innerText=`${item.product} — Bin: ${item.sapBin}`;document.getElementById('note-text').value=item.note||"";currentPhotoBase64=item.photoBase64||null;document.getElementById('photo-upload-status').classList.add('hidden');if(currentPhotoBase64){showPhotoEditor();}else{document.getElementById('photo-editor').classList.add('hidden');document.getElementById('photo-empty-state').classList.remove('hidden');}document.getElementById('note-modal').classList.remove('hidden');}
+function closeNoteModal(){document.getElementById('note-modal').classList.add('hidden');currentPhotoBase64=null;}
+
+function saveNoteAndPhoto() {
+    const composite = getCompositeImage();
+    
+    if (freshNoteTarget !== null) {
+        // FRESH mode
+        const item = freshData[freshNoteTarget];
+        item.note = document.getElementById('note-text').value.trim();
+        if (composite) { item.photoBase64 = composite; item.photoUrl = null; uploadFreshPhoto(freshNoteTarget, composite); }
+        else { item.photoBase64 = null; item.photoUrl = null; }
+        closeNoteModal();
+        renderFreshList();
+    } else if (noteTargetIndex !== null) {
+        // Standard mode
+        const item = currentBinItems[noteTargetIndex];
+        item.note = document.getElementById('note-text').value.trim();
+        if (composite) { item.photoBase64 = composite; item.photoUrl = null; uploadPhotoToCloud(noteTargetIndex, composite); }
+        else { item.photoBase64 = null; item.photoUrl = null; }
+        closeNoteModal();
+        renderAuditList();
+    }
+}
+
+async function uploadPhotoToCloud(idx,base64){try{const item=currentBinItems[idx];const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'uploadPhoto',hu:item.hu,bin:currentActiveBin,product:item.product,imageData:base64})});const result=await res.json();if(result.url){item.photoUrl=result.url;showToast('Photo uploaded','green');}}catch{showToast('Photo queued','orange');const item=currentBinItems[idx];enqueuePost({action:'uploadPhoto',hu:item.hu,bin:currentActiveBin,product:item.product,imageData:base64});}}
+
+async function uploadFreshPhoto(idx, base64) {
+    try {
+        const item = freshData[idx];
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'uploadPhoto', hu: `FRESH_${item.sku}`, bin: 'FRESH', product: item.sku, imageData: base64 }) });
+        const result = await res.json();
+        if (result.url) { item.photoUrl = result.url; showToast('Photo uploaded', 'green'); }
+    } catch { showToast('Photo queued', 'orange'); }
+}
+
+function viewPhoto(idx){const item=currentBinItems[idx];const src=item.photoUrl||item.photoBase64;if(!src)return;document.getElementById('photo-viewer-img').src=src;document.getElementById('photo-viewer').classList.remove('hidden');}
+
+// ===== STANDARD MODE FUNCTIONS =====
+function openBinMoveModal(idx){haptic();binMoveTargetIndex=idx;const item=currentBinItems[idx];document.getElementById('move-modal-context').innerText=item.product;document.getElementById('move-sap-bin').innerText=item.sapBin;document.getElementById('move-actual-bin').value=item.actualBin||"";document.getElementById('bin-move-modal').classList.remove('hidden');}
+function closeBinMoveModal(){document.getElementById('bin-move-modal').classList.add('hidden');}
+function saveBinMove(){const b=document.getElementById('move-actual-bin').value.trim().toUpperCase();if(b)currentBinItems[binMoveTargetIndex].actualBin=b;closeBinMoveModal();renderAuditList();}
+function toggleAddForm(){haptic();const m=document.getElementById('add-item-modal');m.classList.toggle('hidden');if(!m.classList.contains('hidden')){['add-hu','add-prod','add-batch','add-qty'].forEach(id=>document.getElementById(id).value='');document.getElementById('smart-fill-badge').classList.add('hidden');setTimeout(()=>document.getElementById('add-hu').focus(),100);}}
+function autoLookupExtra(input){const hu=input.value.trim();if(hu.length<8){document.getElementById('smart-fill-badge').classList.add('hidden');return;}const m=sapHUIndex.get(hu);if(m){document.getElementById('smart-fill-badge').classList.remove('hidden');document.getElementById('add-prod').value=m.product;document.getElementById('add-batch').value=m.batch;document.getElementById('add-qty').focus();}}
+function submitExtra(){
+    const hu=document.getElementById('add-hu').value.trim();
+    const prod=document.getElementById('add-prod').value.trim();
+    const qty=parseFloat(document.getElementById('add-qty').value)||0;
+    if(!prod||qty<=0){showToast('Need product # and count','red');return;}
+    
+    const huMatch=hu ? sapHUIndex.get(hu) : null;
+    const isNoHU = !hu || hu === '0' || hu.trim() === '';
+    const isUnknownHU = hu && !isNoHU && !huMatch;
+    const needsCycleCountPrompt = isNoHU || isUnknownHU;
+    
+    // Add the item to current bin regardless
+    currentBinItems.push({
+        hu: hu || '0',
+        product: prod,
+        batch: document.getElementById('add-batch').value,
+        desc: huMatch ? huMatch.desc : "FOUND (No HU)",
+        sapQty: huMatch ? huMatch.sapQty : 0,
+        sapBin: huMatch ? huMatch.sapBin : "",
+        countQty: qty,
+        verified: true,
+        isMissing: false,
+        isExtra: true,
+        note: isUnknownHU ? `Unknown HU: ${hu}` : (isNoHU ? 'No HU on material' : ''),
+        actualBin: null,
+        photoBase64: null,
+        photoUrl: null
+    });
+    toggleAddForm();
+    showToast('Item added','green');
+    renderAuditList();
+    
+    // If no valid HU, prompt for product cycle count
+    if (needsCycleCountPrompt && prod) {
+        setTimeout(() => {
+            showCycleCountPrompt(prod, qty, isUnknownHU ? `Unknown HU: ${hu}` : 'No HU on material');
+        }, 500);
+    }
+}
+
+function showCycleCountPrompt(product, qty, reason) {
+    const desc = sapMasterData.find(i => i.product === product)?.desc || product;
+    const modal = document.getElementById('cycle-count-prompt');
+    document.getElementById('ccp-product').textContent = product;
+    document.getElementById('ccp-desc').textContent = desc;
+    document.getElementById('ccp-qty').textContent = qty;
+    document.getElementById('ccp-reason').textContent = reason;
+    document.getElementById('ccp-product-val').value = product;
+    modal.dataset.sent = ''; // reset guard
+    modal.classList.remove('hidden');
+}
+
+function closeCycleCountPrompt() {
+    document.getElementById('cycle-count-prompt').classList.add('hidden');
+}
+
+async function acceptCycleCountTrigger() {
+    const modal = document.getElementById('cycle-count-prompt');
+    if (modal.dataset.sent) return; // prevent double tap
+    modal.dataset.sent = 'true';
+    
+    const prod = document.getElementById('ccp-product-val').value;
+    const reason = document.getElementById('ccp-reason').textContent;
+    closeCycleCountPrompt();
+    haptic();
+    
+    const triggerId = 'CC' + Date.now();
+    const payload = {
+        action: 'triggerCycleCount',
+        id: triggerId,
+        product: prod,
+        reason: reason,
+        triggeredBy: auditorName || 'Floor',
+        status: 'accepted',
+        bin: currentActiveBin
     };
+    try { await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); }
+    catch { enqueuePost(payload); }
+    
+    showToast('Cycle count triggered','blue');
+    document.getElementById('prod-cycle-input').value = prod;
+    startProductCycle();
+}
+
+async function declineCycleCountTrigger() {
+    const modal = document.getElementById('cycle-count-prompt');
+    if (modal.dataset.sent) return; // prevent double tap
+    modal.dataset.sent = 'true';
+    
+    const prod = document.getElementById('ccp-product-val').value;
+    const reason = document.getElementById('ccp-reason').textContent;
+    closeCycleCountPrompt();
+    
+    const triggerId = 'CC' + Date.now();
+    const payload = {
+        action: 'triggerCycleCount',
+        id: triggerId,
+        product: prod,
+        reason: reason,
+        triggeredBy: auditorName || 'Floor',
+        status: 'declined',
+        bin: currentActiveBin
+    };
+    try { await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); }
+    catch { enqueuePost(payload); }
+    
+    showToast('Cycle count skipped','orange');
+}
+
+function finalizeBin(){if(!currentActiveBin)return;const unf=currentBinItems.filter(i=>!i.verified&&!i.isMissing);if(unf.length>0){showToast(`${unf.length} not verified`,'red');return;}haptic();let itemsToLog=currentBinItems.length===0?[{hu:"EMPTY_BIN",product:"NONE",desc:"Confirmed Empty",batch:"",sapBin:"",scannedBin:currentActiveBin,sapQty:0,countQty:0,type:'ok',note:"",photoUrl:""}]:currentBinItems.map(i=>{let type='ok';if(i.isMissing)type='miss';else if(i.isExtra)type='inactive';else if(i.countQty!==i.sapQty)type='adj';return{hu:i.hu,product:i.product,desc:i.desc,batch:i.batch,sapBin:i.sapBin,scannedBin:i.actualBin||currentActiveBin,sapQty:i.sapQty,countQty:i.countQty,type,note:i.note||"",photoUrl:i.photoUrl||""};});itemsToLog.forEach(item=>cloudReport.push({scanBin:item.scannedBin,...item}));updateProgressUI();enqueuePost({action:'logAudit',user:auditorName||"Floor",bin:currentActiveBin,items:itemsToLog});showToast('Bin finalized','blue');if(currentActiveBin.startsWith("PRODUCT:"))leaveAisle();else stepBin(1);}
+
+function renderAuditList(){const container=document.getElementById('audit-list');container.innerHTML="";const isFresh=currentActiveBin==="PRODUCT: FRESH",isSingle=currentActiveBin.startsWith("PRODUCT:")&&!isFresh;if(isFresh||isSingle){const groups={};currentBinItems.forEach((item,idx)=>{const k=isFresh?item.product:item.sapBin;if(!groups[k])groups[k]=[];groups[k].push({item,idx});});Object.keys(groups).forEach(key=>{const isExp=expandedBins.has(key),allDone=groups[key].every(o=>o.item.verified||o.item.isMissing);const div=document.createElement('div');div.className=`bg-white border-2 ${allDone?'border-emerald-200':'border-slate-100'} rounded-2xl overflow-hidden mb-2 shadow-sm`;const badge=`<span class="text-[10px] font-black px-2 py-0.5 rounded-lg ${allDone?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-500'}">${groups[key].filter(o=>o.item.verified||o.item.isMissing).length}/${groups[key].length}</span>`;div.innerHTML=`<div onclick="toggleBinAccordion('${key}')" class="flex justify-between items-center p-4 active:bg-slate-50 cursor-pointer"><div><span class="mono font-black text-slate-800 text-sm">${isFresh?'SKU '+key:key}</span><span class="text-[10px] text-slate-400 font-semibold block truncate max-w-[200px]">${isFresh?groups[key][0].item.desc:groups[key].length+' items'}</span></div><div class="flex items-center gap-2">${badge}<span class="text-slate-300 text-xs">${isExp?'▼':'▶'}</span></div></div><div id="content-${CSS.escape(key)}" class="${isExp?'p-4 pt-0 space-y-3':'hidden'}"></div>`;if(isExp){const cel=div.querySelector(`[id="content-${CSS.escape(key)}"]`);groups[key].forEach(o=>cel.appendChild(createItemCard(o.item,o.idx)));}container.appendChild(div);});}else{if(currentBinItems.length===0&&currentActiveBin!=="")container.innerHTML=`<div class="py-20 text-center"><div class="text-4xl mb-3">📭</div><p class="text-slate-300 font-black uppercase text-xs tracking-widest">Empty Bin — Confirm to finalize</p></div>`;currentBinItems.forEach((item,index)=>container.appendChild(createItemCard(item,index)));}updateBinProgress();}
+
+function createItemCard(item,index){const card=document.createElement('div');const sc=item.verified?'card-verified':(item.isMissing?'card-missing':(item.isExtra?'card-extra':'card-default'));card.className=`p-4 rounded-2xl transition-all shadow-sm ${sc}`;const isPM=currentActiveBin.startsWith("PRODUCT:");const hasNote=item.note&&item.note.trim()!=="";const hasPhoto=item.photoBase64||item.photoUrl;const hasActualBin=item.actualBin&&item.actualBin!==item.sapBin;const qtyMatch=item.verified&&item.countQty===item.sapQty;let extrasHTML=`<button onclick="openNoteModal(${index})" class="chip mt-2 ${(hasNote||hasPhoto)?'bg-amber-50 border border-amber-300 text-amber-700':'bg-white border border-dashed border-slate-200 text-slate-400'}">`;if(hasPhoto)extrasHTML+=`<img src="${item.photoUrl||item.photoBase64}" class="w-5 h-5 rounded object-cover"> `;extrasHTML+=`📝 ${hasNote?item.note.substring(0,25):'Add Note / Photo'}</button>`;if(hasPhoto)extrasHTML+=`<button onclick="viewPhoto(${index})" class="chip mt-1 bg-blue-50 border border-blue-200 text-blue-600">🔍 View Full Photo</button>`;if(isPM)extrasHTML+=`<button onclick="openBinMoveModal(${index})" class="chip mt-2 ${hasActualBin?'bg-purple-50 border border-purple-300 text-purple-700':'bg-white border border-dashed border-slate-200 text-slate-400'}">📍 ${hasActualBin?'Moved → '+item.actualBin:'Bin Move'}</button>`;card.innerHTML=`<div class="flex justify-between items-start mb-3"><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-1"><span class="inline-block px-2 py-0.5 bg-slate-900 text-blue-400 mono text-[9px] font-bold rounded-md">HU ${item.hu||'N/A'}</span>${item.isExtra?'<span class="text-[8px] font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">EXTRA</span>':''}${qtyMatch?'<span class="text-[8px] font-black text-emerald-600">✓</span>':''}</div><h3 class="text-sm font-bold text-slate-800 leading-tight">${item.product}</h3><p class="text-[10px] text-blue-600 font-semibold truncate">${item.desc||''}</p><p class="text-[9px] text-slate-400 font-semibold mt-0.5">Bin: ${item.sapBin}${hasActualBin?' <span class="text-purple-600 font-black">→ '+item.actualBin+'</span>':''}</p></div><div class="text-right bg-slate-50/80 p-2 rounded-xl border min-w-[60px] ml-3"><p class="text-[7px] font-black text-slate-400 uppercase">SAP</p><p class="text-xl mono font-black text-slate-700 leading-none">${item.sapQty}</p></div></div><div class="space-y-2"><div class="flex gap-2"><button onclick="quickConfirm(${index})" class="flex-[3] py-3.5 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase shadow active:scale-95">Confirm ${item.sapQty}</button><button onclick="toggleMissing(${index})" class="flex-1 py-3.5 rounded-xl font-black text-[10px] uppercase border-2 ${item.isMissing?'bg-red-600 border-red-600 text-white':'border-slate-200 text-slate-300 bg-white'}">${item.isMissing?'✕':'Miss'}</button></div><div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-100"><button onclick="adjustQty(${index},-1)" class="stepper-btn bg-white shadow-sm text-slate-400 active:bg-slate-100">−</button><input type="number" inputmode="numeric" value="${item.countQty||''}" oninput="updateCount(${index},this.value)" placeholder="0" class="flex-1 bg-transparent text-center font-black text-2xl text-blue-700 outline-none mono min-w-0"><button onclick="adjustQty(${index},1)" class="stepper-btn bg-white shadow-sm text-blue-600 active:bg-blue-50">+</button></div>${extrasHTML}</div>`;return card;}
+
+function quickConfirm(i){haptic();currentBinItems[i].countQty=currentBinItems[i].sapQty;currentBinItems[i].verified=true;currentBinItems[i].isMissing=false;renderAuditList();}
+function toggleMissing(i){haptic();currentBinItems[i].isMissing=!currentBinItems[i].isMissing;if(currentBinItems[i].isMissing){currentBinItems[i].verified=false;currentBinItems[i].countQty=0;}renderAuditList();}
+function adjustQty(i,d){haptic();let c=currentBinItems[i].countQty||0;currentBinItems[i].countQty=Math.max(0,c+d);currentBinItems[i].verified=true;currentBinItems[i].isMissing=false;renderAuditList();}
+function updateCount(i,v){currentBinItems[i].countQty=parseFloat(v)||0;currentBinItems[i].verified=true;currentBinItems[i].isMissing=false;updateBinProgress();}
+
+function selectBin(n){if(!n)return;const u=n.toUpperCase();currentActiveBin=u;document.getElementById('bin-input').value=u;const e=sapBinIndex[u]||[];currentBinItems=e.map(i=>({...i,verified:false,isMissing:false,countQty:0,note:"",actualBin:null,photoBase64:null,photoUrl:null}));document.getElementById('setup-screen').classList.add('hidden');renderAuditList();window.scrollTo(0,0);updateProgressUI();}
+function stepBin(d){const c=ALL_SAP_BINS.indexOf(currentActiveBin);if(c!==-1&&ALL_SAP_BINS[c+d])selectBin(ALL_SAP_BINS[c+d]);else if(c===-1){const n=ALL_SAP_BINS.find(b=>b>currentActiveBin)||ALL_SAP_BINS[0];selectBin(n);}else showToast(d>0?'Last bin':'First bin','blue');}
+function startProductCycle(){const s=document.getElementById('prod-cycle-input').value.trim(),m=sapMasterData.filter(i=>i.product===s);if(!m.length){showToast('Not found','red');return;}currentActiveBin="PRODUCT: "+s;expandedBins.clear();currentBinItems=m.map(i=>({...i,verified:false,isMissing:false,countQty:0,note:"",actualBin:null,photoBase64:null,photoUrl:null}));document.getElementById('setup-screen').classList.add('hidden');document.getElementById('bin-input').value=currentActiveBin;renderAuditList();}
+function toggleBinAccordion(b){expandedBins.has(b)?expandedBins.delete(b):expandedBins.add(b);renderAuditList();}
+function leaveAisle(){currentActiveBin="";document.getElementById('setup-screen').classList.remove('hidden');}
+
+function switchView(v){
+    ['view-audit','view-report','view-fresh'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+    if(v==='audit'){document.getElementById('view-audit').classList.remove('hidden');document.getElementById('standard-bottom-bar').style.display='block';document.getElementById('fresh-bottom-bar').style.display='none';}
+    else if(v==='report'){document.getElementById('view-report').classList.remove('hidden');renderReportView();document.getElementById('standard-bottom-bar').style.display='none';document.getElementById('fresh-bottom-bar').style.display='none';}
+    document.querySelectorAll('.nav-pill').forEach(b=>{b.classList.remove('active');b.classList.add('text-slate-400','bg-slate-50');});
+    const a=document.getElementById('nav-'+v);if(a){a.classList.add('active');a.classList.remove('text-slate-400','bg-slate-50');}
+}
+
+function renderReportView(){const c=document.getElementById('report-list');c.innerHTML='';const items=cloudReport.filter(i=>i.hu!=='EMPTY_BIN'&&i.type!=='ok');if(!items.length){c.innerHTML='<div class="py-10 text-center text-slate-300 font-bold text-sm">No discrepancies yet</div>';return;}items.slice(-50).reverse().forEach(i=>{const tc={miss:'bg-red-100 text-red-700',adj:'bg-amber-100 text-amber-700',inactive:'bg-purple-100 text-purple-700',move:'bg-blue-100 text-blue-700'}[i.type]||'bg-slate-100 text-slate-600';const d=document.createElement('div');d.className='bg-white border rounded-xl p-3 flex justify-between items-center';d.innerHTML=`<div><p class="font-bold text-sm text-slate-800">${i.prod||i.product}</p><p class="text-[10px] text-slate-400 font-semibold mono">${i.scanBin} · HU ${i.hu}</p></div><div class="flex items-center gap-2"><span class="mono font-bold text-sm">${i.scanQty||i.countQty}/${i.sapQty}</span><span class="text-[9px] font-black uppercase px-2 py-1 rounded-lg ${tc}">${i.type}</span></div>`;c.appendChild(d);});}
+
+function rebuildIndexes(){
+    sapBinIndex={};sapHUIndex=new Map();
+    sapMasterData.forEach(i=>{
+        if(!sapBinIndex[i.sapBin])sapBinIndex[i.sapBin]=[];
+        sapBinIndex[i.sapBin].push(i);
+        sapHUIndex.set(i.hu,i);
+    });
+    // Build complete navigation list: every possible bin Wx00A through Wx38C
+    ALL_SAP_BINS = [];
+    AISLE_ROWS.forEach(row => {
+        for (let num = 0; num <= 38; num++) {
+            const numStr = String(num).padStart(2, '0');
+            ['A','B','C'].forEach(slot => {
+                ALL_SAP_BINS.push(`W${row}${numStr}${slot}`);
+            });
+        }
+    });
+    document.getElementById('stat-loaded').textContent=sapMasterData.length;
+    document.getElementById('stat-bins').textContent=Object.keys(sapBinIndex).length;
+}
+function clearAllData(){if(confirm("Reset all data?")){localStorage.clear();location.reload();}}
+function handleFileUpload(event){const r=new FileReader();r.onload=(e)=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});sapMasterData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(row=>({sapBin:String(row['Storage Bin']||"").trim().toUpperCase(),hu:String(row['Handling Unit']||"").trim(),product:String(row['Product']||""),batch:String(row['Batch']||"").trim(),desc:row['Product Short Description']||"",sapQty:parseFloat(row['Quantity'])||0}));localStorage.setItem('sapMasterData',JSON.stringify(sapMasterData));rebuildIndexes();document.getElementById('upload-prompt').classList.add('hidden');document.getElementById('row-selection').classList.remove('hidden');initSetupGrid();showToast(`${sapMasterData.length} items loaded`,'blue');};r.readAsArrayBuffer(event.target.files[0]);}
+
+
+
+// ===== CLOUD SAP DATA PULL =====
+let sapDataTimestamp = localStorage.getItem('sapDataTimestamp') || null;
+
+async function pullCloudSAPData() {
+    const loadIcon = document.getElementById('load-icon');
+    const loadTitle = document.getElementById('load-title');
+    const loadSub = document.getElementById('load-subtitle');
+    const loadSpinner = document.getElementById('load-spinner');
+    const loadActions = document.getElementById('load-actions');
+    const loadMeta = document.getElementById('load-meta');
+
+    loadIcon.textContent = '📋';
+    loadTitle.textContent = 'Loading SAP Data...';
+    loadSub.textContent = 'Pulling from cloud';
+    loadSpinner.classList.remove('hidden');
+    loadActions.classList.add('hidden');
+    loadMeta.classList.add('hidden');
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch(API_URL + '?type=sapdata', { signal: controller.signal });
+        clearTimeout(timeout);
+        const data = await res.json();
+
+        if (data.sapData && data.sapData.length > 0) {
+            sapMasterData = data.sapData;
+            localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
+            if (data.meta && data.meta.timestamp) {
+                sapDataTimestamp = data.meta.timestamp;
+                localStorage.setItem('sapDataTimestamp', sapDataTimestamp);
+            }
+            rebuildIndexes();
+            document.getElementById('upload-prompt').classList.add('hidden');
+            document.getElementById('row-selection').classList.remove('hidden');
+            initSetupGrid();
+            showToast(`${sapMasterData.length} items from cloud`, 'blue');
+        } else {
+            loadIcon.textContent = '📭';
+            loadTitle.textContent = 'No Cloud Data';
+            loadSub.textContent = 'Ask your lead to upload SAP data from Control Center';
+            loadSpinner.classList.add('hidden');
+            loadActions.classList.remove('hidden');
+        }
+    } catch (err) {
+        if (sapMasterData.length > 0) {
+            rebuildIndexes();
+            document.getElementById('upload-prompt').classList.add('hidden');
+            document.getElementById('row-selection').classList.remove('hidden');
+            initSetupGrid();
+            showToast('Using cached data (offline)', 'orange');
+        } else {
+            loadIcon.textContent = '📵';
+            loadTitle.textContent = 'Could Not Connect';
+            loadSub.textContent = err.name === 'AbortError' ? 'Request timed out — check connection' : 'Cannot reach cloud — upload a local file or try again';
+            loadSpinner.classList.add('hidden');
+            loadActions.classList.remove('hidden');
+        }
+    }
+}
+
+// Check if cloud data is newer than our cache (called periodically)
+async function checkForDataRefresh() {
+    try {
+        const res = await fetch(API_URL + '?type=sapdata');
+        const data = await res.json();
+        if (data.meta && data.meta.timestamp && data.meta.timestamp !== sapDataTimestamp) {
+            // New data available
+            if (data.sapData && data.sapData.length > 0) {
+                sapMasterData = data.sapData;
+                localStorage.setItem('sapMasterData', JSON.stringify(sapMasterData));
+                sapDataTimestamp = data.meta.timestamp;
+                localStorage.setItem('sapDataTimestamp', sapDataTimestamp);
+                rebuildIndexes();
+                showToast('SAP data refreshed', 'blue');
+            }
+        }
+    } catch {}
+}
+
+window.onload = () => {
+    if (auditorName) document.getElementById('auditor-name-btn').textContent = '👤 ' + auditorName;
+    
+    if (sapMasterData.length > 0) {
+        rebuildIndexes();
+        document.getElementById('upload-prompt').classList.add('hidden');
+        document.getElementById('row-selection').classList.remove('hidden');
+        initSetupGrid();
+        checkForDataRefresh();
+    } else {
+        pullCloudSAPData();
+    }
+    
+    updateQueueBadge();
+    setInterval(syncCloud, 8000);
+    setInterval(drainQueue, 15000);
+    setInterval(checkForDataRefresh, 120000);
+};
 </script>
 </body>
 </html>

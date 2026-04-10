@@ -905,6 +905,7 @@ function isBinCounted(bin) {
     return completedBins.has(bin) || cloudReport.some(r => r.scanBin === bin);
 }
 
+// ===== UPDATED BIN MAP STRIP =====
 function renderBinMapStrip() {
     const strip = document.getElementById('bin-map-strip');
     if (!strip || !currentBin) return;
@@ -912,10 +913,12 @@ function renderBinMapStrip() {
     const aisleChar = currentBin.charAt(1);
     const allBins = getAllBinsForAisle(aisleChar);
     
-    // Group by bin number (00, 01, 02...) — show one dot per number, not per slot
+    // Group by bin number using Regex to safely capture 2-digit (00) and 3-digit (100) numbers
     const binNums = {};
     allBins.forEach(b => {
-        const num = b.substring(2, 4); // e.g. "00", "01"
+        const match = b.match(/W[A-Z](\d+)/);
+        const num = match ? match[1] : '?';
+        
         if (!binNums[num]) binNums[num] = [];
         binNums[num].push(b);
     });
@@ -928,7 +931,7 @@ function renderBinMapStrip() {
 
         const dot = document.createElement('button');
         dot.style.cssText = `
-            min-width:${isCurrent ? '40px' : '28px'};height:28px;border-radius:7px;
+            min-width:${isCurrent || num.length > 2 ? '40px' : '28px'};height:28px;border-radius:7px;
             display:flex;align-items:center;justify-content:center;flex-shrink:0;
             font-size:${isCurrent ? '11px' : '9px'};font-weight:800;
             transition:all 0.15s;border:1.5px solid transparent;
@@ -968,18 +971,21 @@ function renderBinMapStrip() {
     }
 }
 
-// Build the complete physical bin list for an aisle letter
+// ===== UPDATED BIN GENERATOR =====
 function getAllBinsForAisle(aisleChar) {
     const bins = [];
-    const maxBin = (aisleChar === 'B' || aisleChar === 'C') ? 25 : 38;
-    for (let num = 0; num <= maxBin; num++) {
+    
+    // 1. Generate standard bins 00 through 38 with A, B, C slots
+    for (let num = 0; num <= 38; num++) {
         const numStr = String(num).padStart(2, '0');
-        ['A', 'B'].forEach(slot => {
+        ['A', 'B', 'C'].forEach(slot => {
             bins.push(`W${aisleChar}${numStr}${slot}`);
         });
-        // Slot C only on some aisles — include it universally, empty bins just show as empty
-        bins.push(`W${aisleChar}${numStr}C`);
     }
+    
+    // 2. Append the special 100 bin at the end of the aisle sequence
+    bins.push(`W${aisleChar}100`);
+    
     return bins;
 }
 

@@ -742,6 +742,7 @@ function isBinCounted(bin) {
 }
 
 // ===== UPDATED BIN MAP STRIP =====
+// ===== BIN MAP STRIP =====
 function renderBinMapStrip() {
     const strip = document.getElementById('bin-map-strip');
     if (!strip || !currentBin) return;
@@ -761,7 +762,7 @@ function renderBinMapStrip() {
 
     let activeEl = null;
     Object.entries(binNums).forEach(([num, slots]) => {
-        const anyDone = slots.some(s => isBinCounted(s));
+        const anyDone = slots.some(s => completedBins.has(s) || cloudReport.some(r => r.scanBin === s));
         const hasSAP = slots.some(s => binIndex[s] && binIndex[s].length > 0);
         const isCurrent = slots.some(s => s === currentBin);
 
@@ -807,7 +808,7 @@ function renderBinMapStrip() {
     }
 }
 
-// ===== UPDATED BIN GENERATOR =====
+// ===== BIN GENERATOR =====
 function getAllBinsForAisle(aisleChar) {
     const bins = [];
     
@@ -848,7 +849,7 @@ function leaveAisle() {
     currentBin = '';
     currentItems = [];
     switchScreen('setup');
-    buildAisleGrid();
+    buildAisleGrid(); // Re-render aisle grid to show updated progress
 }
 
 // ===== PHASE MANAGEMENT =====

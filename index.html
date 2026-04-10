@@ -3,21 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cycle Counter 2.0 - Optimized</title>
+    <title>Cycle Counter 2.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- ADDED: LocalForage for handling large datasets without crashing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
-            --bg: #f5f5f7; --surface: #ffffff; --surface-2: #f0f0f3; --surface-3: #e8e8ec;
-            --border: #dcdce2; --text: #1a1a1f; --text-2: #6b6b78; --text-3: #9898a6;
-            --accent: #3b6cf5; --accent-glow: rgba(59,108,245,0.08);
-            --green: #16a34a; --green-bg: #f0fdf4; --green-border: #bbf7d0;
-            --red: #dc2626; --red-bg: #fef2f2; --red-border: #fecaca;
-            --amber: #d97706; --amber-bg: #fffbeb; --amber-border: #fde68a;
-            --purple: #7c3aed; --purple-bg: #f5f3ff; --purple-border: #ddd6fe;
-            --cyan: #0891b2; --cyan-bg: #ecfeff; --cyan-border: #a5f3fc;
-            --radius: 16px; --radius-sm: 10px; --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --surface-2: #f0f0f3;
+            --surface-3: #e8e8ec;
+            --border: #dcdce2;
+            --text: #1a1a1f;
+            --text-2: #6b6b78;
+            --text-3: #9898a6;
+            --accent: #3b6cf5;
+            --accent-glow: rgba(59,108,245,0.08);
+            --green: #16a34a;
+            --green-bg: #f0fdf4;
+            --green-border: #bbf7d0;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+            --red-border: #fecaca;
+            --amber: #d97706;
+            --amber-bg: #fffbeb;
+            --amber-border: #fde68a;
+            --purple: #7c3aed;
+            --purple-bg: #f5f3ff;
+            --purple-border: #ddd6fe;
+            --cyan: #0891b2;
+            --cyan-bg: #ecfeff;
+            --cyan-border: #a5f3fc;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); overscroll-behavior: none; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
@@ -26,9 +45,11 @@
         button:active { transform: scale(0.96); }
         input { font-family: inherit; }
 
+        /* ===== SCREENS ===== */
         .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
         .screen.active { display: flex; }
 
+        /* ===== HEADER ===== */
         .app-header { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); box-shadow: var(--shadow-sm); }
         .app-header h1 { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
         .header-right { display: flex; align-items: center; gap: 10px; }
@@ -38,16 +59,17 @@
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         .name-btn { background: var(--surface-2); color: var(--text-2); padding: 8px 14px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 700; }
 
+        /* ===== PHASE INDICATOR ===== */
         .phase-bar { display: flex; gap: 2px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-        .phase-step { flex: 1; height: 4px; border-radius: 2px; background: var(--surface-3); transition: background 0.4s; position: relative; }
+        .phase-step { flex: 1; height: 4px; border-radius: 2px; background: var(--surface-3); transition: background 0.4s; }
         .phase-step.done { background: var(--green); }
-        .phase-step.active { background: var(--accent); }
-        .phase-step.active::after { content: ''; position: absolute; inset: 0; border-radius: 2px; box-shadow: 0 0 8px 4px var(--accent-glow); animation: phase-glow-optimized 1.5s ease infinite; pointer-events: none; }
-        @keyframes phase-glow-optimized { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+        .phase-step.active { background: var(--accent); animation: phase-glow 1.5s ease infinite; }
+        @keyframes phase-glow { 0%,100%{ box-shadow: 0 0 0 0 var(--accent-glow); } 50%{ box-shadow: 0 0 8px 4px var(--accent-glow); } }
         .phase-label { display: flex; justify-content: space-between; padding: 0 16px 8px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-3); }
         .phase-label span.active { color: var(--accent); }
         .phase-label span.done { color: var(--green); }
 
+        /* ===== TUTORIAL HINTS ===== */
         .hint { background: var(--accent-glow); border: 1px solid rgba(79,125,249,0.2); border-radius: var(--radius); padding: 14px 18px; margin: 12px 20px 0; display: flex; align-items: flex-start; gap: 12px; animation: hint-in 0.4s cubic-bezier(0.16,1,0.3,1); }
         .hint-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
         .hint-body { flex: 1; }
@@ -56,9 +78,11 @@
         .hint-dismiss { color: var(--text-3); font-size: 10px; font-weight: 700; background: none; padding: 4px 8px; white-space: nowrap; }
         @keyframes hint-in { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
 
+        /* ===== SCROLLABLE CONTENT ===== */
         .scroll-area { flex: 1; overflow-y: auto; padding: 16px 16px 240px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .scroll-area::-webkit-scrollbar { display: none; }
 
+        /* ===== HU CARDS ===== */
         .hu-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 10px; transition: all 0.25s; box-shadow: var(--shadow-sm); }
         .hu-card.confirmed { border-color: var(--green-border); background: var(--green-bg); }
         .hu-card.missing { border-color: var(--red-border); background: var(--red-bg); opacity: 0.65; }
@@ -83,6 +107,7 @@
         .hu-btn.miss-btn { background: var(--surface-3); color: var(--red); border: 1.5px solid var(--red-border); }
         .hu-btn.miss-btn.active { background: var(--red); color: white; }
 
+        /* ===== QTY STEPPER ===== */
         .qty-row { display: flex; align-items: center; gap: 6px; background: var(--surface-2); border-radius: var(--radius-sm); padding: 8px; margin-bottom: 10px; }
         .qty-stepper { width: 60px; height: 60px; border-radius: var(--radius-sm); background: var(--surface-3); color: var(--text); font-size: 26px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .qty-input { flex: 1; background: transparent; border: none; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 36px; font-weight: 700; color: var(--accent); outline: none; min-width: 0; }
@@ -90,6 +115,7 @@
         .sap-qty-badge { font-size: 10px; font-weight: 700; color: var(--text-3); text-align: center; padding: 4px; }
         .sap-qty-badge strong { color: var(--text-2); }
 
+        /* ===== BOTTOM BAR ===== */
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px calc(env(safe-area-inset-bottom, 16px) + 12px); background: rgba(255,255,255,0.95); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border-top: 1px solid var(--border); z-index: 50; box-shadow: 0 -4px 20px rgba(0,0,0,0.06); }
         .primary-btn { width: 100%; padding: 20px 0; border-radius: var(--radius); font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 58px; }
         .primary-btn.blue { background: var(--accent); color: white; }
@@ -99,6 +125,7 @@
         .secondary-btn { flex: 1; padding: 16px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; background: var(--surface-2); color: var(--text-2); border: 1.5px solid var(--border); text-align: center; min-height: 50px; }
         .secondary-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
 
+        /* ===== SETUP SCREEN ===== */
         .setup-hero { text-align: center; padding: 48px 32px; }
         .setup-hero .icon { font-size: 56px; margin-bottom: 16px; }
         .setup-hero h2 { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
@@ -111,6 +138,7 @@
         .aisle-btn.assigned::before { content: '●'; position: absolute; top: 6px; left: 8px; font-size: 8px; color: var(--accent); }
         .section-title { padding: 20px 16px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-3); }
 
+        /* ===== SCHEDULE CARDS ===== */
         .schedule-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); margin: 0 16px 8px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm); }
         .schedule-card .sch-left { display: flex; align-items: center; gap: 12px; }
         .schedule-card .sch-icon { font-size: 22px; }
@@ -119,19 +147,25 @@
         .schedule-card .sch-go { color: var(--accent); font-size: 11px; font-weight: 800; }
         .schedule-card.fresh { border-color: rgba(34,211,238,0.25); }
 
+        /* ===== BIN HEADER ===== */
         .bin-header { padding: 14px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .bin-nav { display: flex; gap: 8px; align-items: center; }
         .bin-nav-btn { width: 52px; height: 52px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text-3); font-size: 18px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .bin-input { flex: 1; background: var(--surface-2); border: 2px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; color: var(--accent); text-transform: uppercase; text-align: center; outline: none; }
+        .bin-input:focus { border-color: var(--accent); }
         .bin-progress { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
         .bin-progress-bar { flex: 1; height: 5px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
         .bin-progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.5s; }
         .bin-progress-text { font-size: 11px; font-weight: 700; color: var(--text-3); font-family: 'IBM Plex Mono', monospace; min-width: 50px; text-align: right; }
 
+        /* ===== EXTRA ITEM INPUT ===== */
         .extra-input-area { background: var(--surface); border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
         .extra-input-area h3 { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--cyan); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
         .extra-field { width: 100%; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-size: 16px; font-weight: 600; color: var(--text); outline: none; margin-bottom: 8px; }
+        .extra-field:focus { border-color: var(--accent); }
+        .extra-field::placeholder { color: var(--text-3); }
 
+        /* ===== CYCLE COUNT VERIFICATION ===== */
         .verify-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 10px; }
         .verify-header { text-align: center; margin-bottom: 16px; }
         .verify-header .v-icon { font-size: 40px; margin-bottom: 8px; }
@@ -145,7 +179,9 @@
         .verify-result.match { background: var(--green-bg); border: 1.5px solid var(--green-border); }
         .verify-result.mismatch { background: var(--red-bg); border: 1.5px solid var(--red-border); }
         .verify-result h4 { font-size: 14px; font-weight: 800; text-transform: uppercase; }
+        .verify-result p { font-size: 11px; font-weight: 500; color: var(--text-2); margin-top: 4px; }
 
+        /* ===== MODALS ===== */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: flex-end; justify-content: center; padding: 0; }
         .modal-sheet { background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; width: 100%; max-height: 85vh; overflow-y: auto; padding: 24px 20px calc(env(safe-area-inset-bottom, 8px) + 24px); animation: sheet-up 0.35s cubic-bezier(0.16,1,0.3,1); }
         @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -153,6 +189,7 @@
         .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
         .modal-sub { font-size: 12px; color: var(--text-2); font-weight: 500; margin-bottom: 20px; }
 
+        /* ===== TOAST ===== */
         .toast { position: fixed; top: env(safe-area-inset-top, 12px); left: 50%; transform: translateX(-50%) translateY(-120%); z-index: 999; padding: 12px 20px; border-radius: var(--radius); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); pointer-events: none; opacity: 0; transition: all 0.4s cubic-bezier(0.16,1,0.3,1); }
         .toast.show { transform: translateX(-50%) translateY(12px); opacity: 1; }
         .toast.green { background: var(--green); color: white; }
@@ -160,15 +197,19 @@
         .toast.blue { background: var(--accent); color: white; }
         .toast.amber { background: var(--amber); color: white; }
 
+        /* ===== REPORT VIEW ===== */
         .report-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .report-stat { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
         .report-stat .val { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 700; }
         .report-stat .label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3); margin-top: 4px; }
 
+        /* ===== EMPTY STATE ===== */
         .empty-state { text-align: center; padding: 48px 32px; }
         .empty-state .es-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
         .empty-state p { color: var(--text-3); font-size: 13px; font-weight: 600; }
 
+        /* ===== MISC ===== */
+        .divider { height: 1px; background: var(--border); margin: 16px 0; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { width: 20px; height: 20px; border: 2.5px solid var(--surface-3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
         .tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; }
@@ -176,8 +217,10 @@
 </head>
 <body>
 
+<!-- Toast -->
 <div id="toast" class="toast green"><span id="toast-text">Saved</span></div>
 
+<!-- ===== SCREEN: SETUP ===== -->
 <div id="screen-setup" class="screen active">
     <div class="app-header">
         <h1>Cycle Counter</h1>
@@ -191,13 +234,15 @@
     </div>
 
     <div class="scroll-area">
+        <!-- Loading state -->
         <div id="setup-loading" class="setup-hero">
             <div class="icon">📡</div>
             <h2>Connecting...</h2>
-            <p>Processing SAP data</p>
+            <p>Pulling SAP data from cloud</p>
             <div class="spinner" style="margin: 24px auto 0;"></div>
         </div>
 
+        <!-- Ready state (hidden until data loads) -->
         <div id="setup-ready" style="display:none;">
             <div id="schedule-section">
                 <div class="section-title">Today's Counts</div>
@@ -207,12 +252,14 @@
             <div class="section-title">Select Aisle</div>
             <div class="aisle-grid" id="aisle-grid"></div>
 
+            <!-- Quick product lookup -->
             <div class="section-title">Product Lookup</div>
             <div style="padding: 0 16px 16px; display: flex; gap: 8px;">
                 <input type="text" id="product-lookup-input" placeholder="Enter Product #" class="extra-field mono" style="margin: 0; flex: 1;">
                 <button onclick="startProductCycle(document.getElementById('product-lookup-input').value.trim())" class="primary-btn blue" style="width: auto; padding: 14px 24px; font-size: 12px; min-height: 50px;">Go</button>
             </div>
 
+            <!-- Stats -->
             <div style="padding: 0 16px 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                 <div class="report-stat"><div id="stat-loaded" class="val" style="font-size:20px">0</div><div class="label">SAP Items</div></div>
                 <div class="report-stat"><div id="stat-bins" class="val" style="font-size:20px">0</div><div class="label">Bins</div></div>
@@ -220,10 +267,12 @@
             </div>
         </div>
 
+        <!-- Offline fallback -->
         <div id="setup-offline" style="display:none;" class="setup-hero">
             <div class="icon">📵</div>
             <h2>No Connection</h2>
-            <p>Cannot reach cloud. Upload a local SAP file or retry.</p>
+            <!-- FIXED: This paragraph will now dynamically show the actual error message -->
+            <p id="offline-error-msg">Cannot reach cloud. Upload a local SAP file or retry.</p>
             <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
                 <button onclick="pullCloudData()" class="primary-btn blue" style="width: auto; padding: 14px 32px;">↻ Retry</button>
                 <input type="file" id="local-file-input" accept=".xlsx,.xls,.csv" class="hidden" style="display:none" onchange="handleLocalFile(event)">
@@ -232,12 +281,14 @@
         </div>
     </div>
 
+    <!-- Nav -->
     <div class="bottom-bar" style="display:flex; gap:8px;">
         <button onclick="switchScreen('setup')" class="secondary-btn active" style="flex:1">Count</button>
         <button onclick="switchScreen('report')" class="secondary-btn" style="flex:1">Report</button>
     </div>
 </div>
 
+<!-- ===== SCREEN: COUNTING (the main workflow) ===== -->
 <div id="screen-count" class="screen">
     <div class="app-header">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -249,6 +300,7 @@
         </div>
     </div>
 
+    <!-- Phase indicator -->
     <div>
         <div class="phase-bar">
             <div id="phase-1" class="phase-step active"></div>
@@ -262,6 +314,7 @@
         </div>
     </div>
 
+    <!-- Bin header -->
     <div class="bin-header">
         <div class="bin-nav">
             <button class="bin-nav-btn" onclick="stepBin(-1)">◀</button>
@@ -271,6 +324,7 @@
             </div>
             <button class="bin-nav-btn" onclick="stepBin(1)">▶</button>
         </div>
+        <!-- Bin map strip: shows all bins in the aisle, scrolls to current -->
         <div id="bin-map-strip" style="display:flex;gap:3px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
         <style>#bin-map-strip::-webkit-scrollbar{display:none;}</style>
         <div class="bin-progress">
@@ -279,6 +333,7 @@
         </div>
     </div>
 
+    <!-- Hint (shown on first use) -->
     <div id="hint-check" class="hint" style="display:none;">
         <span class="hint-icon">💡</span>
         <div class="hint-body">
@@ -296,8 +351,10 @@
         <button class="hint-dismiss" onclick="dismissHint('extras')">Got it</button>
     </div>
 
+    <!-- HU List -->
     <div id="hu-list" class="scroll-area"></div>
 
+    <!-- Bottom bar -->
     <div id="count-bottom" class="bottom-bar">
         <div class="secondary-row">
             <button id="btn-add-extra" onclick="showExtraInput()" class="secondary-btn" style="flex:1">+ Found Extra HU</button>
@@ -309,33 +366,65 @@
     </div>
 </div>
 
+<!-- ===== SCREEN: PRODUCT CYCLE COUNT ===== -->
 <div id="screen-product-cc" class="screen">
     <div class="app-header">
         <div style="display:flex;align-items:center;gap:10px;">
             <button onclick="exitProductCC()" style="background:var(--surface-2);color:var(--text-2);padding:8px 12px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;">← Back</button>
             <h1>Product Count</h1>
         </div>
-        <div class="header-right"><span id="pcc-product" class="mono" style="font-size:12px;font-weight:700;color:var(--accent);"></span></div>
+        <div class="header-right">
+            <span id="pcc-product" class="mono" style="font-size:12px;font-weight:700;color:var(--accent);"></span>
+        </div>
     </div>
+
+    <!-- Progress -->
     <div class="bin-header">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div><div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Counting product across all bins</div><div id="pcc-desc" style="font-size:13px;font-weight:600;color:var(--text-2);margin-top:2px;"></div></div>
+            <div>
+                <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Counting product across all bins</div>
+                <div id="pcc-desc" style="font-size:13px;font-weight:600;color:var(--text-2);margin-top:2px;"></div>
+            </div>
             <div id="pcc-progress-badge" class="tag" style="background:var(--accent-glow);color:var(--accent);">0 / 0</div>
         </div>
-        <div class="bin-progress" style="margin-top:8px;"><div class="bin-progress-bar"><div id="pcc-progress-fill" class="bin-progress-fill" style="width:0%"></div></div></div>
+        <div class="bin-progress" style="margin-top:8px;">
+            <div class="bin-progress-bar"><div id="pcc-progress-fill" class="bin-progress-fill" style="width:0%"></div></div>
+        </div>
     </div>
+
     <div id="pcc-list" class="scroll-area"></div>
-    <div id="pcc-bottom" class="bottom-bar"><button id="btn-pcc-verify" onclick="verifyProductCC()" class="primary-btn blue"><span>Verify Totals</span></button></div>
+
+    <div id="pcc-bottom" class="bottom-bar">
+        <button id="btn-pcc-verify" onclick="verifyProductCC()" class="primary-btn blue">
+            <span>Verify Totals</span>
+        </button>
+    </div>
 </div>
 
+<!-- ===== SCREEN: VERIFICATION RESULT ===== -->
 <div id="screen-verify" class="screen">
-    <div class="app-header"><h1>Verification</h1><div class="header-right"><button onclick="closeVerification()" class="name-btn">Done</button></div></div>
+    <div class="app-header">
+        <h1>Verification</h1>
+        <div class="header-right">
+            <button onclick="closeVerification()" class="name-btn">Done</button>
+        </div>
+    </div>
     <div id="verify-content" class="scroll-area"></div>
-    <div class="bottom-bar"><button onclick="closeVerification()" class="primary-btn green"><span>Complete</span></button></div>
+    <div class="bottom-bar">
+        <button onclick="closeVerification()" class="primary-btn green">
+            <span>Complete</span>
+        </button>
+    </div>
 </div>
 
+<!-- ===== SCREEN: REPORT ===== -->
 <div id="screen-report" class="screen">
-    <div class="app-header"><h1>Session Report</h1><div class="header-right"><button onclick="switchScreen('setup')" class="name-btn">← Back</button></div></div>
+    <div class="app-header">
+        <h1>Session Report</h1>
+        <div class="header-right">
+            <button onclick="switchScreen('setup')" class="name-btn">← Back</button>
+        </div>
+    </div>
     <div id="report-content" class="scroll-area"></div>
     <div class="bottom-bar" style="display:flex;gap:8px;">
         <button onclick="switchScreen('setup')" class="secondary-btn active" style="flex:1">Count</button>
@@ -343,58 +432,1335 @@
     </div>
 </div>
 
+<!-- ===== MODAL: NAME ===== -->
 <div id="modal-name" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-    <div class="modal-sheet"><div class="modal-handle"></div><div class="modal-title">Your Name</div><input type="text" id="name-input" class="extra-field" style="text-align:center;font-size:18px;"><button onclick="saveName()" class="primary-btn blue" style="margin-top:16px;">Save</button></div>
-</div>
-
-<div id="modal-note" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeNoteModal()">
     <div class="modal-sheet">
-        <div class="modal-handle"></div><div class="modal-title">Note & Photo</div><div id="note-context" class="modal-sub"></div>
-        <textarea id="note-text" rows="3" placeholder="Describe issue..." style="width:100%;background:var(--surface-2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:14px;outline:none;resize:none;margin-bottom:16px;"></textarea>
-        <div style="display:flex;gap:10px;"><button onclick="closeNoteModal()" class="secondary-btn" style="flex:1;">Cancel</button><button onclick="saveNote()" class="primary-btn blue" style="flex:2">Save</button></div>
+        <div class="modal-handle"></div>
+        <div class="modal-title">Your Name</div>
+        <div class="modal-sub">So your counts are attributed to you</div>
+        <input type="text" id="name-input" class="extra-field" placeholder="e.g. Albert" style="text-align:center;font-size:18px;">
+        <button onclick="saveName()" class="primary-btn blue" style="margin-top:16px;">Save</button>
     </div>
 </div>
 
+<!-- ===== MODAL: NOTE & PHOTO ===== -->
+<div id="modal-note" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeNoteModal()">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div class="modal-title">Note & Photo</div>
+            <span id="note-upload-status" style="display:none;font-size:9px;font-weight:800;color:var(--green);background:var(--green-bg);padding:4px 10px;border-radius:6px;"></span>
+        </div>
+        <div id="note-context" class="modal-sub"></div>
+
+        <div style="margin-bottom:16px;">
+            <div style="font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Note</div>
+            <textarea id="note-text" rows="3" placeholder="Describe issue..." style="width:100%;background:var(--surface-2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:14px;font-weight:500;color:var(--text);outline:none;resize:none;font-family:inherit;"></textarea>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <div style="font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Photo Evidence</div>
+            <div id="photo-capture-area">
+                <div id="photo-empty" style="display:flex;gap:8px;">
+                    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+                    <label for="camera-input" style="flex:1;background:var(--accent-glow);border:1.5px dashed rgba(59,108,245,0.2);border-radius:var(--radius-sm);padding:20px 0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+                        <span style="font-size:24px;">📷</span>
+                        <span style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;">Camera</span>
+                    </label>
+                    <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhoto(event)">
+                    <label for="gallery-input" style="flex:1;background:var(--surface-2);border:1.5px dashed var(--border);border-radius:var(--radius-sm);padding:20px 0;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+                        <span style="font-size:24px;">🖼️</span>
+                        <span style="font-size:10px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Gallery</span>
+                    </label>
+                </div>
+                <div id="photo-preview-area" style="display:none;">
+                    <div style="position:relative;border-radius:var(--radius-sm);overflow:hidden;border:1.5px solid var(--border);background:var(--surface-2);">
+                        <img id="photo-preview-img" style="width:100%;display:block;max-height:240px;object-fit:contain;">
+                        <canvas id="annot-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;touch-action:none;"></canvas>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+                        <div style="display:flex;gap:6px;">
+                            <button onclick="setAnnotColor('#dc2626')" class="annot-color active" style="width:24px;height:24px;border-radius:50%;background:#dc2626;border:2px solid var(--border);"></button>
+                            <button onclick="setAnnotColor('#3b6cf5')" class="annot-color" style="width:24px;height:24px;border-radius:50%;background:#3b6cf5;border:2px solid var(--border);"></button>
+                            <button onclick="setAnnotColor('#16a34a')" class="annot-color" style="width:24px;height:24px;border-radius:50%;background:#16a34a;border:2px solid var(--border);"></button>
+                        </div>
+                        <div style="display:flex;gap:4px;">
+                            <button onclick="undoAnnot()" style="background:var(--surface-2);color:var(--text-3);padding:6px 10px;border-radius:6px;font-size:10px;font-weight:700;">Undo</button>
+                            <button onclick="removePhoto()" style="background:var(--red-bg);color:var(--red);padding:6px 10px;border-radius:6px;font-size:10px;font-weight:700;">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+            <button onclick="closeNoteModal()" class="secondary-btn" style="flex:1;padding:16px 0;">Cancel</button>
+            <button onclick="saveNote()" class="primary-btn blue" style="flex:2">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== PHOTO VIEWER ===== -->
+<div id="photo-viewer" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:250;display:none;align-items:center;justify-content:center;padding:24px;" onclick="this.style.display='none'">
+    <img id="photo-viewer-img" style="max-width:100%;max-height:100%;border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+</div>
+
+<!-- ===== MODAL: CYCLE COUNT TRIGGER ===== -->
 <div id="modal-cc-trigger" class="modal-overlay" style="display:none;">
     <div class="modal-sheet">
-        <div class="modal-handle"></div><div class="modal-title" style="text-align:center">⚠️ Unknown Item Found</div>
-        <p style="font-size:13px;color:var(--text-2);text-align:center;margin-bottom:20px;">Count all bins with this product?</p>
-        <div style="display:flex;gap:10px;"><button onclick="declineCCTrigger()" class="secondary-btn" style="flex:1;">Not Now</button><button onclick="acceptCCTrigger()" class="primary-btn blue" style="flex:2">Count Now</button></div>
+        <div class="modal-handle"></div>
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:48px;margin-bottom:8px;">⚠️</div>
+            <div class="modal-title">Unknown Item Found</div>
+            <div id="cct-reason" class="modal-sub">This HU isn't in SAP for any bin</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:var(--radius);padding:16px;margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Product</span>
+                <span id="cct-product" class="mono" style="font-weight:700;color:var(--accent);"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Qty Found</span>
+                <span id="cct-qty" class="mono" style="font-weight:700;"></span>
+            </div>
+        </div>
+        <p style="font-size:13px;color:var(--text-2);text-align:center;margin-bottom:20px;line-height:1.5;">
+            Count <strong style="color:var(--accent);">all bins</strong> with this product to verify if the system total matches the floor total?
+        </p>
+        <div style="display:flex;gap:10px;">
+            <button onclick="declineCCTrigger()" class="secondary-btn" style="flex:1;padding:16px 0;">Not Now</button>
+            <button onclick="acceptCCTrigger()" class="primary-btn blue" style="flex:2">Count Now</button>
+        </div>
     </div>
 </div>
 
 <script>
+// ===== CONFIG =====
 const API_URL = "https://script.google.com/macros/s/AKfycbw_huXZUnTzHzTbcdPLG8xga_bwgfsB6SS0wL_e6dyIiDSrKpaHYK4qikcoX-OhHNxg/exec";
 const AISLE_ROWS = "ABCDEFGHJKLMNP".split("");
-const FRESH_SKUS = ["3305704","3307506","3307509"];
+const FRESH_SKUS = ["3305704","3307506","3307509","3307515","3307518","3307525","3307710","3308356","3309009","3309016","3309017","3309019","3309138","3309139"];
 
-// State loaded via LocalForage
+// ===== STATE =====
 let sapMaster = [];
+let binIndex = {}, huIndex = new Map();
+let auditorName = '';
 let offlineQueue = [];
+let cloudReport = [], cloudAssignments = [];
 let hints = {};
 let completedBins = new Set();
-let auditorName = '';
 
-let binIndex = {}, huIndex = new Map();
-let cloudReport = [], cloudAssignments = [];
+// Current bin state
 let currentBin = '';
-let currentItems = []; 
-let currentPhase = 1;
-let pccProduct = '', pccItems = [], pccTriggerQty = 0, pccTriggerBin = '';
+let currentItems = []; // [{hu,product,desc,batch,sapBin,sapQty, countQty,status:'pending'|'confirmed'|'missing'|'adjusted', isExtra,note,photoUrl}]
+let currentPhase = 1; // 1=check HUs, 2=scan extras, 3=finalize
 
-// ===== INIT (IndexedDB) =====
+// Product cycle count state
+let pccProduct = '';
+let pccItems = []; // [{hu,sapBin,sapQty,countQty,checked}]
+let pccTriggerQty = 0; // qty of the extra that triggered this
+let pccTriggerBin = '';
+
+// ===== UTILS =====
+function haptic() { if (navigator.vibrate) navigator.vibrate(25); }
+function toast(msg, color = 'green') {
+    const t = document.getElementById('toast');
+    t.className = `toast ${color}`;
+    document.getElementById('toast-text').textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ===== OFFLINE QUEUE =====
+async function enqueue(payload) {
+    offlineQueue.push(payload);
+    await localforage.setItem('offQ2', offlineQueue); // FIXED: No more JSON.stringify quota limits
+    updateSyncDot();
+    drainQueue();
+}
+async function drainQueue() {
+    if (!offlineQueue.length) return;
+    let ok = 0;
+    for (const p of [...offlineQueue]) {
+        try {
+            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) });
+            if (r.ok) { ok++; offlineQueue.shift(); } else break;
+        } catch { break; }
+    }
+    await localforage.setItem('offQ2', offlineQueue); // FIXED
+    updateSyncDot();
+    if (ok > 0) toast(`${ok} synced`, 'green');
+}
+function updateSyncDot() {
+    const cls = offlineQueue.length > 0 ? 'sync-dot queued' : 'sync-dot';
+    document.getElementById('sync-dot').className = cls;
+    const d2 = document.getElementById('sync-dot-2');
+    if (d2) d2.className = cls;
+}
+
+// ===== HINTS =====
+function showHint(id) {
+    if (hints[id]) return;
+    const el = document.getElementById('hint-' + id);
+    if (el) el.style.display = 'flex';
+}
+async function dismissHint(id) {
+    hints[id] = true;
+    await localforage.setItem('hints2', hints); // FIXED
+    const el = document.getElementById('hint-' + id);
+    if (el) el.style.display = 'none';
+}
+
+// ===== NAME =====
+function showNameModal() {
+    document.getElementById('name-input').value = auditorName;
+    document.getElementById('modal-name').style.display = 'flex';
+    setTimeout(() => document.getElementById('name-input').focus(), 100);
+}
+async function saveName() {
+    auditorName = document.getElementById('name-input').value.trim() || 'Counter';
+    await localforage.setItem('auditorName2', auditorName); // FIXED
+    document.getElementById('name-display').textContent = auditorName;
+    document.getElementById('modal-name').style.display = 'none';
+}
+
+// ===== REFRESH =====
+async function refreshAll() {
+    const btn = document.getElementById('refresh-btn');
+    const icon = document.getElementById('refresh-icon');
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.5';
+    icon.style.transform = 'rotate(360deg)';
+    
+    try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 15000);
+        // FIXED: Adding redirect follow to ensure GAS responds correctly
+        const sapRes = await fetch(API_URL + '?type=sapdata', { redirect: 'follow', signal: controller.signal });
+        
+        const text = await sapRes.text();
+        let sapData;
+        try {
+            sapData = JSON.parse(text);
+        } catch(e) {
+            throw new Error("API returned HTML. Check Google Apps Script deployment permissions.");
+        }
+
+        if (sapData.sapData && sapData.sapData.length > 0) {
+            sapMaster = sapData.sapData;
+            await localforage.setItem('sap2', sapMaster); // FIXED: LocalForage
+            buildIndexes();
+        }
+
+        const reportRes = await fetch(API_URL);
+        const reportData = await reportRes.json();
+        cloudReport = reportData.report || [];
+        cloudAssignments = reportData.assignments || [];
+
+        completedBins = new Set(cloudReport.map(r => r.scanBin).filter(Boolean));
+        await localforage.setItem('doneBins2', [...completedBins]); // FIXED: LocalForage
+
+        buildAisleGrid();
+        buildSchedule();
+        updateDoneCount();
+        toast(`Refreshed · ${sapMaster.length} items`, 'blue');
+    } catch (err) {
+        toast('Refresh failed: ' + err.message, 'red');
+    }
+
+    btn.style.pointerEvents = '';
+    btn.style.opacity = '';
+    setTimeout(() => { icon.style.transform = ''; }, 300);
+}
+
+// ===== SCREENS =====
+function switchScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    document.querySelectorAll('.bottom-bar').forEach(b => b.style.display = 'none');
+    const activeScreen = document.getElementById('screen-' + id);
+    const activeBar = activeScreen.querySelector('.bottom-bar');
+    if (activeBar) {
+        activeBar.style.display = '';
+        if (id === 'setup' || id === 'report') activeBar.style.display = 'flex';
+    }
+    if (id === 'report') renderReport();
+}
+
+// ===== DATA LOADING =====
+function buildIndexes() {
+    binIndex = {};
+    huIndex = new Map();
+    sapMaster.forEach(i => {
+        const bin = (i.sapBin || '').toUpperCase();
+        if (!binIndex[bin]) binIndex[bin] = [];
+        binIndex[bin].push(i);
+        if (i.hu) huIndex.set(i.hu, i);
+    });
+    document.getElementById('stat-loaded').textContent = sapMaster.length;
+    document.getElementById('stat-bins').textContent = Object.keys(binIndex).length;
+}
+
+// FIXED: Handles empty data properly and catches GAS redirect HTML payload errors
+async function pullCloudData() {
+    document.getElementById('setup-loading').style.display = 'block';
+    document.getElementById('setup-ready').style.display = 'none';
+    document.getElementById('setup-offline').style.display = 'none';
+
+    try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 15000);
+        const res = await fetch(API_URL + '?type=sapdata', { 
+            method: 'GET',
+            redirect: 'follow', // Crucial for GAS
+            signal: controller.signal 
+        });
+        
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch(e) {
+            console.error("Failed to parse JSON. Response was:", text.substring(0, 100));
+            throw new Error("API returned HTML. Check Google Apps Script permissions (Must be 'Anyone').");
+        }
+
+        if (data.sapData && data.sapData.length > 0) {
+            sapMaster = data.sapData;
+            await localforage.setItem('sap2', sapMaster); // FIXED
+            buildIndexes();
+            showSetupReady();
+            toast(`${sapMaster.length} items loaded`, 'blue');
+        } else {
+            // Tell the user WHY it failed (Data is missing, not internet)
+            showSetupOffline('Connected, but no SAP data found. Please upload a file from Control Center.');
+        }
+    } catch (err) {
+        if (sapMaster.length > 0) {
+            buildIndexes();
+            showSetupReady();
+            toast('Using cached offline data', 'amber');
+        } else {
+            showSetupOffline(err.message || 'Cannot reach the cloud. Check connection or API URL.');
+        }
+    }
+    syncCloud();
+}
+
+function showSetupReady() {
+    document.getElementById('setup-loading').style.display = 'none';
+    document.getElementById('setup-ready').style.display = 'block';
+    document.getElementById('setup-offline').style.display = 'none';
+    buildAisleGrid();
+    buildSchedule();
+}
+
+// FIXED: Actually displays the error message provided
+function showSetupOffline(msg) {
+    document.getElementById('setup-loading').style.display = 'none';
+    document.getElementById('setup-ready').style.display = 'none';
+    document.getElementById('setup-offline').style.display = 'block';
+    if (msg) {
+        const msgEl = document.getElementById('offline-error-msg');
+        if (msgEl) msgEl.textContent = msg;
+    }
+}
+
+function handleLocalFile(event) {
+    const reader = new FileReader();
+    reader.onload = async (e) => { // FIXED: async for localforage
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        sapMaster = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).map(row => ({
+            sapBin: String(row['Storage Bin'] || '').trim().toUpperCase(),
+            hu: String(row['Handling Unit'] || '').trim(),
+            product: String(row['Product'] || ''),
+            batch: String(row['Batch'] || '').trim(),
+            desc: row['Product Short Description'] || '',
+            sapQty: parseFloat(row['Quantity']) || 0
+        }));
+        await localforage.setItem('sap2', sapMaster); // FIXED
+        buildIndexes();
+        showSetupReady();
+        toast(`${sapMaster.length} items loaded`, 'blue');
+    };
+    reader.readAsArrayBuffer(event.target.files[0]);
+}
+
+// ===== CLOUD SYNC =====
+async function syncCloud() {
+    try {
+        const r = await fetch(API_URL);
+        const d = await r.json();
+        cloudReport = d.report || [];
+        cloudAssignments = d.assignments || [];
+        updateDoneCount();
+    } catch {}
+    drainQueue();
+}
+function updateDoneCount() {
+    const done = new Set(cloudReport.map(i => i.scanBin));
+    completedBins.forEach(b => done.add(b));
+    document.getElementById('stat-done').textContent = done.size;
+}
+
+// ===== AISLE GRID =====
+function buildAisleGrid() {
+    const grid = document.getElementById('aisle-grid');
+    grid.innerHTML = '';
+    const assigned = new Set();
+    cloudAssignments.forEach(a => {
+        if (a.type === 'aisle') {
+            const letter = (a.value || '').replace('W', '').split(':')[0];
+            if (letter) assigned.add(letter);
+        }
+    });
+
+    AISLE_ROWS.forEach(row => {
+        const binCount = Object.keys(binIndex).filter(b => b.includes(`W${row}`)).length;
+        // Count unique bins done from both local and cloud
+        const doneBinsForRow = new Set();
+        completedBins.forEach(b => { if (b.includes(`W${row}`)) doneBinsForRow.add(b); });
+        cloudReport.forEach(r => { if (r.scanBin && r.scanBin.includes(`W${row}`)) doneBinsForRow.add(r.scanBin); });
+        const doneCount = doneBinsForRow.size;
+        const isAssigned = assigned.has(row);
+        const allDone = binCount > 0 && doneCount >= binCount;
+        const btn = document.createElement('button');
+        btn.className = `aisle-btn ${isAssigned ? 'assigned' : ''}`;
+        if (allDone) btn.style.cssText += 'border-color:var(--green-border);background:var(--green-bg);';
+        const pct = binCount > 0 ? Math.min(100, Math.round((doneCount / binCount) * 100)) : 0;
+        btn.innerHTML = `
+            <div class="aisle-fill" style="height:${pct}%"></div>
+            <span style="position:relative;z-index:1;${allDone ? 'color:var(--green)' : ''}">${row}</span>
+            <span class="aisle-count" style="${doneCount > 0 ? 'color:var(--green);font-weight:800;' : ''}">${doneCount}/${binCount}</span>
+            ${allDone ? '<span style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--green);font-weight:800;z-index:1;">✓ DONE</span>' : ''}`;
+        btn.onclick = () => selectBin(`W${row}00A`);
+        grid.appendChild(btn);
+    });
+}
+
+// ===== SCHEDULE =====
+function buildSchedule() {
+    const container = document.getElementById('schedule-list');
+    container.innerHTML = '';
+
+    const day = new Date().getDay();
+    const isFreshDay = day === 1 || day === 3 || day === 5;
+
+    if (isFreshDay) {
+        const card = document.createElement('div');
+        card.className = 'schedule-card fresh';
+        card.innerHTML = `<div class="sch-left"><span class="sch-icon">🧊</span><div><div class="sch-label">FRESH Count</div><div class="sch-sub">${FRESH_SKUS.length} SKUs · Mon/Wed/Fri</div></div></div><span class="sch-go">Start →</span>`;
+        card.onclick = () => startFreshCycle();
+        container.appendChild(card);
+    }
+
+    cloudAssignments.forEach(a => {
+        const card = document.createElement('div');
+        card.className = 'schedule-card';
+        const icon = a.type === 'product' ? '📦' : '📍';
+        card.innerHTML = `<div class="sch-left"><span class="sch-icon">${icon}</span><div><div class="sch-label">${a.description || a.value}</div><div class="sch-sub">From ${a.assignedBy || 'Control Center'}</div></div></div><span class="sch-go">Start →</span>`;
+        card.onclick = () => {
+            if (a.type === 'product') startProductCycle(a.value);
+            else { const letter = (a.value || '').replace('W', '').split(':')[0]; selectBin(`W${letter}00A`); }
+        };
+        container.appendChild(card);
+    });
+
+    if (!isFreshDay && cloudAssignments.length === 0) {
+        container.innerHTML = '<div class="schedule-card"><div class="sch-left"><span class="sch-icon">📋</span><div><div class="sch-label" style="color:var(--text-3)">No assignments</div><div class="sch-sub">Select an aisle below to begin</div></div></div></div>';
+    }
+}
+
+// ===== BIN SELECTION =====
+function selectBin(binStr) {
+    if (!binStr) return;
+    currentBin = binStr.toUpperCase();
+    const expected = binIndex[currentBin] || [];
+
+    currentItems = expected.map(i => ({
+        hu: i.hu, product: i.product, desc: i.desc, batch: i.batch,
+        sapBin: i.sapBin, sapQty: i.sapQty,
+        countQty: 0, status: 'pending', isExtra: false, note: '', photoUrl: '', photoBase64: null
+    }));
+
+    currentPhase = 1;
+    document.getElementById('bin-input').value = currentBin;
+    document.getElementById('count-title').textContent = currentBin;
+
+    // Show counted badge if this bin was already finalized
+    const alreadyCounted = isBinCounted(currentBin);
+    document.getElementById('bin-counted-badge').style.display = alreadyCounted ? 'inline' : 'none';
+    // Style the bin input to signal counted state
+    const binInput = document.getElementById('bin-input');
+    binInput.style.borderColor = alreadyCounted ? 'var(--green-border)' : '';
+    binInput.style.background = alreadyCounted ? 'var(--green-bg)' : '';
+
+    switchScreen('count');
+    showHint('check');
+    renderHUList();
+    renderBinMapStrip();
+    updatePhase();
+}
+
+function isBinCounted(bin) {
+    return completedBins.has(bin) || cloudReport.some(r => r.scanBin === bin);
+}
+
+function renderBinMapStrip() {
+    const strip = document.getElementById('bin-map-strip');
+    if (!strip || !currentBin) return;
+    strip.innerHTML = '';
+    const aisleChar = currentBin.charAt(1);
+    const allBins = getAllBinsForAisle(aisleChar);
+    
+    // Group by bin number (00, 01, 02...) — show one dot per number, not per slot
+    const binNums = {};
+    allBins.forEach(b => {
+        const num = b.substring(2, 4); // e.g. "00", "01"
+        if (!binNums[num]) binNums[num] = [];
+        binNums[num].push(b);
+    });
+
+    let activeEl = null;
+    Object.entries(binNums).forEach(([num, slots]) => {
+        const anyDone = slots.some(s => isBinCounted(s));
+        const hasSAP = slots.some(s => binIndex[s] && binIndex[s].length > 0);
+        const isCurrent = slots.some(s => s === currentBin);
+
+        const dot = document.createElement('button');
+        dot.style.cssText = `
+            min-width:${isCurrent ? '40px' : '28px'};height:28px;border-radius:7px;
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+            font-size:${isCurrent ? '11px' : '9px'};font-weight:800;
+            transition:all 0.15s;border:1.5px solid transparent;
+        `;
+
+        if (isCurrent) {
+            dot.style.background = 'var(--accent)';
+            dot.style.color = 'white';
+            dot.style.borderColor = 'var(--accent)';
+            dot.textContent = num;
+            activeEl = dot;
+        } else if (anyDone) {
+            dot.style.background = 'var(--green-bg)';
+            dot.style.color = 'var(--green)';
+            dot.style.borderColor = 'var(--green-border)';
+            dot.textContent = '✓';
+        } else if (hasSAP) {
+            dot.style.background = 'var(--surface-2)';
+            dot.style.color = 'var(--text-3)';
+            dot.style.borderColor = 'var(--border)';
+            dot.textContent = num;
+        } else {
+            dot.style.background = 'var(--surface-2)';
+            dot.style.color = 'var(--border)';
+            dot.textContent = '·';
+        }
+
+        dot.onclick = () => selectBin(slots[0]);
+        strip.appendChild(dot);
+    });
+
+    // Scroll to center the active bin
+    if (activeEl) {
+        setTimeout(() => {
+            activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }, 50);
+    }
+}
+
+// Build the complete physical bin list for an aisle letter
+function getAllBinsForAisle(aisleChar) {
+    const bins = [];
+    const maxBin = (aisleChar === 'B' || aisleChar === 'C') ? 25 : 38;
+    for (let num = 0; num <= maxBin; num++) {
+        const numStr = String(num).padStart(2, '0');
+        ['A', 'B'].forEach(slot => {
+            bins.push(`W${aisleChar}${numStr}${slot}`);
+        });
+        // Slot C only on some aisles — include it universally, empty bins just show as empty
+        bins.push(`W${aisleChar}${numStr}C`);
+    }
+    return bins;
+}
+
+function stepBin(dir) {
+    if (!currentBin) return;
+    const aisleChar = currentBin.charAt(1);
+    const allBins = getAllBinsForAisle(aisleChar);
+    const idx = allBins.indexOf(currentBin);
+    if (idx === -1) {
+        // Current bin not in generated list — find nearest
+        const nearest = dir > 0 ? allBins.find(b => b > currentBin) : [...allBins].reverse().find(b => b < currentBin);
+        if (nearest) selectBin(nearest);
+        else toast(dir > 0 ? 'End of aisle' : 'Start of aisle', 'blue');
+    } else {
+        const next = allBins[idx + dir];
+        if (next) selectBin(next);
+        else toast(dir > 0 ? 'End of aisle' : 'Start of aisle', 'blue');
+    }
+}
+
+function leaveAisle() {
+    const pending = currentItems.filter(i => i.status === 'pending');
+    if (pending.length > 0 && !confirm(`${pending.length} items unchecked. Leave?`)) return;
+    currentBin = '';
+    currentItems = [];
+    switchScreen('setup');
+    buildAisleGrid();
+}
+
+// ===== PHASE MANAGEMENT =====
+function updatePhase() {
+    const allChecked = currentItems.filter(i => !i.isExtra).every(i => i.status !== 'pending');
+    const hasExtras = currentItems.some(i => i.isExtra);
+
+    // Auto-advance phase
+    if (allChecked && currentPhase === 1) {
+        currentPhase = 2;
+        showHint('extras');
+    }
+
+    // Phase indicators
+    [1, 2, 3].forEach(p => {
+        const el = document.getElementById(`phase-${p}`);
+        const label = document.getElementById(`phase-${p}-label`);
+        el.className = 'phase-step';
+        label.className = '';
+        if (p < currentPhase) { el.classList.add('done'); label.classList.add('done'); }
+        else if (p === currentPhase) { el.classList.add('active'); label.classList.add('active'); }
+    });
+
+    // Finalize button state
+    const btn = document.getElementById('btn-finalize');
+    const txt = document.getElementById('finalize-text');
+    const pending = currentItems.filter(i => i.status === 'pending');
+    if (pending.length > 0) {
+        btn.className = 'primary-btn disabled';
+        txt.textContent = `${pending.length} item${pending.length > 1 ? 's' : ''} unchecked`;
+    } else {
+        btn.className = 'primary-btn green';
+        txt.textContent = 'Finalize & Next Bin →';
+    }
+
+    // Confirm All button
+    const unchecked = currentItems.filter(i => !i.isExtra && i.status === 'pending');
+    document.getElementById('btn-confirm-all').style.display = unchecked.length > 1 ? 'block' : 'none';
+
+    // Progress bar
+    const total = currentItems.length;
+    const done = currentItems.filter(i => i.status !== 'pending').length;
+    document.getElementById('bin-progress-fill').style.width = total > 0 ? Math.round((done / total) * 100) + '%' : '0%';
+    document.getElementById('bin-progress-text').textContent = `${done} / ${total}`;
+}
+
+// ===== RENDER HU LIST =====
+function renderHUList() {
+    const container = document.getElementById('hu-list');
+    container.innerHTML = '';
+
+    // Show already-counted banner if this bin was previously finalized
+    const alreadyCounted = isBinCounted(currentBin);
+    if (alreadyCounted) {
+        container.innerHTML += `
+            <div style="background:var(--green-bg);border:1.5px solid var(--green-border);border-radius:var(--radius);padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">✅</span>
+                <div>
+                    <div style="font-size:12px;font-weight:800;color:var(--green);">Already Counted</div>
+                    <div style="font-size:10px;color:var(--text-2);font-weight:600;">This bin was finalized earlier. Counting again will replace the previous results.</div>
+                </div>
+            </div>`;
+    }
+
+    // Empty bin message
+    if (currentItems.length === 0 && currentBin) {
+        container.innerHTML += `
+            <div class="empty-state">
+                <div class="es-icon">📭</div>
+                <p>SAP shows this bin as empty</p>
+                <p style="color:var(--accent);margin-top:8px;font-weight:700;">Scan any items found here using "+ Found Extra HU" below</p>
+            </div>`;
+        updatePhase();
+        return;
+    }
+
+    // Expected items first, then extras
+    const expected = currentItems.filter(i => !i.isExtra);
+    const extras = currentItems.filter(i => i.isExtra);
+
+    if (expected.length > 0 && currentPhase <= 1) {
+        container.innerHTML += `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:8px;">Expected in bin (${expected.length})</div>`;
+    }
+
+    expected.forEach((item, idx) => {
+        const realIdx = currentItems.indexOf(item);
+        container.appendChild(createHUCard(item, realIdx));
+    });
+
+    if (extras.length > 0) {
+        const div = document.createElement('div');
+        div.style.cssText = 'font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--cyan);margin:16px 0 8px;display:flex;align-items:center;gap:8px;';
+        div.innerHTML = '🔍 Extra Items Found';
+        container.appendChild(div);
+        extras.forEach((item, idx) => {
+            const realIdx = currentItems.indexOf(item);
+            container.appendChild(createHUCard(item, realIdx));
+        });
+    }
+
+    updatePhase();
+}
+
+function createHUCard(item, idx) {
+    const card = document.createElement('div');
+    let statusClass = '';
+    let statusBadge = '';
+
+    if (item.status === 'confirmed') { statusClass = item.isExtra ? 'extra' : 'confirmed'; statusBadge = '<span class="hu-status ok">✓ Confirmed</span>'; }
+    else if (item.status === 'missing') { statusClass = 'missing'; statusBadge = '<span class="hu-status miss">✗ Missing</span>'; }
+    else if (item.status === 'adjusted') { statusClass = 'adjusted'; statusBadge = '<span class="hu-status adj">± Adjusted</span>'; }
+    else if (item.isExtra) { statusClass = 'extra'; statusBadge = '<span class="hu-status ext">+ Extra</span>'; }
+
+    card.className = `hu-card ${statusClass}`;
+
+    const qtyMatch = item.countQty === item.sapQty && item.status === 'confirmed';
+    const showActions = item.status === 'pending' || item.status === 'adjusted';
+    const hasEvidence = item.note || item.photoBase64 || item.photoUrl;
+
+    card.innerHTML = `
+        <div class="hu-header">
+            <span class="hu-id">HU ${item.hu || '—'}</span>
+            ${statusBadge}
+        </div>
+        <div class="hu-meta">
+            <div class="hu-meta-item"><div class="hu-meta-label">Product</div><div class="hu-meta-value">${item.product}</div></div>
+            <div class="hu-meta-item"><div class="hu-meta-label">SAP Qty</div><div class="hu-meta-value mono">${item.sapQty}</div></div>
+            ${item.isExtra && item.sapBin ? `<div class="hu-meta-item"><div class="hu-meta-label">SAP Says</div><div class="hu-meta-value mono" style="color:var(--purple)">${item.sapBin}</div></div>` : ''}
+        </div>
+        <div style="font-size:11px;color:var(--text-2);font-weight:500;margin-bottom:12px;">${item.desc || ''}</div>
+        ${showActions ? `
+            <div class="qty-row">
+                <button class="qty-stepper" onclick="adjustQty(${idx},-1)">−</button>
+                <input type="number" inputmode="numeric" class="qty-input" value="${item.countQty || ''}" placeholder="${item.sapQty}" onfocus="this.select()" oninput="setQty(${idx},this.value)">
+                <button class="qty-stepper" onclick="adjustQty(${idx},1)">+</button>
+            </div>
+            <div class="sap-qty-badge">SAP expects <strong>${item.sapQty}</strong></div>
+            <div class="hu-actions">
+                <button class="hu-btn confirm" onclick="confirmHU(${idx})">Confirm ${item.sapQty}</button>
+                <button class="hu-btn miss-btn ${item.status === 'missing' ? 'active' : ''}" onclick="markMissing(${idx})">Missing</button>
+            </div>
+            <button onclick="openNoteModal(${idx})" style="width:100%;margin-top:8px;padding:10px 14px;background:${hasEvidence ? 'var(--amber-bg)' : 'var(--surface-2)'};border:1.5px solid ${hasEvidence ? 'var(--amber-border)' : 'var(--border)'};border-radius:var(--radius-sm);font-size:11px;font-weight:700;color:${hasEvidence ? 'var(--amber)' : 'var(--text-3)'};text-align:left;display:flex;align-items:center;gap:6px;">
+                ${item.photoBase64 || item.photoUrl ? '📷 ' : ''}📝 ${item.note ? item.note.substring(0, 30) : 'Add Note / Photo'}
+            </button>
+        ` : `
+            ${item.status !== 'pending' ? `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-2);border-radius:var(--radius-sm);">
+                    <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Count</span>
+                    <span class="mono" style="font-size:18px;font-weight:700;color:${qtyMatch ? 'var(--green)' : 'var(--amber)'};">${item.countQty}</span>
+                </div>
+                <button onclick="openNoteModal(${idx})" style="width:100%;margin-top:8px;padding:10px 14px;background:${hasEvidence ? 'var(--amber-bg)' : 'var(--surface-2)'};border:1.5px solid ${hasEvidence ? 'var(--amber-border)' : 'var(--border)'};border-radius:var(--radius-sm);font-size:11px;font-weight:700;color:${hasEvidence ? 'var(--amber)' : 'var(--text-3)'};text-align:left;display:flex;align-items:center;gap:6px;">
+                    ${item.photoBase64 || item.photoUrl ? '📷 ' : ''}📝 ${item.note ? item.note.substring(0, 30) : 'Add Note / Photo'}
+                </button>
+                ${item.photoBase64 || item.photoUrl ? `<button onclick="viewPhoto(${idx})" style="width:100%;margin-top:4px;padding:8px;background:var(--accent-glow);border:1px solid rgba(59,108,245,0.15);border-radius:var(--radius-sm);font-size:10px;font-weight:700;color:var(--accent);text-align:center;">🔍 View Full Photo</button>` : ''}
+                <button onclick="resetHU(${idx})" style="width:100%;margin-top:4px;padding:10px;background:none;color:var(--text-3);font-size:10px;font-weight:700;">↺ Undo</button>
+            ` : ''}
+        `}`;
+
+    return card;
+}
+
+// ===== HU ACTIONS =====
+function confirmHU(idx) {
+    haptic();
+    const item = currentItems[idx];
+    item.countQty = item.countQty || item.sapQty;
+    if (item.countQty !== item.sapQty) {
+        item.status = 'adjusted';
+    } else {
+        item.status = 'confirmed';
+    }
+    renderHUList();
+}
+
+function markMissing(idx) {
+    haptic();
+    const item = currentItems[idx];
+    item.status = item.status === 'missing' ? 'pending' : 'missing';
+    if (item.status === 'missing') item.countQty = 0;
+    renderHUList();
+}
+
+function adjustQty(idx, delta) {
+    haptic();
+    const item = currentItems[idx];
+    item.countQty = Math.max(0, (item.countQty || 0) + delta);
+    if (item.countQty !== item.sapQty && item.countQty > 0) {
+        item.status = 'adjusted';
+    }
+    renderHUList();
+}
+
+function setQty(idx, val) {
+    const item = currentItems[idx];
+    item.countQty = parseFloat(val) || 0;
+    if (item.countQty > 0) {
+        item.status = item.countQty === item.sapQty ? 'confirmed' : 'adjusted';
+    }
+    updatePhase();
+}
+
+function resetHU(idx) {
+    haptic();
+    currentItems[idx].status = 'pending';
+    currentItems[idx].countQty = 0;
+    renderHUList();
+}
+
+function confirmAllHUs() {
+    haptic();
+    let c = 0;
+    currentItems.forEach(item => {
+        if (!item.isExtra && item.status === 'pending') {
+            item.countQty = item.sapQty;
+            item.status = 'confirmed';
+            c++;
+        }
+    });
+    toast(`${c} confirmed`, 'green');
+    renderHUList();
+}
+
+// ===== EXTRA HU INPUT =====
+function showExtraInput() {
+    haptic();
+    const container = document.getElementById('hu-list');
+
+    // Check if input already shown
+    if (document.getElementById('extra-input-form')) {
+        document.getElementById('extra-hu-field').focus();
+        return;
+    }
+
+    const form = document.createElement('div');
+    form.id = 'extra-input-form';
+    form.className = 'extra-input-area';
+    form.innerHTML = `
+        <h3>🔍 Found Extra Item</h3>
+        <input type="text" id="extra-hu-field" class="extra-field mono" placeholder="Scan or type HU (0 if no label)" autofocus>
+        <div style="display:flex;gap:8px;">
+            <input type="text" id="extra-prod-field" class="extra-field" placeholder="Product #" style="flex:1;margin:0;">
+            <input type="number" id="extra-qty-field" class="extra-field mono" placeholder="Qty" style="width:80px;margin:0;text-align:center;">
+        </div>
+        <div id="extra-autofill" style="display:none;margin-top:4px;">
+            <span class="tag" style="background:var(--green-bg);color:var(--green);font-size:9px;">Auto-filled from SAP</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+            <button onclick="cancelExtra()" class="secondary-btn" style="flex:1;padding:14px 0;">Cancel</button>
+            <button onclick="submitExtra()" class="primary-btn blue" style="flex:2">Add Item</button>
+        </div>`;
+    container.insertBefore(form, container.firstChild);
+
+    // Auto-lookup when HU is entered
+    document.getElementById('extra-hu-field').addEventListener('input', (e) => {
+        const hu = e.target.value.trim();
+        if (hu.length >= 8) {
+            const match = huIndex.get(hu);
+            if (match) {
+                document.getElementById('extra-prod-field').value = match.product;
+                document.getElementById('extra-qty-field').value = match.sapQty;
+                document.getElementById('extra-autofill').style.display = 'block';
+            }
+        } else {
+            document.getElementById('extra-autofill').style.display = 'none';
+        }
+    });
+
+    setTimeout(() => document.getElementById('extra-hu-field').focus(), 100);
+}
+
+function cancelExtra() {
+    const form = document.getElementById('extra-input-form');
+    if (form) form.remove();
+}
+
+function submitExtra() {
+    const hu = document.getElementById('extra-hu-field').value.trim();
+    const prod = document.getElementById('extra-prod-field').value.trim();
+    const qty = parseFloat(document.getElementById('extra-qty-field').value) || 0;
+
+    if (!prod || qty <= 0) { toast('Need product # and qty', 'red'); return; }
+    haptic();
+
+    const huMatch = hu ? huIndex.get(hu) : null;
+    const isNoHU = !hu || hu === '0';
+
+    // Add the extra item
+    currentItems.push({
+        hu: hu || '0', product: prod,
+        desc: huMatch ? huMatch.desc : 'FOUND (Extra)',
+        batch: huMatch ? huMatch.batch : '',
+        sapBin: huMatch ? huMatch.sapBin : '',
+        sapQty: huMatch ? huMatch.sapQty : 0,
+        countQty: qty,
+        status: 'confirmed',
+        isExtra: true, note: '', photoUrl: '', photoBase64: null
+    });
+
+    cancelExtra();
+    toast('Extra added', 'green');
+    renderHUList();
+
+    // Trigger cycle count prompt for unknown items
+    if ((isNoHU || !huMatch) && prod) {
+        setTimeout(() => showCCTrigger(prod, qty, isNoHU ? 'No HU label on material' : `Unknown HU: ${hu}`), 400);
+    }
+}
+
+// ===== CYCLE COUNT TRIGGER =====
+function showCCTrigger(product, qty, reason) {
+    document.getElementById('cct-product').textContent = product;
+    document.getElementById('cct-qty').textContent = qty;
+    document.getElementById('cct-reason').textContent = reason;
+    document.getElementById('modal-cc-trigger').dataset.product = product;
+    document.getElementById('modal-cc-trigger').dataset.qty = qty;
+    document.getElementById('modal-cc-trigger').dataset.reason = reason;
+    document.getElementById('modal-cc-trigger').style.display = 'flex';
+}
+
+function declineCCTrigger() {
+    document.getElementById('modal-cc-trigger').style.display = 'none';
+    const prod = document.getElementById('modal-cc-trigger').dataset.product;
+    enqueue({ action: 'triggerCycleCount', id: 'CC' + Date.now(), product: prod, reason: document.getElementById('modal-cc-trigger').dataset.reason, triggeredBy: auditorName || 'Counter', status: 'declined', bin: currentBin });
+    toast('Skipped', 'amber');
+}
+
+function acceptCCTrigger() {
+    document.getElementById('modal-cc-trigger').style.display = 'none';
+    const prod = document.getElementById('modal-cc-trigger').dataset.product;
+    const qty = parseFloat(document.getElementById('modal-cc-trigger').dataset.qty) || 0;
+    enqueue({ action: 'triggerCycleCount', id: 'CC' + Date.now(), product: prod, reason: document.getElementById('modal-cc-trigger').dataset.reason, triggeredBy: auditorName || 'Counter', status: 'accepted', bin: currentBin });
+    pccTriggerQty = qty;
+    pccTriggerBin = currentBin;
+    startProductCycle(prod);
+}
+
+// ===== PRODUCT CYCLE COUNT =====
+function startProductCycle(sku) {
+    if (!sku) { toast('Enter a product #', 'red'); return; }
+    sku = sku.trim();
+    const matches = sapMaster.filter(i => i.product === sku);
+    if (!matches.length) { toast('Product not in SAP data', 'red'); return; }
+
+    pccProduct = sku;
+    pccItems = matches.map(i => ({
+        hu: i.hu, sapBin: i.sapBin, sapQty: i.sapQty,
+        batch: i.batch, desc: i.desc,
+        countQty: null, checked: false
+    }));
+
+    document.getElementById('pcc-product').textContent = sku;
+    document.getElementById('pcc-desc').textContent = matches[0].desc || '';
+    switchScreen('product-cc');
+    renderPCCList();
+}
+
+function renderPCCList() {
+    const container = document.getElementById('pcc-list');
+    container.innerHTML = '';
+
+    const checked = pccItems.filter(i => i.checked).length;
+    const total = pccItems.length;
+    document.getElementById('pcc-progress-badge').textContent = `${checked} / ${total}`;
+    document.getElementById('pcc-progress-fill').style.width = total > 0 ? Math.round((checked / total) * 100) + '%' : '0%';
+
+    // Group by bin
+    const groups = {};
+    pccItems.forEach((item, idx) => {
+        if (!groups[item.sapBin]) groups[item.sapBin] = [];
+        groups[item.sapBin].push({ item, idx });
+    });
+
+    Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])).forEach(([bin, items]) => {
+        const allDone = items.every(o => o.item.checked);
+        const div = document.createElement('div');
+        div.className = `hu-card ${allDone ? 'confirmed' : ''}`;
+        div.innerHTML = `
+            <div class="hu-header">
+                <span class="hu-id">${bin}</span>
+                ${allDone ? '<span class="hu-status ok">✓ Done</span>' : `<span class="tag" style="background:var(--surface-3);color:var(--text-3);">${items.length} HU${items.length > 1 ? 's' : ''}</span>`}
+            </div>`;
+
+        items.forEach(({ item, idx }) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid var(--border);';
+            row.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span class="mono" style="font-size:11px;font-weight:600;color:var(--text-2);">HU ···${(item.hu || '').slice(-4)}</span>
+                    <span style="font-size:10px;color:var(--text-3);font-weight:600;">SAP: ${item.sapQty}</span>
+                </div>
+                <div class="qty-row">
+                    <button class="qty-stepper" onclick="pccAdjust(${idx},-1)">−</button>
+                    <input type="number" inputmode="numeric" class="qty-input" value="${item.countQty !== null ? item.countQty : ''}" placeholder="${item.sapQty}" onfocus="this.select()" oninput="pccSetQty(${idx},this.value)">
+                    <button class="qty-stepper" onclick="pccAdjust(${idx},1)">+</button>
+                </div>
+                <button onclick="pccConfirm(${idx})" class="hu-btn confirm" style="margin-top:6px;">Confirm ${item.sapQty}</button>`;
+            div.appendChild(row);
+        });
+
+        container.appendChild(div);
+    });
+
+    // Update verify button
+    const allChecked = pccItems.every(i => i.checked);
+    document.getElementById('btn-pcc-verify').className = `primary-btn ${allChecked ? 'blue' : 'disabled'}`;
+}
+
+function pccConfirm(idx) {
+    haptic();
+    pccItems[idx].countQty = pccItems[idx].countQty !== null ? pccItems[idx].countQty : pccItems[idx].sapQty;
+    pccItems[idx].checked = true;
+    renderPCCList();
+}
+
+function pccAdjust(idx, delta) {
+    haptic();
+    pccItems[idx].countQty = Math.max(0, (pccItems[idx].countQty || 0) + delta);
+    if (pccItems[idx].countQty > 0) pccItems[idx].checked = true;
+    renderPCCList();
+}
+
+function pccSetQty(idx, val) {
+    pccItems[idx].countQty = val === '' ? null : (parseFloat(val) || 0);
+    if (pccItems[idx].countQty !== null) pccItems[idx].checked = true;
+    renderPCCList();
+}
+
+function exitProductCC() {
+    if (pccItems.some(i => i.checked) && !confirm('Leave product count? Progress will be lost.')) return;
+    pccProduct = '';
+    pccItems = [];
+    switchScreen('setup');
+}
+
+// ===== VERIFICATION =====
+function verifyProductCC() {
+    if (!pccItems.every(i => i.checked)) { toast('Count all bins first', 'amber'); return; }
+    haptic();
+
+    const sapTotal = pccItems.reduce((s, i) => s + i.sapQty, 0);
+    const floorTotal = pccItems.reduce((s, i) => s + (i.countQty || 0), 0) + pccTriggerQty;
+    const variance = floorTotal - sapTotal;
+    const isMatch = variance === 0;
+
+    // Log all items
+    const itemsToLog = pccItems.map(i => ({
+        hu: i.hu, product: pccProduct, desc: i.desc, batch: i.batch,
+        sapBin: i.sapBin, scannedBin: i.sapBin,
+        sapQty: i.sapQty, countQty: i.countQty || 0,
+        type: (i.countQty || 0) === i.sapQty ? 'ok' : 'adj',
+        note: '', photoUrl: ''
+    }));
+
+    enqueue({ action: 'logAudit', user: auditorName || 'Counter', bin: `PRODUCT: ${pccProduct}`, items: itemsToLog });
+
+    // Show verification screen
+    const content = document.getElementById('verify-content');
+    content.innerHTML = `
+        <div class="verify-card">
+            <div class="verify-header">
+                <div class="v-icon">${isMatch ? '✅' : '⚠️'}</div>
+                <h3>${pccProduct}</h3>
+                <p>${pccItems[0]?.desc || ''}</p>
+            </div>
+            <div class="verify-row"><span class="vr-label">SAP System Total</span><span class="vr-value">${sapTotal}</span></div>
+            <div class="verify-row"><span class="vr-label">Floor Count Total</span><span class="vr-value" style="color:var(--accent)">${floorTotal}</span></div>
+            ${pccTriggerQty > 0 ? `<div class="verify-row"><span class="vr-label">Includes Extra Found</span><span class="vr-value" style="color:var(--cyan)">+${pccTriggerQty}</span></div>` : ''}
+            <div class="verify-row"><span class="vr-label">Variance</span><span class="vr-value" style="color:${isMatch ? 'var(--green)' : 'var(--red)'}">${variance >= 0 ? '+' : ''}${variance}</span></div>
+            <div class="verify-result ${isMatch ? 'match' : 'mismatch'}">
+                <h4>${isMatch ? '✓ Totals Match' : '✗ Variance Detected'}</h4>
+                <p>${isMatch
+                    ? 'The floor total (including the extra found) matches SAP. This was likely a movement or re-label.'
+                    : `Floor has ${Math.abs(variance)} ${variance > 0 ? 'more than' : 'fewer than'} SAP expects. This needs investigation.`
+                }</p>
+            </div>
+        </div>
+        <div class="section-title">Bin Breakdown</div>
+        ${pccItems.map(i => `
+            <div class="report-card">
+                <div>
+                    <div class="mono" style="font-size:12px;font-weight:700;color:var(--accent);">${i.sapBin}</div>
+                    <div style="font-size:10px;color:var(--text-3);font-weight:600;">HU ···${(i.hu || '').slice(-4)}</div>
+                </div>
+                <div style="text-align:right;">
+                    <span class="mono" style="font-size:14px;font-weight:700;">${i.countQty || 0}</span>
+                    <span style="font-size:10px;color:var(--text-3);"> / ${i.sapQty}</span>
+                    ${(i.countQty || 0) !== i.sapQty ? `<div style="font-size:9px;font-weight:700;color:var(--amber);">Δ ${(i.countQty || 0) - i.sapQty}</div>` : ''}
+                </div>
+            </div>
+        `).join('')}`;
+
+    switchScreen('verify');
+    toast(isMatch ? 'Totals match!' : 'Variance detected', isMatch ? 'green' : 'amber');
+}
+
+function closeVerification() {
+    pccProduct = '';
+    pccItems = [];
+    pccTriggerQty = 0;
+    pccTriggerBin = '';
+    switchScreen('setup');
+    buildAisleGrid();
+    syncCloud();
+}
+
+// ===== NOTE & PHOTO =====
+let noteTargetIdx = null;
+let currentPhotoBase64 = null;
+let annotCanvas, annotCtx, annotColor = '#dc2626', annotSize = 5, isDrawing = false, annotHistory = [];
+
+function openNoteModal(idx) {
+    haptic();
+    noteTargetIdx = idx;
+    const item = currentItems[idx];
+    document.getElementById('note-context').textContent = `${item.product} — ${item.hu || 'No HU'} — Bin: ${currentBin}`;
+    document.getElementById('note-text').value = item.note || '';
+    currentPhotoBase64 = item.photoBase64 || null;
+    document.getElementById('note-upload-status').style.display = 'none';
+    if (currentPhotoBase64) {
+        showPhotoPreview();
+    } else {
+        document.getElementById('photo-empty').style.display = 'flex';
+        document.getElementById('photo-preview-area').style.display = 'none';
+    }
+    document.getElementById('modal-note').style.display = 'flex';
+}
+
+function closeNoteModal() {
+    document.getElementById('modal-note').style.display = 'none';
+    noteTargetIdx = null;
+    currentPhotoBase64 = null;
+}
+
+function handlePhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            // Resize for mobile
+            let w = img.width, h = img.height;
+            const maxW = 1200, maxH = 900;
+            if (w > maxW) { h = h * (maxW / w); w = maxW; }
+            if (h > maxH) { w = w * (maxH / h); h = maxH; }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            currentPhotoBase64 = c.toDataURL('image/jpeg', 0.75);
+            showPhotoPreview();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+
+function showPhotoPreview() {
+    document.getElementById('photo-empty').style.display = 'none';
+    document.getElementById('photo-preview-area').style.display = 'block';
+    const img = document.getElementById('photo-preview-img');
+    img.src = currentPhotoBase64;
+    img.onload = () => initAnnotCanvas();
+}
+
+function initAnnotCanvas() {
+    const img = document.getElementById('photo-preview-img');
+    annotCanvas = document.getElementById('annot-canvas');
+    annotCanvas.width = img.clientWidth;
+    annotCanvas.height = img.clientHeight;
+    annotCtx = annotCanvas.getContext('2d');
+    annotCtx.lineCap = 'round';
+    annotCtx.lineJoin = 'round';
+    annotHistory = [];
+    // Touch events
+    annotCanvas.addEventListener('touchstart', aStart, { passive: false });
+    annotCanvas.addEventListener('touchmove', aMove, { passive: false });
+    annotCanvas.addEventListener('touchend', aEnd, { passive: false });
+    annotCanvas.addEventListener('mousedown', aStart);
+    annotCanvas.addEventListener('mousemove', aMove);
+    annotCanvas.addEventListener('mouseup', aEnd);
+    annotCanvas.addEventListener('mouseleave', aEnd);
+}
+
+function aPos(e) {
+    const r = annotCanvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: (t.clientX - r.left) * (annotCanvas.width / r.width), y: (t.clientY - r.top) * (annotCanvas.height / r.height) };
+}
+function aStart(e) { e.preventDefault(); isDrawing = true; annotCtx.strokeStyle = annotColor; annotCtx.lineWidth = annotSize; annotCtx.beginPath(); const p = aPos(e); annotCtx.moveTo(p.x, p.y); annotHistory.push(annotCtx.getImageData(0, 0, annotCanvas.width, annotCanvas.height)); }
+function aMove(e) { if (!isDrawing) return; e.preventDefault(); const p = aPos(e); annotCtx.lineTo(p.x, p.y); annotCtx.stroke(); }
+function aEnd() { if (isDrawing) { isDrawing = false; annotCtx.closePath(); } }
+
+function setAnnotColor(c) {
+    annotColor = c;
+    document.querySelectorAll('.annot-color').forEach(b => {
+        b.classList.toggle('active', b.style.background === c || b.style.backgroundColor === c);
+        b.style.borderColor = b.classList.contains('active') ? 'var(--accent)' : 'var(--border)';
+    });
+}
+
+function undoAnnot() { if (annotHistory.length > 0) annotCtx.putImageData(annotHistory.pop(), 0, 0); }
+
+function removePhoto() {
+    currentPhotoBase64 = null;
+    document.getElementById('photo-preview-area').style.display = 'none';
+    document.getElementById('photo-empty').style.display = 'flex';
+    annotHistory = [];
+}
+
+function getCompositeImage() {
+    if (!currentPhotoBase64) return null;
+    const img = document.getElementById('photo-preview-img');
+    const c = document.createElement('canvas');
+    c.width = annotCanvas.width; c.height = annotCanvas.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    ctx.drawImage(annotCanvas, 0, 0);
+    return c.toDataURL('image/jpeg', 0.8);
+}
+
+function saveNote() {
+    if (noteTargetIdx === null) return;
+    const item = currentItems[noteTargetIdx];
+    item.note = document.getElementById('note-text').value.trim();
+    const composite = getCompositeImage();
+    if (composite) {
+        item.photoBase64 = composite;
+        item.photoUrl = null;
+        uploadPhoto(noteTargetIdx, composite);
+    } else if (!currentPhotoBase64) {
+        item.photoBase64 = null;
+        item.photoUrl = null;
+    }
+    closeNoteModal();
+    renderHUList();
+}
+
+async function uploadPhoto(idx, base64) {
+    const item = currentItems[idx];
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'uploadPhoto',
+                hu: item.hu,
+                bin: currentBin,
+                product: item.product,
+                imageData: base64
+            })
+        });
+        const result = await res.json();
+        if (result.success && result.url) {
+            item.photoUrl = result.url;
+            toast('Photo uploaded', 'green');
+            renderHUList();
+        } else {
+            throw new Error(result.error || 'No URL returned');
+        }
+    } catch {
+        toast('Photo queued', 'amber');
+        enqueue({
+            action: 'uploadPhoto',
+            hu: item.hu,
+            bin: currentBin,
+            product: item.product,
+            imageData: base64
+        });
+    }
+}
+
+function viewPhoto(idx) {
+    const item = currentItems[idx];
+    const src = item.photoUrl || item.photoBase64;
+    if (!src) return;
+    const viewer = document.getElementById('photo-viewer');
+    document.getElementById('photo-viewer-img').src = src;
+    viewer.style.display = 'flex';
+}
+
+// ===== FINALIZE BIN =====
+function finalizeBin() {
+    const pending = currentItems.filter(i => i.status === 'pending');
+    if (pending.length > 0) { toast(`${pending.length} unchecked`, 'red'); return; }
+    if (!currentBin) return;
+    haptic();
+
+    const itemsToLog = currentItems.length === 0
+        ? [{ hu: 'EMPTY_BIN', product: 'NONE', desc: 'Confirmed Empty', batch: '', sapBin: '', scannedBin: currentBin, sapQty: 0, countQty: 0, type: 'ok', note: '', photoUrl: '' }]
+        : currentItems.map(i => {
+            let type = 'ok';
+            if (i.status === 'missing') type = 'miss';
+            else if (i.isExtra) type = 'inactive';
+            else if (i.countQty !== i.sapQty) type = 'adj';
+            return {
+                hu: i.hu, product: i.product, desc: i.desc, batch: i.batch,
+                sapBin: i.sapBin, scannedBin: currentBin,
+                sapQty: i.sapQty, countQty: i.countQty,
+                type, note: i.note || '', photoUrl: i.photoUrl || ''
+            };
+        });
+
+    completedBins.add(currentBin);
+    // FIXED: Save back to localforage
+    localforage.setItem('doneBins2', [...completedBins]);
+
+    itemsToLog.forEach(item => cloudReport.push({ scanBin: item.scannedBin, ...item }));
+    enqueue({ action: 'logAudit', user: auditorName || 'Counter', bin: currentBin, items: itemsToLog });
+
+    toast('Bin finalized', 'blue');
+    stepBin(1); // Auto-advance to next bin
+}
+
+// ===== FRESH CYCLE =====
+function startFreshCycle() {
+    const available = FRESH_SKUS.filter(sku => sapMaster.some(i => i.product === sku));
+    if (!available.length) { toast('No FRESH items in SAP data', 'red'); return; }
+    startProductCycle(available[0]);
+}
+
+// ===== REPORT VIEW =====
+function renderReport() {
+    const content = document.getElementById('report-content');
+    const items = cloudReport.filter(i => i.hu !== 'EMPTY_BIN');
+    const disc = items.filter(i => i.type !== 'ok');
+
+    content.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+            <div class="report-stat"><div class="val" style="color:var(--accent)">${new Set(cloudReport.map(i=>i.scanBin)).size}</div><div class="label">Bins Done</div></div>
+            <div class="report-stat"><div class="val" style="color:var(--red)">${disc.length}</div><div class="label">Discrepancies</div></div>
+            <div class="report-stat"><div class="val" style="color:var(--green)">${items.length > 0 ? Math.round(((items.length - disc.length) / items.length) * 100) + '%' : '—'}</div><div class="label">Accuracy</div></div>
+        </div>
+        <div class="section-title">Recent Discrepancies</div>
+        ${disc.length === 0 ? '<div class="empty-state"><div class="es-icon">✨</div><p>No discrepancies yet</p></div>' : ''}
+        ${disc.slice(-30).reverse().map(i => {
+            const tc = { miss: 'var(--red)', adj: 'var(--amber)', inactive: 'var(--purple)', move: 'var(--accent)' }[i.type] || 'var(--text-3)';
+            return `<div class="report-card"><div><div style="font-size:13px;font-weight:700;">${i.prod || i.product}</div><div class="mono" style="font-size:10px;color:var(--text-3);">${i.scanBin} · HU ${i.hu}</div></div><div style="text-align:right;"><span class="mono" style="font-size:14px;font-weight:700;">${i.scanQty || i.countQty}/${i.sapQty}</span><div style="font-size:9px;font-weight:800;text-transform:uppercase;color:${tc};">${i.type}</div></div></div>`;
+        }).join('')}`;
+}
+
+// ===== INIT =====
 window.onload = async () => {
+    // Hide all bottom bars except setup's nav
     document.querySelectorAll('.bottom-bar').forEach(b => b.style.display = 'none');
     const setupBar = document.querySelector('#screen-setup .bottom-bar');
     if (setupBar) setupBar.style.display = 'flex';
 
-    // Async data loading to prevent freezing
+    // FIXED: Ensure initialization awaits localforage to avoid undefined states
     sapMaster = (await localforage.getItem('sap2')) || [];
     offlineQueue = (await localforage.getItem('offQ2')) || [];
+    const done = (await localforage.getItem('doneBins2')) || [];
+    completedBins = new Set(done);
     hints = (await localforage.getItem('hints2')) || {};
     auditorName = (await localforage.getItem('auditorName2')) || '';
-    const cachedBins = (await localforage.getItem('doneBins2')) || [];
-    completedBins = new Set(cachedBins);
 
     if (auditorName) document.getElementById('name-display').textContent = auditorName;
     else setTimeout(showNameModal, 500);
@@ -410,246 +1776,6 @@ window.onload = async () => {
     setInterval(syncCloud, 10000);
     setInterval(drainQueue, 15000);
 };
-
-// Utilities
-function haptic() { if (navigator.vibrate) navigator.vibrate(25); }
-function toast(msg, color = 'green') {
-    const t = document.getElementById('toast');
-    t.className = `toast ${color}`;
-    document.getElementById('toast-text').textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-// Storage Wrappers
-async function saveSAPMaster(data) {
-    sapMaster = data;
-    await localforage.setItem('sap2', sapMaster);
-    buildIndexes();
-}
-
-// Queue
-async function enqueue(payload) {
-    offlineQueue.push(payload);
-    await localforage.setItem('offQ2', offlineQueue);
-    updateSyncDot();
-    drainQueue();
-}
-
-async function drainQueue() {
-    if (!offlineQueue.length) return;
-    let ok = 0;
-    for (const p of [...offlineQueue]) {
-        try {
-            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) });
-            if (r.ok) { ok++; offlineQueue.shift(); } else break;
-        } catch { break; }
-    }
-    await localforage.setItem('offQ2', offlineQueue);
-    updateSyncDot();
-    if (ok > 0) toast(`${ok} synced`, 'green');
-}
-
-function updateSyncDot() {
-    const cls = offlineQueue.length > 0 ? 'sync-dot queued' : 'sync-dot';
-    document.getElementById('sync-dot').className = cls;
-    const d2 = document.getElementById('sync-dot-2');
-    if (d2) d2.className = cls;
-}
-
-// Hints & Modals
-async function dismissHint(id) {
-    hints[id] = true;
-    await localforage.setItem('hints2', hints);
-    const el = document.getElementById('hint-' + id);
-    if (el) el.style.display = 'none';
-}
-
-function showHint(id) {
-    if (hints[id]) return;
-    const el = document.getElementById('hint-' + id);
-    if (el) el.style.display = 'flex';
-}
-
-function showNameModal() { document.getElementById('name-input').value = auditorName; document.getElementById('modal-name').style.display = 'flex'; }
-async function saveName() {
-    auditorName = document.getElementById('name-input').value.trim() || 'Counter';
-    await localforage.setItem('auditorName2', auditorName);
-    document.getElementById('name-display').textContent = auditorName;
-    document.getElementById('modal-name').style.display = 'none';
-}
-
-// Web Worker processing for Local Excel parsing
-function handleLocalFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    document.getElementById('setup-loading').style.display = 'block';
-    document.getElementById('setup-ready').style.display = 'none';
-    document.getElementById('setup-offline').style.display = 'none';
-
-    // Inline Web Worker to offload SheetJS
-    const workerCode = `
-        importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-        self.onmessage = function(e) {
-            const wb = XLSX.read(new Uint8Array(e.data), { type: 'array' });
-            const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            const mapped = json.map(row => ({
-                sapBin: String(row['Storage Bin'] || '').trim().toUpperCase(),
-                hu: String(row['Handling Unit'] || '').trim(),
-                product: String(row['Product'] || ''),
-                batch: String(row['Batch'] || '').trim(),
-                desc: row['Product Short Description'] || '',
-                sapQty: parseFloat(row['Quantity']) || 0
-            }));
-            postMessage(mapped);
-        };
-    `;
-
-    const blob = new Blob([workerCode], { type: 'application/javascript' });
-    const worker = new Worker(URL.createObjectURL(blob));
-
-    worker.onmessage = async function(e) {
-        await saveSAPMaster(e.data);
-        showSetupReady();
-        toast(`${sapMaster.length} items loaded via Worker`, 'blue');
-        worker.terminate();
-    };
-
-    const reader = new FileReader();
-    reader.onload = (e) => worker.postMessage(e.target.result);
-    reader.readAsArrayBuffer(file);
-}
-
-// Setup Data Functions
-function buildIndexes() {
-    binIndex = {}; huIndex = new Map();
-    sapMaster.forEach(i => {
-        const bin = (i.sapBin || '').toUpperCase();
-        if (!binIndex[bin]) binIndex[bin] = [];
-        binIndex[bin].push(i);
-        if (i.hu) huIndex.set(i.hu, i);
-    });
-    document.getElementById('stat-loaded').textContent = sapMaster.length;
-    document.getElementById('stat-bins').textContent = Object.keys(binIndex).length;
-}
-
-async function pullCloudData() { /* Original Cloud logic, but awaits saveSAPMaster */ }
-function showSetupReady() { document.getElementById('setup-loading').style.display = 'none'; document.getElementById('setup-ready').style.display = 'block'; buildAisleGrid(); buildSchedule(); }
-function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('screen-' + id).classList.add('active'); document.querySelectorAll('.bottom-bar').forEach(b => b.style.display = 'none'); const ab = document.getElementById('screen-' + id).querySelector('.bottom-bar'); if (ab) ab.style.display = 'flex'; }
-function buildAisleGrid() { /* Original Aisle Grid Logic */ }
-function buildSchedule() { /* Original Schedule Logic */ }
-async function syncCloud() { try { const r = await fetch(API_URL); const d = await r.json(); cloudReport = d.report || []; cloudAssignments = d.assignments || []; updateDoneCount(); } catch {} drainQueue(); }
-function updateDoneCount() { const done = new Set(cloudReport.map(i => i.scanBin)); completedBins.forEach(b => done.add(b)); document.getElementById('stat-done').textContent = done.size; }
-
-// ===== CORE COUNTING LOGIC & TARGETED UPDATES =====
-function selectBin(binStr) {
-    if (!binStr) return;
-    currentBin = binStr.toUpperCase();
-    currentItems = (binIndex[currentBin] || []).map(i => ({ ...i, countQty: 0, status: 'pending', isExtra: false, note: '', photoUrl: '', photoBase64: null }));
-    currentPhase = 1;
-    document.getElementById('bin-input').value = currentBin;
-    document.getElementById('count-title').textContent = currentBin;
-    
-    switchScreen('count');
-    showHint('check');
-    renderHUListFull(); // Initial full render
-    updatePhase();
-}
-
-function updatePhase() {
-    const allChecked = currentItems.filter(i => !i.isExtra).every(i => i.status !== 'pending');
-    if (allChecked && currentPhase === 1) { currentPhase = 2; showHint('extras'); }
-
-    [1, 2, 3].forEach(p => {
-        const el = document.getElementById(`phase-${p}`);
-        el.className = 'phase-step';
-        if (p < currentPhase) el.classList.add('done');
-        else if (p === currentPhase) el.classList.add('active');
-    });
-
-    const pending = currentItems.filter(i => i.status === 'pending');
-    const btn = document.getElementById('btn-finalize');
-    if (pending.length > 0) { btn.className = 'primary-btn disabled'; document.getElementById('finalize-text').textContent = `${pending.length} unchecked`; } 
-    else { btn.className = 'primary-btn green'; document.getElementById('finalize-text').textContent = 'Finalize Bin →'; }
-
-    document.getElementById('btn-confirm-all').style.display = currentItems.filter(i => !i.isExtra && i.status === 'pending').length > 1 ? 'block' : 'none';
-    
-    const total = currentItems.length, done = currentItems.filter(i => i.status !== 'pending').length;
-    document.getElementById('bin-progress-fill').style.width = total > 0 ? Math.round((done / total) * 100) + '%' : '0%';
-    document.getElementById('bin-progress-text').textContent = `${done} / ${total}`;
-}
-
-// TARGETED UPDATES: Creates a single card HTML element with ID
-function createHUCard(item, idx) {
-    const card = document.createElement('div');
-    card.id = `hu-card-${idx}`; // CRITICAL FOR TARGETED UPDATE
-    
-    let statusClass = '', badge = '';
-    if (item.status === 'confirmed') { statusClass = item.isExtra ? 'extra' : 'confirmed'; badge = '<span class="hu-status ok">✓ Confirmed</span>'; }
-    else if (item.status === 'missing') { statusClass = 'missing'; badge = '<span class="hu-status miss">✗ Missing</span>'; }
-    else if (item.status === 'adjusted') { statusClass = 'adjusted'; badge = '<span class="hu-status adj">± Adjusted</span>'; }
-    else if (item.isExtra) { statusClass = 'extra'; badge = '<span class="hu-status ext">+ Extra</span>'; }
-
-    card.className = `hu-card ${statusClass}`;
-    const showActions = item.status === 'pending' || item.status === 'adjusted';
-
-    card.innerHTML = `
-        <div class="hu-header"><span class="hu-id">HU ${item.hu || '—'}</span>${badge}</div>
-        <div class="hu-meta">
-            <div class="hu-meta-item"><div class="hu-meta-label">Product</div><div class="hu-meta-value">${item.product}</div></div>
-            <div class="hu-meta-item"><div class="hu-meta-label">SAP Qty</div><div class="hu-meta-value mono">${item.sapQty}</div></div>
-        </div>
-        <div style="font-size:11px;color:var(--text-2);font-weight:500;margin-bottom:12px;">${item.desc || ''}</div>
-        ${showActions ? `
-            <div class="qty-row">
-                <button class="qty-stepper" onclick="adjustQty(${idx},-1)">−</button>
-                <input type="number" class="qty-input" value="${item.countQty || ''}" placeholder="${item.sapQty}" oninput="setQty(${idx},this.value)">
-                <button class="qty-stepper" onclick="adjustQty(${idx},1)">+</button>
-            </div>
-            <div class="hu-actions">
-                <button class="hu-btn confirm" onclick="confirmHU(${idx})">Confirm ${item.sapQty}</button>
-                <button class="hu-btn miss-btn" onclick="markMissing(${idx})">Missing</button>
-            </div>
-        ` : `<div style="display:flex;justify-content:space-between;background:var(--surface-2);padding:8px;border-radius:var(--radius-sm);"><span style="font-size:10px;font-weight:700;">Count</span><span class="mono">${item.countQty}</span></div><button onclick="resetHU(${idx})" style="width:100%;margin-top:4px;padding:10px;background:none;color:var(--text-3);font-size:10px;font-weight:700;">↺ Undo</button>`}
-    `;
-    return card;
-}
-
-// Initial full render only happens when changing bins
-function renderHUListFull() {
-    const container = document.getElementById('hu-list');
-    container.innerHTML = '';
-    currentItems.forEach((item, idx) => container.appendChild(createHUCard(item, idx)));
-}
-
-// TARGETED UPDATE FUNCTION: Replaces innerHTML thrashing
-function updateHUCard(idx) {
-    const item = currentItems[idx];
-    const oldCard = document.getElementById(`hu-card-${idx}`);
-    if (!oldCard) return;
-    oldCard.replaceWith(createHUCard(item, idx));
-    updatePhase();
-}
-
-function confirmHU(idx) { haptic(); const item = currentItems[idx]; item.countQty = item.countQty || item.sapQty; item.status = item.countQty !== item.sapQty ? 'adjusted' : 'confirmed'; updateHUCard(idx); }
-function markMissing(idx) { haptic(); const item = currentItems[idx]; item.status = 'missing'; item.countQty = 0; updateHUCard(idx); }
-function adjustQty(idx, delta) { haptic(); const item = currentItems[idx]; item.countQty = Math.max(0, (item.countQty || 0) + delta); if (item.countQty !== item.sapQty && item.countQty > 0) item.status = 'adjusted'; updateHUCard(idx); }
-function setQty(idx, val) { const item = currentItems[idx]; item.countQty = parseFloat(val) || 0; if (item.countQty > 0) item.status = item.countQty === item.sapQty ? 'confirmed' : 'adjusted'; updateHUCard(idx); }
-function resetHU(idx) { haptic(); currentItems[idx].status = 'pending'; currentItems[idx].countQty = 0; updateHUCard(idx); }
-
-async function finalizeBin() {
-    if (currentItems.filter(i => i.status === 'pending').length > 0) return toast('Check all HUs', 'red');
-    completedBins.add(currentBin);
-    await localforage.setItem('doneBins2', [...completedBins]); // Non-blocking save
-    
-    // Log items queue logic...
-    toast('Bin finalized', 'blue');
-    switchScreen('setup'); // Back to main
-}
-
-// Rest of extra HU functions, Product CC flow remain mostly unchanged, just utilize localforage/update functions.
-function leaveAisle() { currentBin = ''; currentItems = []; switchScreen('setup'); }
 </script>
 </body>
 </html>

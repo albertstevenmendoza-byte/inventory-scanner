@@ -689,9 +689,18 @@ function buildIndexes() {
     binIndex = {};
     huIndex = new Map();
     sapMaster.forEach(i => {
-        const bin = (i.sapBin || '').toUpperCase();
-        if (!binIndex[bin]) binIndex[bin] = [];
-        binIndex[bin].push(i);
+        // Normalize all string fields
+        i.sapBin = String(i.sapBin || '').trim().toUpperCase();
+        i.hu = String(i.hu || '').trim();
+        i.product = String(i.product || '').trim();
+        i.batch = String(i.batch || '').trim();
+        i.desc = String(i.desc || '');
+        i.sapQty = Number(i.sapQty) || 0;
+        
+        if (i.sapBin) {
+            if (!binIndex[i.sapBin]) binIndex[i.sapBin] = [];
+            binIndex[i.sapBin].push(i);
+        }
         if (i.hu) huIndex.set(i.hu, i);
     });
     document.getElementById('stat-loaded').textContent = sapMaster.length;
@@ -1326,16 +1335,36 @@ function acceptCCTrigger() {
 function startProductCycle(sku) {
     if (!sku) { toast('Enter a product #', 'red'); return; }
     sku = String(sku).trim();
-    const matches = sapMaster.filter(i => String(i.product).trim() === sku);
-    if (!matches.length) { toast(`Product ${sku} not in SAP data`, 'red'); return; }
+    
+    // Try exact match first, then loose match (strip leading zeros, partial match)
+    let matches = sapMaster.filter(i => String(i.product).trim() === sku);
+    
+    // If no exact match, try without leading zeros
+    if (!matches.length) {
+        const skuNum = sku.replace(/^0+/, '');
+        matches = sapMaster.filter(i => String(i.product).trim().replace(/^0+/, '') === skuNum);
+    }
+    
+    // If still no match, try partial/contains match (user might enter partial SKU)
+    if (!matches.length) {
+        matches = sapMaster.filter(i => String(i.product).trim().includes(sku) || sku.includes(String(i.product).trim()));
+    }
+
+    if (!matches.length) { 
+        // Show what products ARE available so user can troubleshoot
+        const sampleProducts = [...new Set(sapMaster.slice(0, 10).map(i => i.product))].join(', ');
+        toast(`"${sku}" not found. Sample products: ${sampleProducts}`, 'red'); 
+        return; 
+    }
 
     pccProduct = sku;
     pccItems = matches.map(i => ({
         hu: i.hu, sapBin: i.sapBin, sapQty: i.sapQty,
         batch: i.batch, desc: i.desc,
+        product: i.product,
         countQty: null, checked: false,
-        missing: false,        // NEW: track missing HUs
-        actualBin: null        // NEW: track bin movements
+        missing: false,
+        actualBin: null
     }));
 
     document.getElementById('pcc-product').textContent = sku;
@@ -1787,25 +1816,32 @@ function finalizeBin() {
 
 // ===== FRESH CYCLE — counts ALL fresh SKUs in one session =====
 function startFreshCycle() {
-    // Gather ALL HUs across ALL fresh SKUs into a single product cycle count view
     const allFreshItems = [];
     FRESH_SKUS.forEach(sku => {
-        const matches = sapMaster.filter(i => String(i.product).trim() === sku);
+        // Same robust matching as startProductCycle
+        let matches = sapMaster.filter(i => String(i.product).trim() === sku);
+        if (!matches.length) {
+            const skuNum = sku.replace(/^0+/, '');
+            matches = sapMaster.filter(i => String(i.product).trim().replace(/^0+/, '') === skuNum);
+        }
         matches.forEach(m => allFreshItems.push(m));
     });
 
-    if (!allFreshItems.length) { toast('No FRESH items in SAP data', 'red'); return; }
+    if (!allFreshItems.length) { 
+        toast('No FRESH items found in SAP data', 'red'); 
+        return; 
+    }
 
     pccProduct = 'FRESH';
     pccItems = allFreshItems.map(i => ({
         hu: i.hu, sapBin: i.sapBin, sapQty: i.sapQty,
         batch: i.batch, desc: i.desc,
-        product: i.product,  // track individual product for fresh multi-SKU
+        product: i.product,
         countQty: null, checked: false,
         missing: false, actualBin: null
     }));
 
-    document.getElementById('pcc-product').textContent = `FRESH (${FRESH_SKUS.length} SKUs)`;
+    document.getElementById('pcc-product').textContent = `FRESH (${new Set(allFreshItems.map(i=>i.product)).size} SKUs)`;
     document.getElementById('pcc-desc').textContent = `${allFreshItems.length} HUs across ${new Set(allFreshItems.map(i => i.product)).size} products`;
     switchScreen('product-cc');
     renderPCCList();

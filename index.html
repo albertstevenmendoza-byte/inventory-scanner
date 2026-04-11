@@ -1325,15 +1325,17 @@ function acceptCCTrigger() {
 // ===== PRODUCT CYCLE COUNT =====
 function startProductCycle(sku) {
     if (!sku) { toast('Enter a product #', 'red'); return; }
-    sku = sku.trim();
-    const matches = sapMaster.filter(i => i.product === sku);
-    if (!matches.length) { toast('Product not in SAP data', 'red'); return; }
+    sku = String(sku).trim();
+    const matches = sapMaster.filter(i => String(i.product).trim() === sku);
+    if (!matches.length) { toast(`Product ${sku} not in SAP data`, 'red'); return; }
 
     pccProduct = sku;
     pccItems = matches.map(i => ({
         hu: i.hu, sapBin: i.sapBin, sapQty: i.sapQty,
         batch: i.batch, desc: i.desc,
-        countQty: null, checked: false
+        countQty: null, checked: false,
+        missing: false,        // NEW: track missing HUs
+        actualBin: null        // NEW: track bin movements
     }));
 
     document.getElementById('pcc-product').textContent = sku;
@@ -1346,7 +1348,7 @@ function renderPCCList() {
     const container = document.getElementById('pcc-list');
     container.innerHTML = '';
 
-    const checked = pccItems.filter(i => i.checked).length;
+    const checked = pccItems.filter(i => i.checked || i.missing).length;
     const total = pccItems.length;
     document.getElementById('pcc-progress-badge').textContent = `${checked} / ${total}`;
     document.getElementById('pcc-progress-fill').style.width = total > 0 ? Math.round((checked / total) * 100) + '%' : '0%';
@@ -1359,7 +1361,7 @@ function renderPCCList() {
     });
 
     Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])).forEach(([bin, items]) => {
-        const allDone = items.every(o => o.item.checked);
+        const allDone = items.every(o => o.item.checked || o.item.missing);
         const div = document.createElement('div');
         div.className = `hu-card ${allDone ? 'confirmed' : ''}`;
         div.innerHTML = `
@@ -1371,26 +1373,63 @@ function renderPCCList() {
         items.forEach(({ item, idx }) => {
             const row = document.createElement('div');
             row.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid var(--border);';
+
+            const isMissing = item.missing;
+            const isChecked = item.checked;
+            const hasMoved = item.actualBin && item.actualBin !== item.sapBin;
+
+            let statusHTML = '';
+            if (isMissing) {
+                statusHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--radius-sm);margin-top:6px;">
+                        <span style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase;">✗ Missing</span>
+                        <button onclick="pccUnmiss(${idx})" style="background:none;color:var(--text-3);font-size:10px;font-weight:700;padding:4px 8px;">Undo</button>
+                    </div>`;
+            } else if (isChecked) {
+                statusHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius-sm);margin-top:6px;">
+                        <span style="font-size:10px;font-weight:800;color:var(--green);">✓ Counted: <span class="mono">${item.countQty}</span></span>
+                        <button onclick="pccReset(${idx})" style="background:none;color:var(--text-3);font-size:10px;font-weight:700;padding:4px 8px;">Undo</button>
+                    </div>`;
+            }
+
+            // Movement display
+            let moveHTML = '';
+            if (hasMoved) {
+                moveHTML = `<div style="margin-top:6px;padding:6px 10px;background:var(--purple-bg);border:1px solid var(--purple-border);border-radius:var(--radius-sm);font-size:10px;font-weight:700;color:var(--purple);">📍 Moved → ${item.actualBin}</div>`;
+            }
+
             row.innerHTML = `
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                     <span class="mono" style="font-size:11px;font-weight:600;color:var(--text-2);">HU ···${(item.hu || '').slice(-4)}</span>
                     <span style="font-size:10px;color:var(--text-3);font-weight:600;">SAP: ${item.sapQty}</span>
                 </div>
-                <div class="qty-row">
-                    <button class="qty-stepper" onclick="pccAdjust(${idx},-1)">−</button>
-                    <input type="number" inputmode="numeric" class="qty-input" value="${item.countQty !== null ? item.countQty : ''}" placeholder="${item.sapQty}" onfocus="this.select()" oninput="pccSetQty(${idx},this.value)">
-                    <button class="qty-stepper" onclick="pccAdjust(${idx},1)">+</button>
-                </div>
-                <button onclick="pccConfirm(${idx})" class="hu-btn confirm" style="margin-top:6px;">Confirm ${item.sapQty}</button>`;
+                ${item.product && pccProduct === 'FRESH' ? `<div style="font-size:10px;color:var(--accent);font-weight:600;margin-bottom:6px;">${item.product} · ${item.desc || ''}</div>` : ''}
+                ${!isChecked && !isMissing ? `
+                    <div class="qty-row">
+                        <button class="qty-stepper" onclick="pccAdjust(${idx},-1)">−</button>
+                        <input type="number" inputmode="numeric" class="qty-input" value="${item.countQty !== null ? item.countQty : ''}" placeholder="${item.sapQty}" onfocus="this.select()" oninput="pccSetQty(${idx},this.value)">
+                        <button class="qty-stepper" onclick="pccAdjust(${idx},1)">+</button>
+                    </div>
+                    <div class="hu-actions">
+                        <button class="hu-btn confirm" onclick="pccConfirm(${idx})">Confirm ${item.sapQty}</button>
+                        <button class="hu-btn miss-btn" onclick="pccMiss(${idx})">Missing</button>
+                    </div>
+                    <button onclick="pccBinMove(${idx})" style="width:100%;margin-top:6px;padding:10px 14px;background:${hasMoved ? 'var(--purple-bg)' : 'var(--surface-2)'};border:1.5px solid ${hasMoved ? 'var(--purple-border)' : 'var(--border)'};border-radius:var(--radius-sm);font-size:11px;font-weight:700;color:${hasMoved ? 'var(--purple)' : 'var(--text-3)'};text-align:left;">
+                        📍 ${hasMoved ? 'Moved → ' + item.actualBin : 'Record Bin Move'}
+                    </button>
+                ` : ''}
+                ${statusHTML}
+                ${isChecked ? moveHTML : ''}`;
             div.appendChild(row);
         });
 
         container.appendChild(div);
     });
 
-    // Update verify button
-    const allChecked = pccItems.every(i => i.checked);
-    document.getElementById('btn-pcc-verify').className = `primary-btn ${allChecked ? 'blue' : 'disabled'}`;
+    // Update verify button — all must be checked or missing
+    const allDone = pccItems.every(i => i.checked || i.missing);
+    document.getElementById('btn-pcc-verify').className = `primary-btn ${allDone ? 'blue' : 'disabled'}`;
 }
 
 function pccConfirm(idx) {
@@ -1413,8 +1452,41 @@ function pccSetQty(idx, val) {
     renderPCCList();
 }
 
+function pccMiss(idx) {
+    haptic();
+    pccItems[idx].missing = true;
+    pccItems[idx].checked = false;
+    pccItems[idx].countQty = 0;
+    renderPCCList();
+}
+
+function pccUnmiss(idx) {
+    haptic();
+    pccItems[idx].missing = false;
+    pccItems[idx].countQty = null;
+    renderPCCList();
+}
+
+function pccReset(idx) {
+    haptic();
+    pccItems[idx].checked = false;
+    pccItems[idx].missing = false;
+    pccItems[idx].countQty = null;
+    renderPCCList();
+}
+
+function pccBinMove(idx) {
+    haptic();
+    const item = pccItems[idx];
+    const newBin = prompt(`HU is in SAP bin ${item.sapBin}.\nEnter the actual bin where you found it:`, item.actualBin || '');
+    if (newBin !== null) {
+        pccItems[idx].actualBin = newBin.trim().toUpperCase() || null;
+        renderPCCList();
+    }
+}
+
 function exitProductCC() {
-    if (pccItems.some(i => i.checked) && !confirm('Leave product count? Progress will be lost.')) return;
+    if (pccItems.some(i => i.checked || i.missing) && !confirm('Leave product count? Progress will be lost.')) return;
     pccProduct = '';
     pccItems = [];
     switchScreen('setup');
@@ -1422,22 +1494,29 @@ function exitProductCC() {
 
 // ===== VERIFICATION =====
 function verifyProductCC() {
-    if (!pccItems.every(i => i.checked)) { toast('Count all bins first', 'amber'); return; }
+    if (!pccItems.every(i => i.checked || i.missing)) { toast('Check all items first', 'amber'); return; }
     haptic();
 
     const sapTotal = pccItems.reduce((s, i) => s + i.sapQty, 0);
-    const floorTotal = pccItems.reduce((s, i) => s + (i.countQty || 0), 0) + pccTriggerQty;
+    const floorTotal = pccItems.filter(i => !i.missing).reduce((s, i) => s + (i.countQty || 0), 0) + pccTriggerQty;
     const variance = floorTotal - sapTotal;
     const isMatch = variance === 0;
+    const missingCount = pccItems.filter(i => i.missing).length;
+    const movedCount = pccItems.filter(i => i.actualBin && i.actualBin !== i.sapBin).length;
 
-    // Log all items
-    const itemsToLog = pccItems.map(i => ({
-        hu: i.hu, product: pccProduct, desc: i.desc, batch: i.batch,
-        sapBin: i.sapBin, scannedBin: i.sapBin,
-        sapQty: i.sapQty, countQty: i.countQty || 0,
-        type: (i.countQty || 0) === i.sapQty ? 'ok' : 'adj',
-        note: '', photoUrl: ''
-    }));
+    // Log all items with proper types
+    const itemsToLog = pccItems.map(i => {
+        let type = 'ok';
+        if (i.missing) type = 'miss';
+        else if (i.actualBin && i.actualBin !== i.sapBin) type = 'move';
+        else if ((i.countQty || 0) !== i.sapQty) type = 'adj';
+        return {
+            hu: i.hu, product: i.product || pccProduct, desc: i.desc, batch: i.batch,
+            sapBin: i.sapBin, scannedBin: i.actualBin || i.sapBin,
+            sapQty: i.sapQty, countQty: i.missing ? 0 : (i.countQty || 0),
+            type, note: i.missing ? 'Missing during product cycle count' : '', photoUrl: ''
+        };
+    });
 
     enqueue({ action: 'logAudit', user: auditorName || 'Counter', bin: `PRODUCT: ${pccProduct}`, items: itemsToLog });
 
@@ -1453,6 +1532,8 @@ function verifyProductCC() {
             <div class="verify-row"><span class="vr-label">SAP System Total</span><span class="vr-value">${sapTotal}</span></div>
             <div class="verify-row"><span class="vr-label">Floor Count Total</span><span class="vr-value" style="color:var(--accent)">${floorTotal}</span></div>
             ${pccTriggerQty > 0 ? `<div class="verify-row"><span class="vr-label">Includes Extra Found</span><span class="vr-value" style="color:var(--cyan)">+${pccTriggerQty}</span></div>` : ''}
+            ${missingCount > 0 ? `<div class="verify-row"><span class="vr-label">Missing HUs</span><span class="vr-value" style="color:var(--red)">${missingCount}</span></div>` : ''}
+            ${movedCount > 0 ? `<div class="verify-row"><span class="vr-label">Bin Movements</span><span class="vr-value" style="color:var(--purple)">${movedCount}</span></div>` : ''}
             <div class="verify-row"><span class="vr-label">Variance</span><span class="vr-value" style="color:${isMatch ? 'var(--green)' : 'var(--red)'}">${variance >= 0 ? '+' : ''}${variance}</span></div>
             <div class="verify-result ${isMatch ? 'match' : 'mismatch'}">
                 <h4>${isMatch ? '✓ Totals Match' : '✗ Variance Detected'}</h4>
@@ -1463,19 +1544,25 @@ function verifyProductCC() {
             </div>
         </div>
         <div class="section-title">Bin Breakdown</div>
-        ${pccItems.map(i => `
-            <div class="report-card">
+        ${pccItems.map(i => {
+            const isMiss = i.missing;
+            const isMoved = i.actualBin && i.actualBin !== i.sapBin;
+            const statusColor = isMiss ? 'var(--red)' : (isMoved ? 'var(--purple)' : ((i.countQty || 0) !== i.sapQty ? 'var(--amber)' : 'var(--green)'));
+            const statusLabel = isMiss ? '✗ MISS' : (isMoved ? '→ ' + i.actualBin : '');
+            return `
+            <div class="report-card" style="${isMiss ? 'opacity:0.6;' : ''}">
                 <div>
                     <div class="mono" style="font-size:12px;font-weight:700;color:var(--accent);">${i.sapBin}</div>
                     <div style="font-size:10px;color:var(--text-3);font-weight:600;">HU ···${(i.hu || '').slice(-4)}</div>
+                    ${statusLabel ? `<div style="font-size:9px;font-weight:800;color:${statusColor};margin-top:2px;">${statusLabel}</div>` : ''}
                 </div>
                 <div style="text-align:right;">
-                    <span class="mono" style="font-size:14px;font-weight:700;">${i.countQty || 0}</span>
+                    <span class="mono" style="font-size:14px;font-weight:700;color:${statusColor};">${isMiss ? '—' : (i.countQty || 0)}</span>
                     <span style="font-size:10px;color:var(--text-3);"> / ${i.sapQty}</span>
-                    ${(i.countQty || 0) !== i.sapQty ? `<div style="font-size:9px;font-weight:700;color:var(--amber);">Δ ${(i.countQty || 0) - i.sapQty}</div>` : ''}
+                    ${!isMiss && (i.countQty || 0) !== i.sapQty ? `<div style="font-size:9px;font-weight:700;color:var(--amber);">Δ ${(i.countQty || 0) - i.sapQty}</div>` : ''}
                 </div>
-            </div>
-        `).join('')}`;
+            </div>`;
+        }).join('')}`;
 
     switchScreen('verify');
     toast(isMatch ? 'Totals match!' : 'Variance detected', isMatch ? 'green' : 'amber');
@@ -1698,15 +1785,30 @@ function finalizeBin() {
     stepBin(1); // Auto-advance to next bin
 }
 
-// ===== FRESH CYCLE (simplified — uses product cycle count flow) =====
+// ===== FRESH CYCLE — counts ALL fresh SKUs in one session =====
 function startFreshCycle() {
-    // For now, route to the first Fresh SKU that has SAP data
-    // A full fresh mode would iterate through all 14 — this is the simplified 2.0 entry point
-    const available = FRESH_SKUS.filter(sku => sapMaster.some(i => i.product === sku));
-    if (!available.length) { toast('No FRESH items in SAP data', 'red'); return; }
-    // Use the full product cycle count flow for each SKU
-    startProductCycle(available[0]);
-    // TODO: In next iteration, build a multi-SKU fresh flow that chains through all 14
+    // Gather ALL HUs across ALL fresh SKUs into a single product cycle count view
+    const allFreshItems = [];
+    FRESH_SKUS.forEach(sku => {
+        const matches = sapMaster.filter(i => String(i.product).trim() === sku);
+        matches.forEach(m => allFreshItems.push(m));
+    });
+
+    if (!allFreshItems.length) { toast('No FRESH items in SAP data', 'red'); return; }
+
+    pccProduct = 'FRESH';
+    pccItems = allFreshItems.map(i => ({
+        hu: i.hu, sapBin: i.sapBin, sapQty: i.sapQty,
+        batch: i.batch, desc: i.desc,
+        product: i.product,  // track individual product for fresh multi-SKU
+        countQty: null, checked: false,
+        missing: false, actualBin: null
+    }));
+
+    document.getElementById('pcc-product').textContent = `FRESH (${FRESH_SKUS.length} SKUs)`;
+    document.getElementById('pcc-desc').textContent = `${allFreshItems.length} HUs across ${new Set(allFreshItems.map(i => i.product)).size} products`;
+    switchScreen('product-cc');
+    renderPCCList();
 }
 
 // ===== REPORT VIEW =====
